@@ -29,7 +29,7 @@ export default async function ProyectoPage({ params }: PageProps) {
 
   const { data: proyecto } = await supabaseAdmin
     .from("proyectos")
-    .select("id,nombre,slug,precio_boleta,ghl_form_url")
+    .select("id,nombre,slug,precio_boleta,formulario_compra_url")
     .eq("empresa_id", empresa.id)
     .eq("slug", proyectoSlug)
     .maybeSingle();
@@ -57,7 +57,7 @@ export default async function ProyectoPage({ params }: PageProps) {
       empresaNombre={empresa.nombre}
       proyectoNombre={proyecto.nombre}
       precioBoleta={Number(proyecto.precio_boleta || 0)}
-      ghlFormUrl={proyecto.ghl_form_url || ""}
+      formularioCompraUrl={proyecto.formulario_compra_url || ""}
       boletas={boletas || []}
     />
   );
