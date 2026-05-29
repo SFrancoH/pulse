@@ -22,6 +22,7 @@ export default function CrearProyectoAdminPage() {
   const [empresaId, setEmpresaId] = useState("");
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState("60000");
+  const [ghlFormUrl, setGhlFormUrl] = useState("");
   const [cargandoEmpresas, setCargandoEmpresas] = useState(true);
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState("");
@@ -69,6 +70,7 @@ export default function CrearProyectoAdminPage() {
           empresa_id: empresaId,
           nombre,
           precio_boleta: Number(precio || 60000),
+          ghl_form_url: ghlFormUrl,
         }),
       });
 
@@ -147,6 +149,17 @@ export default function CrearProyectoAdminPage() {
                 placeholder="60000"
                 className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none"
                 required
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">URL formulario GHL</label>
+              <input
+                type="url"
+                value={ghlFormUrl}
+                onChange={(e) => setGhlFormUrl(e.target.value)}
+                placeholder="https://forms.leadconnectorhq.com/..."
+                className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none"
               />
             </div>
 
