@@ -13,7 +13,7 @@ type ProyectoVentaClientProps = {
   empresaNombre: string;
   proyectoNombre: string;
   precioBoleta: number;
-  ghlFormUrl: string | null;
+  formularioCompraUrl: string | null;
   boletas: Boleta[];
 };
 
@@ -25,7 +25,7 @@ export default function ProyectoVentaClient({
   empresaNombre,
   proyectoNombre,
   precioBoleta,
-  ghlFormUrl,
+  formularioCompraUrl,
   boletas,
 }: ProyectoVentaClientProps) {
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
@@ -61,26 +61,25 @@ export default function ProyectoVentaClient({
 
   const totalPagar = seleccionados.length * precioBoleta;
 
-  const ghlUrl = useMemo(() => {
-    if (!ghlFormUrl) return "";
+  const formularioUrl = useMemo(() => {
+    if (!formularioCompraUrl) return "";
 
     const params = new URLSearchParams();
 
     seleccionados.forEach((numero, index) => {
-      params.set(`Consecutivo_${index + 1}`, numero);
+      params.set(`consecutivo_${index + 1}`, numero);
     });
 
     for (let index = seleccionados.length; index < MAX_SELECCION; index++) {
-      params.set(`Consecutivo_${index + 1}`, "");
+      params.set(`consecutivo_${index + 1}`, "");
     }
 
-    params.set("Nombre_proyecto", proyectoNombre);
     params.set("nombre_proyecto", proyectoNombre);
     params.set("valor_a_pagar", String(totalPagar));
 
-    const separador = ghlFormUrl.includes("?") ? "&" : "?";
-    return `${ghlFormUrl}${separador}${params.toString()}`;
-  }, [ghlFormUrl, proyectoNombre, seleccionados, totalPagar]);
+    const separador = formularioCompraUrl.includes("?") ? "&" : "?";
+    return `${formularioCompraUrl}${separador}${params.toString()}`;
+  }, [formularioCompraUrl, proyectoNombre, seleccionados, totalPagar]);
 
   function reservar() {
     if (seleccionados.length === 0) {
@@ -88,8 +87,8 @@ export default function ProyectoVentaClient({
       return;
     }
 
-    if (!ghlFormUrl) {
-      mostrarToast("Este proyecto no tiene formulario GHL configurado.");
+    if (!formularioCompraUrl) {
+      mostrarToast("Este proyecto no tiene formulario de compra configurado.");
       return;
     }
 
@@ -177,7 +176,7 @@ export default function ProyectoVentaClient({
               <button type="button" onClick={() => setModalAbierto(false)} className="text-3xl leading-none text-white max-[932px]:text-[34px]">×</button>
             </div>
             <div className="h-[calc(100%-52px)] max-[932px]:h-[calc(100%-64px)]">
-              <iframe src={ghlUrl} className="h-full w-full border-0" title="Formulario GHL" />
+              <iframe src={formularioUrl} className="h-full w-full border-0" title="Formulario de compra" />
             </div>
           </div>
         </div>
