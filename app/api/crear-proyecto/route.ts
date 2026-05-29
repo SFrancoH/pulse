@@ -3,7 +3,7 @@ import { slugify } from "@/lib/slug";
 
 const TOTAL_NUMEROS = 10000;
 const TAMANO_LOTE = 1000;
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pulse-hqaj29tnm-soy-sebastian-franco-s-projects.vercel.app";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pulse-soy-sebastian-franco-s-projects.vercel.app";
 
 function crearBoletas(empresa_id: string, proyecto_id: string) {
   return Array.from({ length: TOTAL_NUMEROS }, (_, index) => ({
@@ -21,6 +21,7 @@ export async function POST(req: Request) {
     const empresa_id = String(body.empresa_id || "").trim();
     const nombre = String(body.nombre || "").trim();
     const precio_boleta = Number(body.precio_boleta || 60000);
+    const ghl_form_url = String(body.ghl_form_url || "").trim();
 
     if (!empresa_id || !nombre) {
       return Response.json(
@@ -59,6 +60,7 @@ export async function POST(req: Request) {
         nombre,
         slug: proyectoSlug,
         precio_boleta,
+        ghl_form_url,
         estado: "activo",
       });
 
