@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const empresa_id = String(body.empresa_id || "").trim();
     const nombre = String(body.nombre || "").trim();
     const precio_boleta = Number(body.precio_boleta || 60000);
-    const ghl_form_url = String(body.ghl_form_url || "").trim();
+    const formulario_compra_url = String(body.formulario_compra_url || "").trim();
 
     if (!empresa_id || !nombre) {
       return Response.json(
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
         nombre,
         slug: proyectoSlug,
         precio_boleta,
-        ghl_form_url,
+        formulario_compra_url,
         estado: "activo",
       });
 
