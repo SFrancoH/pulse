@@ -17,9 +17,25 @@ function normalizarNumero(valor: string) {
   return soloNumeros.padStart(4, "0").slice(-4);
 }
 
+async function leerPayload(req: Request): Promise<AsignarPayload> {
+  const contentType = req.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return (await req.json()) as AsignarPayload;
+  }
+
+  const formData = await req.formData();
+
+  return {
+    boleta_id: String(formData.get("boleta_id") || ""),
+    vendedor_nombre: String(formData.get("vendedor_nombre") || ""),
+    numero_hasta: String(formData.get("numero_hasta") || ""),
+  };
+}
+
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as AsignarPayload;
+    const body = await leerPayload(req);
 
     const boleta_id = limpiarTexto(body.boleta_id);
     const vendedor_nombre = limpiarTexto(body.vendedor_nombre);
@@ -122,6 +138,14 @@ export async function POST(req: Request) {
 
     if (historialError) {
       throw historialError;
+    }
+
+    const url = new URL(req.url);
+    url.pathname = `/asignar/${boleta_id}`;
+    url.search = `?ok=1&asignadas=${idsDisponibles.length}&omitidas=${(candidatas?.length || 0) - idsDisponibles.length}`;
+
+    if (!req.headers.get("content-type")?.includes("application/json")) {
+      return Response.redirect(url, 303);
     }
 
     return Response.json({
