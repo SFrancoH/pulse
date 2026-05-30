@@ -86,6 +86,7 @@ export async function POST(req: Request) {
     }
 
     const url = `${BASE_URL}/${empresa.slug}/${proyectoSlug}`;
+    const webhook_url = `${BASE_URL}/api/proyectos/${proyecto_id}/actualizar-boleta`;
 
     return Response.json({
       success: true,
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
       proyecto_id,
       proyecto_slug: proyectoSlug,
       url,
+      webhook_url,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error interno";
