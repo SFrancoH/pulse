@@ -13,6 +13,7 @@ type CrearProyectoResponse = {
   success: boolean;
   message?: string;
   url?: string;
+  webhook_url?: string;
   proyecto_id?: string;
   proyecto_slug?: string;
 };
@@ -27,7 +28,7 @@ export default function CrearProyectoAdminPage() {
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState("");
   const [resultado, setResultado] = useState<CrearProyectoResponse | null>(null);
-  const [copiado, setCopiado] = useState(false);
+  const [copiado, setCopiado] = useState("");
 
   useEffect(() => {
     async function cargarEmpresas() {
@@ -58,7 +59,7 @@ export default function CrearProyectoAdminPage() {
     setCreando(true);
     setError("");
     setResultado(null);
-    setCopiado(false);
+    setCopiado("");
 
     try {
       const res = await fetch("/api/crear-proyecto", {
@@ -88,11 +89,11 @@ export default function CrearProyectoAdminPage() {
     }
   }
 
-  async function copiarUrl() {
-    if (!resultado?.url) return;
-    await navigator.clipboard.writeText(resultado.url);
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 2500);
+  async function copiar(valor: string | undefined, tipo: string) {
+    if (!valor) return;
+    await navigator.clipboard.writeText(valor);
+    setCopiado(tipo);
+    setTimeout(() => setCopiado(""), 2500);
   }
 
   return (
@@ -178,16 +179,27 @@ export default function CrearProyectoAdminPage() {
               <p className="mt-3 text-sm text-[#6F665C]">ID proyecto:</p>
               <p className="break-all font-mono text-sm font-semibold">{resultado.proyecto_id}</p>
 
-              <p className="mt-4 text-sm text-[#6F665C]">URL pública:</p>
+              <p className="mt-4 text-sm text-[#6F665C]">URL pública de venta:</p>
               <p className="break-all rounded-xl bg-white p-3 font-mono text-sm">{resultado.url}</p>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <p className="mt-4 text-sm text-[#6F665C]">URL pública webhook para actualizar boletas:</p>
+              <p className="break-all rounded-xl bg-white p-3 font-mono text-sm">{resultado.webhook_url}</p>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <button
                   type="button"
-                  onClick={copiarUrl}
+                  onClick={() => copiar(resultado.url, "landing")}
                   className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white"
                 >
-                  {copiado ? "URL copiada" : "Copiar URL"}
+                  {copiado === "landing" ? "Copiada" : "Copiar landing"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => copiar(resultado.webhook_url, "webhook")}
+                  className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white"
+                >
+                  {copiado === "webhook" ? "Copiado" : "Copiar webhook"}
                 </button>
 
                 <a
