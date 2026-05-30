@@ -8,6 +8,46 @@ type PageProps = {
   }>;
 };
 
+type BoletaDisponible = {
+  id: string;
+  numero: string;
+};
+
+async function cargarBoletasDisponibles(empresaId: string, proyectoId: string) {
+  const todas: BoletaDisponible[] = [];
+  const pageSize = 1000;
+  const maxRegistros = 10000;
+
+  for (let desde = 0; desde < maxRegistros; desde += pageSize) {
+    const hasta = desde + pageSize - 1;
+
+    const { data, error } = await supabaseAdmin
+      .from("boletas")
+      .select("id,numero")
+      .eq("empresa_id", empresaId)
+      .eq("proyecto_id", proyectoId)
+      .eq("estado", "disponible")
+      .order("numero", { ascending: true })
+      .range(desde, hasta);
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      break;
+    }
+
+    todas.push(...data);
+
+    if (data.length < pageSize) {
+      break;
+    }
+  }
+
+  return todas;
+}
+
 export default async function ProyectoPage({ params }: PageProps) {
   const { empresaSlug, proyectoSlug } = await params;
 
@@ -44,13 +84,7 @@ export default async function ProyectoPage({ params }: PageProps) {
     );
   }
 
-  const { data: boletas } = await supabaseAdmin
-    .from("boletas")
-    .select("id,numero")
-    .eq("empresa_id", empresa.id)
-    .eq("proyecto_id", proyecto.id)
-    .eq("estado", "disponible")
-    .order("numero", { ascending: true });
+  const boletas = await cargarBoletasDisponibles(empresa.id, proyecto.id);
 
   return (
     <ProyectoVentaClient
@@ -58,7 +92,7 @@ export default async function ProyectoPage({ params }: PageProps) {
       proyectoNombre={proyecto.nombre}
       precioBoleta={Number(proyecto.precio_boleta || 0)}
       formularioCompraUrl={proyecto.formulario_compra_url || ""}
-      boletas={boletas || []}
+      boletas={boletas}
     />
   );
 }
