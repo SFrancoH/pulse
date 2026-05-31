@@ -1,3 +1,4 @@
+import { sincronizarBoletaConSheet } from "@/lib/apps-script-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -121,7 +122,7 @@ export async function POST(req: Request, { params }: PageProps) {
       .update(updateData)
       .eq("proyecto_id", proyectoId)
       .eq("numero", numero)
-      .select("id,numero,estado,proyecto_id,nombre_cliente,telefono_cliente")
+      .select("id,numero,estado,proyecto_id,nombre_cliente,telefono_cliente,email_cliente,valor_pagado,empresa_id")
       .maybeSingle();
 
     if (error) throw error;
@@ -136,6 +137,24 @@ export async function POST(req: Request, { params }: PageProps) {
         },
         { status: 404 }
       );
+    }
+
+    const { data: empresa } = await supabaseAdmin
+      .from("empresas")
+      .select("apps_script_url")
+      .eq("id", data.empresa_id)
+      .maybeSingle();
+
+    if (empresa?.apps_script_url) {
+      await sincronizarBoletaConSheet(empresa.apps_script_url, {
+        proyecto: proyectoId,
+        numero: data.numero,
+        estado: data.estado,
+        nombre: data.nombre_cliente,
+        telefono: data.telefono_cliente,
+        email: data.email_cliente,
+        valor_pagado: data.valor_pagado,
+      });
     }
 
     return Response.json({
