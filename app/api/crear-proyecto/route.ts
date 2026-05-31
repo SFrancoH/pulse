@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sincronizarBoletasInicialesConSheet } from "@/lib/apps-script-sync";
 import { slugify } from "@/lib/slug";
 
 const TOTAL_NUMEROS = 10000;
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
 
     const { data: empresa, error: empresaError } = await supabaseAdmin
       .from("empresas")
-      .select("id,nombre,slug")
+      .select("id,nombre,slug,apps_script_url")
       .eq("id", empresa_id)
       .single();
 
@@ -85,6 +86,18 @@ export async function POST(req: Request) {
       }
     }
 
+    let sheet_sync = "sin_configurar";
+
+    if (empresa.apps_script_url) {
+      await sincronizarBoletasInicialesConSheet(
+        empresa.apps_script_url,
+        proyecto_id,
+        boletas.map((boleta) => boleta.numero)
+      );
+
+      sheet_sync = "sincronizado";
+    }
+
     const url = `${BASE_URL}/${empresa.slug}/${proyectoSlug}`;
     const webhook_url = `${BASE_URL}/api/proyectos/${proyecto_id}/actualizar-boleta`;
 
@@ -95,6 +108,7 @@ export async function POST(req: Request) {
       proyecto_slug: proyectoSlug,
       url,
       webhook_url,
+      sheet_sync,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error interno";
