@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 
+type Empresa = {
+  id: string;
+  nombre: string;
+  slug: string;
+  apps_script_url?: string;
+};
+
 type EmpresaResponse = {
   success: boolean;
   message?: string;
-  empresa?: {
-    id: string;
-    nombre: string;
-    slug: string;
-    apps_script_url?: string;
-  };
+  empresa?: Empresa;
 };
 
 function slugify(value: string) {
@@ -31,7 +33,7 @@ export default function CrearEmpresaPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [resultado, setResultado] = useState<EmpresaResponse | null>(null);
+  const [empresaCreada, setEmpresaCreada] = useState<Empresa | null>(null);
   const [copiado, setCopiado] = useState(false);
 
   function handleNombre(value: string) {
@@ -47,7 +49,7 @@ export default function CrearEmpresaPage() {
 
     setLoading(true);
     setError("");
-    setResultado(null);
+    setEmpresaCreada(null);
 
     try {
       const res = await fetch("/api/crear-empresa", {
@@ -65,11 +67,11 @@ export default function CrearEmpresaPage() {
 
       const data = (await res.json()) as EmpresaResponse;
 
-      if (!data.success) {
+      if (!data.success || !data.empresa) {
         throw new Error(data.message || "No se pudo crear la empresa.");
       }
 
-      setResultado(data);
+      setEmpresaCreada(data.empresa);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -155,30 +157,30 @@ export default function CrearEmpresaPage() {
             </button>
           </form>
 
-          {resultado?.empresa && (
+          {empresaCreada && (
             <div className="mt-8 rounded-2xl border border-[#E0D9CE] bg-[#F9F6F1] p-5">
               <p className="text-sm uppercase tracking-[3px] text-[#9A9187]">Empresa creada</p>
 
               <div className="mt-4 space-y-4 text-sm">
                 <div>
                   <p className="text-[#6F665C]">ID empresa</p>
-                  <p className="font-mono font-semibold break-all">{resultado.empresa.id}</p>
+                  <p className="break-all font-mono font-semibold">{empresaCreada.id}</p>
                 </div>
 
                 <div>
                   <p className="text-[#6F665C]">Slug</p>
-                  <p className="font-mono font-semibold break-all">{resultado.empresa.slug}</p>
+                  <p className="break-all font-mono font-semibold">{empresaCreada.slug}</p>
                 </div>
 
                 <div>
                   <p className="text-[#6F665C]">Apps Script</p>
-                  <p className="font-mono font-semibold break-all">{resultado.empresa.apps_script_url}</p>
+                  <p className="break-all font-mono font-semibold">{empresaCreada.apps_script_url}</p>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() => copiar(resultado.empresa.id)}
+                onClick={() => copiar(empresaCreada.id)}
                 className="mt-5 rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white"
               >
                 {copiado ? "ID copiado" : "Copiar ID empresa"}
