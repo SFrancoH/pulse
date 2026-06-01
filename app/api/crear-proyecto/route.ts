@@ -4,7 +4,7 @@ import { slugify } from "@/lib/slug";
 
 const TOTAL_NUMEROS = 10000;
 const TAMANO_LOTE = 1000;
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pulse-soy-sebastian-franco-s-projects.vercel.app";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pulse-sand-omega.vercel.app";
 
 function crearBoletas(empresa_id: string, proyecto_id: string) {
   return Array.from({ length: TOTAL_NUMEROS }, (_, index) => ({
@@ -87,18 +87,24 @@ export async function POST(req: Request) {
     }
 
     let sheet_sync = "sin_configurar";
+    let sheet_sync_error = "";
 
     if (empresa.apps_script_url) {
-      await sincronizarBoletasInicialesConSheet(
-        empresa.apps_script_url,
-        proyecto_id,
-        boletas.map((boleta) => boleta.numero)
-      );
+      try {
+        await sincronizarBoletasInicialesConSheet(
+          empresa.apps_script_url,
+          proyecto_id,
+          boletas.map((boleta) => boleta.numero)
+        );
 
-      sheet_sync = "sincronizado";
+        sheet_sync = "sincronizado";
+      } catch (error: unknown) {
+        sheet_sync = "error";
+        sheet_sync_error = error instanceof Error ? error.message : "Error sincronizando Apps Script";
+      }
     }
 
-    const url = `${BASE_URL}/${empresa.slug}/${proyectoSlug}`;
+    const url = `${BASE_URL}/r/${empresa.slug}/${proyectoSlug}`;
     const webhook_url = `${BASE_URL}/api/proyectos/${proyecto_id}/actualizar-boleta`;
 
     return Response.json({
@@ -109,6 +115,7 @@ export async function POST(req: Request) {
       url,
       webhook_url,
       sheet_sync,
+      sheet_sync_error,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error interno";
