@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { use, useState } from "react";
 
 type ApiResponse = {
   success: boolean;
@@ -22,18 +22,13 @@ function limpiarEntrada(valor: string) {
 }
 
 export default function AsignarVendedorPage({ params }: Props) {
-  const [proyectoId, setProyectoId] = useState("");
+  const { proyectoId } = use(params);
   const [inputCodigo, setInputCodigo] = useState("");
   const [vendedor, setVendedor] = useState("");
   const [numeros, setNumeros] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<ApiResponse | null>(null);
   const [error, setError] = useState("");
-
-  useMemo(async () => {
-    const p = await params;
-    setProyectoId(p.proyectoId);
-  }, [params]);
 
   function agregarCodigo() {
     const valor = limpiarEntrada(inputCodigo);
