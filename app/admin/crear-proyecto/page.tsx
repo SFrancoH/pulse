@@ -18,6 +18,8 @@ type CrearProyectoResponse = {
   proyecto_slug?: string;
 };
 
+type CodigoEstado = "pendiente" | "generando" | "listo" | "error";
+
 export default function CrearProyectoAdminPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [empresaId, setEmpresaId] = useState("");
@@ -29,6 +31,9 @@ export default function CrearProyectoAdminPage() {
   const [error, setError] = useState("");
   const [resultado, setResultado] = useState<CrearProyectoResponse | null>(null);
   const [copiado, setCopiado] = useState("");
+  const [qrEstado, setQrEstado] = useState<CodigoEstado>("pendiente");
+  const [barcodeEstado, setBarcodeEstado] = useState<CodigoEstado>("pendiente");
+  const [codigoError, setCodigoError] = useState("");
 
   useEffect(() => {
     async function cargarEmpresas() {
@@ -60,6 +65,9 @@ export default function CrearProyectoAdminPage() {
     setError("");
     setResultado(null);
     setCopiado("");
+    setQrEstado("pendiente");
+    setBarcodeEstado("pendiente");
+    setCodigoError("");
 
     try {
       const res = await fetch("/api/crear-proyecto", {
@@ -94,6 +102,46 @@ export default function CrearProyectoAdminPage() {
     await navigator.clipboard.writeText(valor);
     setCopiado(tipo);
     setTimeout(() => setCopiado(""), 2500);
+  }
+
+  function descargarArchivo(url: string) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function generarQR() {
+    if (!resultado?.proyecto_id) return;
+
+    setQrEstado("generando");
+    setCodigoError("");
+
+    try {
+      descargarArchivo(`/api/proyectos/${resultado.proyecto_id}/generar-qr?desde=0&hasta=999`);
+      setQrEstado("listo");
+    } catch (err) {
+      setQrEstado("error");
+      setCodigoError(err instanceof Error ? err.message : "No se pudo generar el ZIP de QR.");
+    }
+  }
+
+  async function generarBarcodes() {
+    if (!resultado?.proyecto_id) return;
+
+    setBarcodeEstado("generando");
+    setCodigoError("");
+
+    try {
+      descargarArchivo(`/api/proyectos/${resultado.proyecto_id}/generar-barcodes?desde=0&hasta=999`);
+      setBarcodeEstado("listo");
+    } catch (err) {
+      setBarcodeEstado("error");
+      setCodigoError(err instanceof Error ? err.message : "No se pudo generar el ZIP de códigos de barras.");
+    }
   }
 
   return (
@@ -210,6 +258,43 @@ export default function CrearProyectoAdminPage() {
                 >
                   Abrir proyecto
                 </a>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-[#E0D9CE] bg-white p-4">
+                <p className="text-sm font-semibold">Generación de archivos físicos</p>
+                <p className="mt-1 text-sm text-[#6F665C]">
+                  Primero descarga los QR. Cuando termines, descarga los códigos de barras. Cada ZIP genera el rango 0000 a 0999 para evitar sobrecargar el servidor.
+                </p>
+
+                {codigoError && (
+                  <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {codigoError}
+                  </div>
+                )}
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={generarQR}
+                    disabled={qrEstado === "generando"}
+                    className="rounded-xl bg-[#E8620A] px-5 py-3 font-semibold text-white disabled:opacity-60"
+                  >
+                    {qrEstado === "generando" ? "Generando QR..." : qrEstado === "listo" ? "QR generado" : "Generar QR"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={generarBarcodes}
+                    disabled={qrEstado !== "listo" || barcodeEstado === "generando"}
+                    className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white disabled:opacity-40"
+                  >
+                    {barcodeEstado === "generando"
+                      ? "Generando códigos..."
+                      : barcodeEstado === "listo"
+                        ? "Códigos generados"
+                        : "Generar códigos de barras"}
+                  </button>
+                </div>
               </div>
             </div>
           )}
