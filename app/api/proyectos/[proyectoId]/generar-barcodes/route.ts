@@ -45,10 +45,10 @@ async function cargarBoletas(proyectoId: string, desde: number, hasta: number) {
 }
 
 async function crearImagenBarcode(boleta: Boleta) {
-  const codigo = `${boleta.proyecto_id}|${boleta.numero}`;
+  const codigo = boleta.numero;
 
   const barcode = await bwipjs.toBuffer({
-    bcid: "code128",
+    bcid: "code39",
     text: codigo,
     scale: 5,
     height: 18,
