@@ -20,6 +20,15 @@ type CrearProyectoResponse = {
 
 type CodigoEstado = "pendiente" | "generando" | "listo" | "error";
 
+const RANGOS = Array.from({ length: 10 }, (_, index) => ({
+  desde: index * 1000,
+  hasta: index * 1000 + 999,
+}));
+
+function fmtNumero(value: number) {
+  return String(value).padStart(4, "0");
+}
+
 export default function CrearProyectoAdminPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [empresaId, setEmpresaId] = useState("");
@@ -114,6 +123,12 @@ export default function CrearProyectoAdminPage() {
     a.remove();
   }
 
+  async function descargarLote(tipo: "qr" | "barcodes", desde: number, hasta: number) {
+    if (!resultado?.proyecto_id) return;
+    const endpoint = tipo === "qr" ? "generar-qr" : "generar-barcodes";
+    descargarArchivo(`/api/proyectos/${resultado.proyecto_id}/${endpoint}?desde=${desde}&hasta=${hasta}`);
+  }
+
   async function generarQR() {
     if (!resultado?.proyecto_id) return;
 
@@ -121,7 +136,7 @@ export default function CrearProyectoAdminPage() {
     setCodigoError("");
 
     try {
-      descargarArchivo(`/api/proyectos/${resultado.proyecto_id}/generar-qr?desde=0&hasta=999`);
+      descargarLote("qr", 0, 999);
       setQrEstado("listo");
     } catch (err) {
       setQrEstado("error");
@@ -136,7 +151,7 @@ export default function CrearProyectoAdminPage() {
     setCodigoError("");
 
     try {
-      descargarArchivo(`/api/proyectos/${resultado.proyecto_id}/generar-barcodes?desde=0&hasta=999`);
+      descargarLote("barcodes", 0, 999);
       setBarcodeEstado("listo");
     } catch (err) {
       setBarcodeEstado("error");
@@ -263,7 +278,7 @@ export default function CrearProyectoAdminPage() {
               <div className="mt-6 rounded-2xl border border-[#E0D9CE] bg-white p-4">
                 <p className="text-sm font-semibold">Generación de archivos físicos</p>
                 <p className="mt-1 text-sm text-[#6F665C]">
-                  Primero descarga los QR. Cuando termines, descarga los códigos de barras. Cada ZIP genera el rango 0000 a 0999 para evitar sobrecargar el servidor.
+                  Descarga los 10 lotes de QR y luego los 10 lotes de códigos de barras. Cada lote contiene 1.000 imágenes para completar los 10.000 números.
                 </p>
 
                 {codigoError && (
@@ -279,7 +294,7 @@ export default function CrearProyectoAdminPage() {
                     disabled={qrEstado === "generando"}
                     className="rounded-xl bg-[#E8620A] px-5 py-3 font-semibold text-white disabled:opacity-60"
                   >
-                    {qrEstado === "generando" ? "Generando QR..." : qrEstado === "listo" ? "QR generado" : "Generar QR"}
+                    {qrEstado === "generando" ? "Generando QR..." : qrEstado === "listo" ? "QR iniciado" : "Generar QR inicial"}
                   </button>
 
                   <button
@@ -291,10 +306,47 @@ export default function CrearProyectoAdminPage() {
                     {barcodeEstado === "generando"
                       ? "Generando códigos..."
                       : barcodeEstado === "listo"
-                        ? "Códigos generados"
-                        : "Generar códigos de barras"}
+                        ? "Códigos iniciados"
+                        : "Generar códigos iniciales"}
                   </button>
                 </div>
+
+                {qrEstado === "listo" && (
+                  <div className="mt-6 rounded-2xl border border-[#E0D9CE] bg-[#F9F6F1] p-4">
+                    <p className="text-sm font-semibold">Descargar todos los QR</p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {RANGOS.map((rango) => (
+                        <button
+                          key={`qr-${rango.desde}`}
+                          type="button"
+                          onClick={() => descargarLote("qr", rango.desde, rango.hasta)}
+                          className="rounded-xl border border-[#1A1A1A] bg-white px-4 py-3 text-sm font-semibold"
+                        >
+                          QR {fmtNumero(rango.desde)}-{fmtNumero(rango.hasta)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {qrEstado === "listo" && (
+                  <div className="mt-6 rounded-2xl border border-[#E0D9CE] bg-[#F9F6F1] p-4">
+                    <p className="text-sm font-semibold">Descargar todos los códigos de barras</p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {RANGOS.map((rango) => (
+                        <button
+                          key={`bar-${rango.desde}`}
+                          type="button"
+                          onClick={() => descargarLote("barcodes", rango.desde, rango.hasta)}
+                          disabled={barcodeEstado === "generando"}
+                          className="rounded-xl border border-[#1A1A1A] bg-white px-4 py-3 text-sm font-semibold disabled:opacity-50"
+                        >
+                          Barras {fmtNumero(rango.desde)}-{fmtNumero(rango.hasta)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
