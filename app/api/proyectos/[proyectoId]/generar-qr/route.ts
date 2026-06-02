@@ -24,6 +24,10 @@ function numeroDesdeSearch(searchParams: URLSearchParams, key: string, fallback:
   return Math.max(0, Math.min(9999, value));
 }
 
+function bufferToArrayBuffer(buffer: Buffer) {
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+}
+
 async function cargarBoletas(proyectoId: string, desde: number, hasta: number) {
   const desdeTexto = String(desde).padStart(4, "0");
   const hastaTexto = String(hasta).padStart(4, "0");
@@ -97,9 +101,10 @@ export async function GET(req: Request, { params }: PageProps) {
     }
 
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+    const zipArrayBuffer = bufferToArrayBuffer(zipBuffer);
     const fileName = `qr-${proyectoId}-${String(desde).padStart(4, "0")}-${String(hasta).padStart(4, "0")}.zip`;
 
-    return new Response(zipBuffer, {
+    return new Response(zipArrayBuffer, {
       headers: {
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="${fileName}"`,
