@@ -106,6 +106,7 @@ export async function POST(req: Request) {
 
     const url = `${BASE_URL}/r/${empresa.slug}/${proyectoSlug}`;
     const webhook_url = `${BASE_URL}/api/proyectos/${proyecto_id}/actualizar-boleta`;
+    const asignar_vendedor_url = `${BASE_URL}/admin/proyectos/${proyecto_id}/asignar-vendedor`;
 
     return Response.json({
       success: true,
@@ -114,6 +115,7 @@ export async function POST(req: Request) {
       proyecto_slug: proyectoSlug,
       url,
       webhook_url,
+      asignar_vendedor_url,
       sheet_sync,
       sheet_sync_error,
     });
