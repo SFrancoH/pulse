@@ -14,38 +14,18 @@ type BoletaDisponible = {
 };
 
 async function cargarBoletasDisponibles(empresaId: string, proyectoId: string) {
-  const todas: BoletaDisponible[] = [];
-  const pageSize = 1000;
-  const maxRegistros = 10000;
+  const { data, error } = await supabaseAdmin
+    .from("boletas")
+    .select("id,numero")
+    .eq("empresa_id", empresaId)
+    .eq("proyecto_id", proyectoId)
+    .eq("estado", "disponible")
+    .order("numero", { ascending: true })
+    .range(0, 999);
 
-  for (let desde = 0; desde < maxRegistros; desde += pageSize) {
-    const hasta = desde + pageSize - 1;
+  if (error) throw error;
 
-    const { data, error } = await supabaseAdmin
-      .from("boletas")
-      .select("id,numero")
-      .eq("empresa_id", empresaId)
-      .eq("proyecto_id", proyectoId)
-      .eq("estado", "disponible")
-      .order("numero", { ascending: true })
-      .range(desde, hasta);
-
-    if (error) {
-      throw error;
-    }
-
-    if (!data || data.length === 0) {
-      break;
-    }
-
-    todas.push(...data);
-
-    if (data.length < pageSize) {
-      break;
-    }
-  }
-
-  return todas;
+  return (data || []) as BoletaDisponible[];
 }
 
 export default async function ProyectoPage({ params }: PageProps) {
