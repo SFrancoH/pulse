@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.87.1",
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "bwip-js": "^4.7.0",
     "jszip": "^3.10.1",
     "next": "16.2.4",
