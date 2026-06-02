@@ -38,6 +38,7 @@ function normalizarEstado(value: string) {
     "cancelado",
     "cancelada",
     "asignada",
+    "debe",
   ]);
 
   if (!estado) return "reservado";
@@ -47,25 +48,61 @@ function normalizarEstado(value: string) {
   if (estado === "abonada") return "abonado";
   if (estado === "pagada") return "pagado";
   if (estado === "cancelada") return "cancelado";
+  if (estado === "debe") return "reservado";
 
   return estado;
 }
 
+function flattenPayload(value: unknown, prefix = "", output: Payload = {}) {
+  if (!value || typeof value !== "object") return output;
+
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    const nextKey = prefix ? `${prefix}.${key}` : key;
+
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      flattenPayload(item, nextKey, output);
+    } else {
+      output[nextKey] = item;
+      output[key] = item;
+    }
+  }
+
+  return output;
+}
+
 async function leerPayload(req: Request): Promise<Payload> {
   const contentType = req.headers.get("content-type") || "";
+  const raw = await req.text();
 
-  if (contentType.includes("application/json")) {
-    return (await req.json()) as Payload;
+  if (!raw) return {};
+
+  try {
+    const json = JSON.parse(raw) as Payload;
+    return flattenPayload(json);
+  } catch {
+    // Continúa con otros formatos.
   }
 
-  const formData = await req.formData();
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    const params = new URLSearchParams(raw);
+    const payload: Payload = {};
+
+    for (const [key, value] of params.entries()) {
+      payload[key] = value;
+    }
+
+    return flattenPayload(payload);
+  }
+
   const payload: Payload = {};
 
-  for (const [key, value] of formData.entries()) {
-    payload[key] = typeof value === "string" ? value : value.name;
-  }
+  raw.split("&").forEach((pair) => {
+    const [key, value] = pair.split("=");
+    if (!key) return;
+    payload[decodeURIComponent(key)] = decodeURIComponent(value || "");
+  });
 
-  return payload;
+  return flattenPayload(payload);
 }
 
 export async function POST(req: Request, { params }: PageProps) {
@@ -76,10 +113,17 @@ export async function POST(req: Request, { params }: PageProps) {
     const numero = numeroBoleta(
       texto(payload, [
         "numero",
+        "Numero",
+        "número",
         "boleta",
+        "Boleta",
         "consecutivo",
         "consecutivo_1",
         "Consecutivo_1",
+        "contact.consecutivo_1",
+        "customData.numero",
+        "custom_data.numero",
+        "custom_fields.numero",
       ])
     );
 
@@ -88,13 +132,15 @@ export async function POST(req: Request, { params }: PageProps) {
         {
           success: false,
           message: "Falta el número de boleta.",
+          received_keys: Object.keys(payload),
+          received_payload: payload,
         },
         { status: 400 }
       );
     }
 
     const estado = normalizarEstado(texto(payload, ["estado", "status", "etapa"]));
-    const nombre_cliente = texto(payload, ["nombre_cliente", "nombre", "name", "contact_name", "full_name"]);
+    const nombre_cliente = texto(payload, ["nombre_cliente", "nombre", "name", "contact_name", "full_name", "first_name"]);
     const telefono_cliente = texto(payload, ["telefono_cliente", "telefono", "phone", "contact_phone"]);
     const email_cliente = texto(payload, ["email_cliente", "email", "contact_email"]);
     const metodo_pago = texto(payload, ["metodo_pago", "metodo", "payment_method"]);
