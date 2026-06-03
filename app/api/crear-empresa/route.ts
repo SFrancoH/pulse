@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireSuperAdmin } from "@/lib/require-admin";
 import { slugify } from "@/lib/slug";
 
 function limpiarId(value: string) {
@@ -6,6 +7,12 @@ function limpiarId(value: string) {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireSuperAdmin();
+
+  if (auth.error) {
+    return auth.error;
+  }
+
   try {
     const body = await req.json();
 
@@ -19,7 +26,7 @@ export async function POST(req: Request) {
       return Response.json(
         {
           success: false,
-          message: "id, nombre y slug son obligatorios.",
+          message: "Datos inválidos.",
         },
         { status: 400 }
       );
@@ -46,16 +53,14 @@ export async function POST(req: Request) {
 
     return Response.json({
       success: true,
-      message: "Empresa creada o actualizada correctamente.",
+      message: "Empresa creada correctamente.",
       empresa: data,
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Error interno";
-
+  } catch {
     return Response.json(
       {
         success: false,
-        message,
+        message: "Error interno.",
       },
       { status: 500 }
     );
