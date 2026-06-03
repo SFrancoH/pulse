@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 import { createAdminSessionToken, getSessionCookieName } from "@/lib/auth-token";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { verifyPassword } from "@/lib/admin-auth";
 
 export async function POST(req: Request) {
   try {
@@ -8,17 +10,26 @@ export async function POST(req: Request) {
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
 
-    const adminEmail = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
-    const adminPassword = String(process.env.ADMIN_PASSWORD || "");
+    const { data: user, error } = await supabaseAdmin
+      .from("admin_users")
+      .select("email,password_hash,role,empresa_id,estado")
+      .eq("email", email)
+      .maybeSingle();
 
-    if (email !== adminEmail || password !== adminPassword) {
+    if (error || !user || user.estado !== "activo") {
+      return Response.json({ success: false, message: "Credenciales inválidas." }, { status: 401 });
+    }
+
+    const valid = await verifyPassword(password, user.password_hash);
+
+    if (!valid) {
       return Response.json({ success: false, message: "Credenciales inválidas." }, { status: 401 });
     }
 
     const token = createAdminSessionToken({
-      email,
-      rol: "super_admin",
-      empresa_id: null,
+      email: user.email,
+      rol: user.role,
+      empresa_id: user.empresa_id,
     });
 
     const cookieStore = await cookies();
