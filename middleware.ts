@@ -9,7 +9,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith("/admin/login")) {
+  if (pathname.startsWith("/admin/login") || pathname.startsWith("/admin/bootstrap")) {
     return NextResponse.next();
   }
 
