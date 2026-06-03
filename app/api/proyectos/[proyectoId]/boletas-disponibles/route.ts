@@ -14,10 +14,44 @@ function clampPage(value: string | null) {
   return Math.max(0, Math.min(9, Math.floor(page)));
 }
 
+function normalizarNumero(value: string | null) {
+  const limpio = String(value || "").replace(/\D/g, "");
+  if (!limpio) return "";
+  return limpio.padStart(4, "0").slice(-4);
+}
+
 export async function GET(req: Request, { params }: PageProps) {
   try {
     const { proyectoId } = await params;
     const url = new URL(req.url);
+    const numero = normalizarNumero(url.searchParams.get("numero"));
+
+    if (numero) {
+      const { data, error } = await supabaseAdmin
+        .from("boletas")
+        .select("id,numero")
+        .eq("proyecto_id", proyectoId)
+        .eq("estado", "disponible")
+        .eq("numero", numero)
+        .order("numero", { ascending: true });
+
+      if (error) throw error;
+
+      return Response.json({
+        success: true,
+        mode: "search",
+        numero,
+        page: Math.floor(Number(numero) / PAGE_SIZE),
+        desde: Number(numero),
+        hasta: Number(numero),
+        desde_texto: numero,
+        hasta_texto: numero,
+        boletas: data || [],
+        has_previous: true,
+        has_next: true,
+      });
+    }
+
     const page = clampPage(url.searchParams.get("page"));
     const desde = page * PAGE_SIZE;
     const hasta = desde + PAGE_SIZE - 1;
@@ -37,6 +71,7 @@ export async function GET(req: Request, { params }: PageProps) {
 
     return Response.json({
       success: true,
+      mode: "page",
       page,
       desde,
       hasta,
