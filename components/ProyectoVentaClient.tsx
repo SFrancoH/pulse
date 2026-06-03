@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const MAX_SELECCION = 10;
 
@@ -15,10 +15,15 @@ type ProyectoVentaClientProps = {
   precioBoleta: number;
   formularioCompraUrl: string | null;
   boletas: Boleta[];
+  proyectoId?: string;
 };
 
 function formatearCOP(valor: number) {
   return "$" + Number(valor || 0).toLocaleString("es-CO");
+}
+
+function fmtNumero(value: number) {
+  return String(value).padStart(4, "0");
 }
 
 export default function ProyectoVentaClient({
@@ -26,12 +31,47 @@ export default function ProyectoVentaClient({
   proyectoNombre,
   precioBoleta,
   formularioCompraUrl,
-  boletas,
+  boletas: iniciales,
+  proyectoId,
 }: ProyectoVentaClientProps) {
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [toast, setToast] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [pagina, setPagina] = useState(0);
+  const [boletas, setBoletas] = useState<Boleta[]>(iniciales);
+  const [cargandoPagina, setCargandoPagina] = useState(false);
+
+  useEffect(() => {
+    setBoletas(iniciales);
+  }, [iniciales]);
+
+  async function cargarPagina(page: number) {
+    if (!proyectoId) return;
+
+    try {
+      setCargandoPagina(true);
+
+      const res = await fetch(`/api/proyectos/${proyectoId}/boletas-disponibles?page=${page}`, {
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.message || "No se pudieron cargar las boletas.");
+      }
+
+      setPagina(page);
+      setBoletas(data.boletas || []);
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      mostrarToast(err instanceof Error ? err.message : "Error cargando números.");
+    } finally {
+      setCargandoPagina(false);
+    }
+  }
 
   function mostrarToast(mensaje: string) {
     setToast(mensaje);
@@ -95,6 +135,9 @@ export default function ProyectoVentaClient({
     setModalAbierto(true);
   }
 
+  const rangoInicio = pagina * 1000;
+  const rangoFin = rangoInicio + 999;
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#F2EDE4] pb-32 text-[#1A1A1A]">
       <div className="sticky top-0 z-50 flex items-center justify-center gap-3 border-b border-[#E0D9CE] bg-white px-5 py-3 max-[932px]:flex-col max-[932px]:px-3">
@@ -113,19 +156,27 @@ export default function ProyectoVentaClient({
       <section className="mx-auto max-w-[1100px] px-5 pb-3 pt-6 max-[932px]:px-3">
         <p className="text-sm uppercase tracking-[3px] text-[#9A9187]">{empresaNombre}</p>
         <h1 className="mt-2 text-[32px] font-bold max-[932px]:text-[34px]">{proyectoNombre}</h1>
-        <p className="mt-2 text-sm text-[#9A9187]">Selecciona hasta {MAX_SELECCION} números disponibles.</p>
+        <p className="mt-2 text-sm text-[#9A9187]">Números {fmtNumero(rangoInicio)} al {fmtNumero(rangoFin)}</p>
       </section>
 
-      <section className="mx-auto flex max-w-[1100px] flex-wrap gap-2 px-5 pb-4 max-[932px]:flex-col max-[932px]:px-3">
-        <div className="rounded-full border border-[#E0D9CE] bg-white px-4 py-1 text-sm text-[#9A9187] max-[932px]:w-full max-[932px]:rounded-xl max-[932px]:py-3 max-[932px]:text-lg">
-          Disponibles: <b className="text-[#1A1A1A]">{boletas.length}</b>
-        </div>
-        <div className="rounded-full border border-[#E0D9CE] bg-white px-4 py-1 text-sm text-[#9A9187] max-[932px]:w-full max-[932px]:rounded-xl max-[932px]:py-3 max-[932px]:text-lg">
-          Seleccionados: <b className="text-[#1A1A1A]">{seleccionados.length}</b>
-        </div>
-        <div className="rounded-full border border-[#E0D9CE] bg-white px-4 py-1 text-sm text-[#9A9187] max-[932px]:w-full max-[932px]:rounded-xl max-[932px]:py-3 max-[932px]:text-lg">
-          Total: <b className="text-[#1A1A1A]">{formatearCOP(totalPagar)}</b>
-        </div>
+      <section className="mx-auto flex max-w-[1100px] flex-wrap gap-2 px-5 pb-5 max-[932px]:flex-col max-[932px]:px-3">
+        <button
+          type="button"
+          disabled={pagina === 0 || cargandoPagina}
+          onClick={() => cargarPagina(pagina - 1)}
+          className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-lg font-semibold disabled:opacity-40"
+        >
+          Ver números anteriores
+        </button>
+
+        <button
+          type="button"
+          disabled={pagina === 9 || cargandoPagina}
+          onClick={() => cargarPagina(pagina + 1)}
+          className="rounded-2xl bg-[#E8620A] px-5 py-4 text-lg font-semibold text-white disabled:opacity-40"
+        >
+          {cargandoPagina ? "Cargando..." : "Ver más números"}
+        </button>
       </section>
 
       <section className="mx-auto max-w-[1100px] px-4 max-[932px]:px-3">
@@ -156,37 +207,6 @@ export default function ProyectoVentaClient({
           </div>
         )}
       </section>
-
-      <button
-        type="button"
-        onClick={reservar}
-        className={[
-          "fixed bottom-5 right-5 z-[99] rounded-[28px] bg-[#E8620A] px-6 py-3 text-base font-semibold text-white shadow-[0_10px_25px_rgba(232,98,10,0.35)] transition max-[932px]:left-3 max-[932px]:right-3 max-[932px]:bottom-[calc(18px+env(safe-area-inset-bottom))] max-[932px]:rounded-[22px] max-[932px]:py-5 max-[932px]:text-[26px]",
-          seleccionados.length > 0 ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-5 opacity-0",
-        ].join(" ")}
-      >
-        Reservar {seleccionados.length}
-      </button>
-
-      {modalAbierto && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-4 max-[932px]:items-end max-[932px]:p-0">
-          <div className="relative h-[90vh] max-h-[620px] w-full max-w-[520px] overflow-hidden rounded-xl bg-white max-[932px]:h-[94dvh] max-[932px]:max-h-[94dvh] max-[932px]:max-w-none max-[932px]:rounded-t-3xl max-[932px]:rounded-b-none">
-            <div className="flex h-[52px] items-center justify-between bg-[#1A1A1A] px-4 text-lg font-semibold text-white max-[932px]:h-16 max-[932px]:px-5 max-[932px]:text-[22px]">
-              <span>Confirmar reserva</span>
-              <button type="button" onClick={() => setModalAbierto(false)} className="text-3xl leading-none text-white max-[932px]:text-[34px]">×</button>
-            </div>
-            <div className="h-[calc(100%-52px)] max-[932px]:h-[calc(100%-64px)]">
-              <iframe src={formularioUrl} className="h-full w-full border-0" title="Formulario de compra" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {toast && (
-        <div className="fixed left-1/2 top-4 z-[999] max-w-[90vw] -translate-x-1/2 rounded-[10px] bg-[#CC3333] px-6 py-3 text-center text-sm text-white">
-          {toast}
-        </div>
-      )}
     </main>
   );
 }
