@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSessionCookieName, verifyAdminSessionToken } from "@/lib/auth-token";
+
+const COOKIE_NAME = "pulse_session";
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -13,10 +14,9 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = req.cookies.get(getSessionCookieName())?.value;
-  const session = verifyAdminSessionToken(token);
+  const token = req.cookies.get(COOKIE_NAME)?.value;
 
-  if (!session) {
+  if (!token) {
     const loginUrl = new URL("/admin/login", req.url);
     return NextResponse.redirect(loginUrl);
   }
