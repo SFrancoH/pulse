@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sincronizarBoletasInicialesConSheet } from "@/lib/apps-script-sync";
+import { requireAdminSession } from "@/lib/require-admin";
 import { slugify } from "@/lib/slug";
 
 const TOTAL_NUMEROS = 10000;
@@ -16,6 +17,12 @@ function crearBoletas(empresa_id: string, proyecto_id: string) {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAdminSession();
+
+  if (auth.error) {
+    return auth.error;
+  }
+
   try {
     const body = await req.json();
 
@@ -23,12 +30,13 @@ export async function POST(req: Request) {
     const nombre = String(body.nombre || "").trim();
     const precio_boleta = Number(body.precio_boleta || 60000);
     const formulario_compra_url = String(body.formulario_compra_url || "").trim();
+    const flyer_url = String(body.flyer_url || "").trim();
 
     if (!empresa_id || !nombre) {
       return Response.json(
         {
           success: false,
-          message: "empresa_id y nombre son obligatorios.",
+          message: "Datos inválidos.",
         },
         { status: 400 }
       );
@@ -62,6 +70,7 @@ export async function POST(req: Request) {
         slug: proyectoSlug,
         precio_boleta,
         formulario_compra_url,
+        flyer_url,
         estado: "activo",
       });
 
@@ -87,7 +96,6 @@ export async function POST(req: Request) {
     }
 
     let sheet_sync = "sin_configurar";
-    let sheet_sync_error = "";
 
     if (empresa.apps_script_url) {
       try {
@@ -98,9 +106,8 @@ export async function POST(req: Request) {
         );
 
         sheet_sync = "sincronizado";
-      } catch (error: unknown) {
+      } catch {
         sheet_sync = "error";
-        sheet_sync_error = error instanceof Error ? error.message : "Error sincronizando Apps Script";
       }
     }
 
@@ -117,15 +124,12 @@ export async function POST(req: Request) {
       webhook_url,
       asignar_vendedor_url,
       sheet_sync,
-      sheet_sync_error,
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Error interno";
-
+  } catch {
     return Response.json(
       {
         success: false,
-        message,
+        message: "Error interno.",
       },
       { status: 500 }
     );
