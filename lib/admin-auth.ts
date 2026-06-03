@@ -1,15 +1,16 @@
-import bcrypt from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { cookies } from "next/headers";
 import { getSessionCookieName, verifyAdminSessionToken } from "@/lib/auth-token";
 
 export type AdminRole = "super_admin" | "empresa_admin";
 
 export async function hashPassword(password: string) {
-  return bcrypt.hash(password, 10);
+  return hash(password, 10);
 }
 
-export async function verifyPassword(password: string, hash: string) {
-  return bcrypt.compare(password, hash);
+export async function verifyPassword(password: string, passwordHash: string) {
+  if (!password || !passwordHash) return false;
+  return compare(password, passwordHash);
 }
 
 export async function getCurrentAdminSession() {
