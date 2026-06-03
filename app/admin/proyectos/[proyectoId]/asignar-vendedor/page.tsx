@@ -19,6 +19,11 @@ type Props = {
   }>;
 };
 
+type Camara = {
+  deviceId: string;
+  label: string;
+};
+
 function normalizarNumero(valor: string) {
   const limpio = valor.replace(/\D/g, "");
   if (!limpio) return "";
@@ -40,6 +45,8 @@ export default function AsignarVendedorPage({ params }: Props) {
   const [error, setError] = useState("");
   const [camaraActiva, setCamaraActiva] = useState(false);
   const [scannerMsg, setScannerMsg] = useState("");
+  const [camaras, setCamaras] = useState<Camara[]>([]);
+  const [deviceIdSeleccionado, setDeviceIdSeleccionado] = useState("");
 
   useEffect(() => {
     return () => {
@@ -67,54 +74,103 @@ export default function AsignarVendedorPage({ params }: Props) {
     setNumeros((actuales) => actuales.filter((item) => item !== valor));
   }
 
+  async function pedirPermisoCamara() {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false,
+    });
+
+    stream.getTracks().forEach((track) => track.stop());
+  }
+
+  async function listarCamaras() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Este navegador no permite usar cámara. Usa Chrome, Safari o Edge actualizado en HTTPS.");
+    }
+
+    await pedirPermisoCamara();
+
+    const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+    const normalizadas = devices.map((device, index) => ({
+      deviceId: device.deviceId,
+      label: device.label || `Cámara ${index + 1}`,
+    }));
+
+    setCamaras(normalizadas);
+
+    const backCamera = normalizadas.find((device) => /back|rear|environment|trasera|posterior/i.test(device.label));
+    const primera = backCamera || normalizadas[0];
+
+    if (!primera?.deviceId) {
+      throw new Error("No se encontró cámara disponible. Revisa permisos del navegador y que otra aplicación no esté usando la cámara.");
+    }
+
+    setDeviceIdSeleccionado((actual) => actual || primera.deviceId);
+    return actualDeviceId(deviceIdSeleccionado, primera.deviceId);
+  }
+
+  function actualDeviceId(actual: string, fallback: string) {
+    return actual || fallback;
+  }
+
+  async function iniciarScanner(deviceId: string) {
+    if (!videoRef.current) return;
+
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_39]);
+
+    const reader = new BrowserMultiFormatReader(hints);
+
+    controlsRef.current?.stop();
+
+    const controls = await reader.decodeFromVideoDevice(deviceId, videoRef.current, (result) => {
+      if (!result) return;
+
+      const raw = result.getText();
+      const numero = normalizarNumero(raw);
+
+      if (!numero) return;
+
+      const ahora = Date.now();
+      if (ultimoScanRef.current === numero && ahora - ultimoScanAtRef.current < 1600) {
+        return;
+      }
+
+      ultimoScanRef.current = numero;
+      ultimoScanAtRef.current = ahora;
+      agregarNumero(numero);
+      setScannerMsg(`Escaneado: ${numero}`);
+    });
+
+    controlsRef.current = controls;
+    setCamaraActiva(true);
+    setScannerMsg("Cámara activa. Escanea los códigos de barras.");
+  }
+
   async function activarCamara() {
     setError("");
     setScannerMsg("Activando cámara...");
 
     try {
-      if (!videoRef.current) return;
-
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_39]);
-
-      const reader = new BrowserMultiFormatReader(hints);
-
-      controlsRef.current?.stop();
-
-      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-      const backCamera = devices.find((device) => /back|rear|environment/i.test(device.label));
-      const deviceId = backCamera?.deviceId || devices[0]?.deviceId;
-
-      if (!deviceId) {
-        throw new Error("No se encontró cámara disponible.");
-      }
-
-      const controls = await reader.decodeFromVideoDevice(deviceId, videoRef.current, (result) => {
-        if (!result) return;
-
-        const raw = result.getText();
-        const numero = normalizarNumero(raw);
-
-        if (!numero) return;
-
-        const ahora = Date.now();
-        if (ultimoScanRef.current === numero && ahora - ultimoScanAtRef.current < 1600) {
-          return;
-        }
-
-        ultimoScanRef.current = numero;
-        ultimoScanAtRef.current = ahora;
-        agregarNumero(numero);
-        setScannerMsg(`Escaneado: ${numero}`);
-      });
-
-      controlsRef.current = controls;
-      setCamaraActiva(true);
-      setScannerMsg("Cámara activa. Escanea los códigos de barras.");
+      const deviceId = await listarCamaras();
+      await iniciarScanner(deviceId);
     } catch (err) {
       setCamaraActiva(false);
       setScannerMsg("");
       setError(err instanceof Error ? err.message : "No se pudo activar la cámara.");
+    }
+  }
+
+  async function cambiarCamara(deviceId: string) {
+    setDeviceIdSeleccionado(deviceId);
+
+    if (!camaraActiva) return;
+
+    try {
+      setScannerMsg("Cambiando cámara...");
+      await iniciarScanner(deviceId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo cambiar la cámara.");
     }
   }
 
@@ -178,7 +234,20 @@ export default function AsignarVendedorPage({ params }: Props) {
           <div className="space-y-5">
             <div className="rounded-2xl border border-[#E0D9CE] bg-[#F9F6F1] p-4">
               <p className="text-sm font-semibold">Escanear con cámara</p>
-              <p className="mt-1 text-sm text-[#6F665C]">Compatible con códigos Code39 / Libre Barcode 39. El código debe contener solo el número de boleta.</p>
+              <p className="mt-1 text-sm text-[#6F665C]">Compatible con celular o computador. Usa códigos Code39 / Libre Barcode 39 con solo el número de boleta.</p>
+
+              {camaras.length > 0 && (
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-medium">Seleccionar cámara</label>
+                  <select value={deviceIdSeleccionado} onChange={(e) => cambiarCamara(e.target.value)} className="w-full rounded-xl border border-[#E0D9CE] bg-white px-4 py-3 outline-none">
+                    {camaras.map((camara) => (
+                      <option key={camara.deviceId} value={camara.deviceId}>
+                        {camara.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="mt-4 overflow-hidden rounded-2xl bg-black">
                 <video ref={videoRef} className="h-[280px] w-full object-cover" muted playsInline />
