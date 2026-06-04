@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
         throw new Error(data.message || "Credenciales inválidas.");
       }
 
-      router.push("/admin/crear-proyecto");
+      router.push(data.redirect_to || "/admin");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error interno");
