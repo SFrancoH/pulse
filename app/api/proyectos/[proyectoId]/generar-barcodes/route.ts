@@ -48,7 +48,7 @@ async function crearImagenBarcode(boleta: Boleta) {
   const codigo = boleta.numero;
 
   const barcode = await bwipjs.toBuffer({
-    bcid: "code39",
+    bcid: "code128",
     text: codigo,
     scale: 5,
     height: 18,
