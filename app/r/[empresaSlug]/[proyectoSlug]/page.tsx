@@ -73,6 +73,7 @@ export default async function ProyectoPage({ params }: PageProps) {
       precioBoleta={Number(proyecto.precio_boleta || 0)}
       formularioCompraUrl={proyecto.formulario_compra_url || ""}
       boletas={boletas}
+      proyectoId={proyecto.id}
     />
   );
 }
