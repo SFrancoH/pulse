@@ -44,7 +44,11 @@ export async function POST(req: Request) {
       maxAge: 60 * 60 * 8,
     });
 
-    return Response.json({ success: true });
+    return Response.json({
+      success: true,
+      redirect_to: "/admin",
+      role: user.role,
+    });
   } catch {
     return Response.json({ success: false, message: "Error interno." }, { status: 500 });
   }
