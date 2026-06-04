@@ -33,6 +33,7 @@ function normalizarNumero(valor: string) {
 export default function AsignarVendedorPage({ params }: Props) {
   const { proyectoId } = use(params);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const pistolaInputRef = useRef<HTMLInputElement | null>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
   const ultimoScanRef = useRef("");
   const ultimoScanAtRef = useRef(0);
@@ -47,12 +48,19 @@ export default function AsignarVendedorPage({ params }: Props) {
   const [scannerMsg, setScannerMsg] = useState("");
   const [camaras, setCamaras] = useState<Camara[]>([]);
   const [deviceIdSeleccionado, setDeviceIdSeleccionado] = useState("");
+  const [modoPistola, setModoPistola] = useState(false);
 
   useEffect(() => {
     return () => {
       controlsRef.current?.stop();
     };
   }, []);
+
+  useEffect(() => {
+    if (modoPistola) {
+      setTimeout(() => pistolaInputRef.current?.focus(), 100);
+    }
+  }, [modoPistola, numeros.length]);
 
   function agregarNumero(valor: string) {
     const numero = normalizarNumero(valor);
@@ -68,6 +76,16 @@ export default function AsignarVendedorPage({ params }: Props) {
   function agregarCodigo() {
     agregarNumero(inputCodigo);
     setInputCodigo("");
+    if (modoPistola) setTimeout(() => pistolaInputRef.current?.focus(), 50);
+  }
+
+  function manejarPistola(valor: string) {
+    const numero = normalizarNumero(valor);
+    if (!numero) return;
+    agregarNumero(numero);
+    setInputCodigo("");
+    setScannerMsg(`Pistola: ${numero}`);
+    setTimeout(() => pistolaInputRef.current?.focus(), 50);
   }
 
   function eliminarCodigo(valor: string) {
@@ -106,18 +124,14 @@ export default function AsignarVendedorPage({ params }: Props) {
     }
 
     setDeviceIdSeleccionado((actual) => actual || primera.deviceId);
-    return actualDeviceId(deviceIdSeleccionado, primera.deviceId);
-  }
-
-  function actualDeviceId(actual: string, fallback: string) {
-    return actual || fallback;
+    return deviceIdSeleccionado || primera.deviceId;
   }
 
   async function iniciarScanner(deviceId: string) {
     if (!videoRef.current) return;
 
     const hints = new Map();
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_39]);
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_39, BarcodeFormat.CODE_128]);
 
     const reader = new BrowserMultiFormatReader(hints);
 
@@ -139,7 +153,7 @@ export default function AsignarVendedorPage({ params }: Props) {
       ultimoScanRef.current = numero;
       ultimoScanAtRef.current = ahora;
       agregarNumero(numero);
-      setScannerMsg(`Escaneado: ${numero}`);
+      setScannerMsg(`Cámara: ${numero}`);
     });
 
     controlsRef.current = controls;
@@ -234,7 +248,7 @@ export default function AsignarVendedorPage({ params }: Props) {
           <div className="space-y-5">
             <div className="rounded-2xl border border-[#E0D9CE] bg-[#F9F6F1] p-4">
               <p className="text-sm font-semibold">Escanear con cámara</p>
-              <p className="mt-1 text-sm text-[#6F665C]">Compatible con celular o computador. Usa códigos Code39 / Libre Barcode 39 con solo el número de boleta.</p>
+              <p className="mt-1 text-sm text-[#6F665C]">Compatible con celular o computador. Usa Code39 / Libre Barcode 39. También acepta Code128.</p>
 
               {camaras.length > 0 && (
                 <div className="mt-4">
@@ -265,21 +279,47 @@ export default function AsignarVendedorPage({ params }: Props) {
               </div>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium">Agregar manualmente</label>
+            <div className="rounded-2xl border border-[#E0D9CE] bg-white p-4">
+              <div className="flex items-center justify-between gap-3 max-[700px]:flex-col max-[700px]:items-start">
+                <div>
+                  <p className="text-sm font-semibold">Modo pistola lectora</p>
+                  <p className="mt-1 text-sm text-[#6F665C]">Actívalo si usas un escáner USB/Bluetooth. La pistola escribe el número y presiona Enter automáticamente.</p>
+                </div>
+                <button type="button" onClick={() => setModoPistola((v) => !v)} className={["rounded-xl px-5 py-3 font-semibold", modoPistola ? "bg-[#E8620A] text-white" : "border border-[#1A1A1A] bg-white"].join(" ")}>
+                  {modoPistola ? "Modo pistola activo" : "Activar modo pistola"}
+                </button>
+              </div>
+            </div>
 
-              <div className="flex gap-3">
+            <div>
+              <label className="mb-2 block text-sm font-medium">Agregar manualmente o con pistola</label>
+
+              <div className="flex gap-3 max-[700px]:flex-col">
                 <input
+                  ref={pistolaInputRef}
                   type="text"
                   value={inputCodigo}
-                  onChange={(e) => setInputCodigo(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      agregarCodigo();
+                  onChange={(e) => {
+                    const valor = e.target.value;
+                    setInputCodigo(valor);
+                    if (modoPistola && normalizarNumero(valor).length === 4) {
+                      manejarPistola(valor);
                     }
                   }}
-                  placeholder="Ej: 0000"
+                  onBlur={() => {
+                    if (modoPistola) setTimeout(() => pistolaInputRef.current?.focus(), 100);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === "Tab") {
+                      e.preventDefault();
+                      if (modoPistola) {
+                        manejarPistola(inputCodigo);
+                      } else {
+                        agregarCodigo();
+                      }
+                    }
+                  }}
+                  placeholder="Escanea o escribe: 0000"
                   className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none"
                 />
 
