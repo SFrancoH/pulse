@@ -116,19 +116,18 @@ export async function POST(req: Request, { params }: PageProps) {
       );
     }
 
-    const disponibles = (boletas || []).filter((boleta) => boleta.estado === "disponible");
-    const idsDisponibles = disponibles.map((boleta) => boleta.id);
+    const encontradasLista = boletas || [];
+    const idsEncontradas = encontradasLista.map((boleta) => boleta.id);
 
-    if (idsDisponibles.length > 0) {
+    if (idsEncontradas.length > 0) {
       const { error: updateError } = await supabaseAdmin
         .from("boletas")
         .update({
-          estado: "asignada",
           canal: "Vendedor",
           vendedor_nombre,
           updated_at: new Date().toISOString(),
         })
-        .in("id", idsDisponibles);
+        .in("id", idsEncontradas);
 
       if (updateError) {
         return Response.json(
@@ -141,9 +140,9 @@ export async function POST(req: Request, { params }: PageProps) {
       }
     }
 
-    if (disponibles.length > 0) {
-      const empresaId = disponibles[0].empresa_id;
-      const ordenadas = [...disponibles].sort((a, b) => a.numero.localeCompare(b.numero));
+    if (encontradasLista.length > 0) {
+      const empresaId = encontradasLista[0].empresa_id;
+      const ordenadas = [...encontradasLista].sort((a, b) => a.numero.localeCompare(b.numero));
 
       const { error: historialError } = await supabaseAdmin
         .from("asignaciones_vendedores")
@@ -153,7 +152,7 @@ export async function POST(req: Request, { params }: PageProps) {
           vendedor_nombre,
           numero_desde: ordenadas[0].numero,
           numero_hasta: ordenadas[ordenadas.length - 1].numero,
-          cantidad: disponibles.length,
+          cantidad: encontradasLista.length,
           boleta_inicial_id: ordenadas[0].id,
         });
 
@@ -175,7 +174,7 @@ export async function POST(req: Request, { params }: PageProps) {
         try {
           await sincronizarLoteBoletasConSheet(
             empresa.apps_script_url,
-            disponibles.map((boleta) => ({
+            encontradasLista.map((boleta) => ({
               proyecto: proyectoId,
               numero: boleta.numero,
               canal: "Vendedor",
@@ -189,9 +188,9 @@ export async function POST(req: Request, { params }: PageProps) {
       }
     }
 
-    const encontradas = boletas?.length || 0;
+    const encontradas = encontradasLista.length;
     const noEncontradas = numeros.filter(
-      (numero) => !(boletas || []).some((boleta) => boleta.numero === numero)
+      (numero) => !encontradasLista.some((boleta) => boleta.numero === numero)
     );
 
     return Response.json({
@@ -200,8 +199,8 @@ export async function POST(req: Request, { params }: PageProps) {
       vendedor_nombre,
       solicitadas: numeros.length,
       encontradas,
-      asignadas: disponibles.length,
-      omitidas: encontradas - disponibles.length,
+      asignadas: encontradas,
+      omitidas: 0,
       no_encontradas: noEncontradas,
       errores,
     });
