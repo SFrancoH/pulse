@@ -1,7 +1,8 @@
 type SheetBoletaPayload = {
   proyecto: string;
   numero: string;
-  estado: string;
+  estado?: string;
+  canal?: string;
   nombre?: string | null;
   telefono?: string | null;
   email?: string | null;
@@ -47,6 +48,7 @@ export async function sincronizarBoletasInicialesConSheet(
       proyecto: proyectoId,
       numero,
       estado: "disponible",
+      canal: "Vacio",
       nombre: "",
       telefono: "",
       email: "",
@@ -65,4 +67,17 @@ export async function sincronizarBoletaConSheet(
   if (!appsScriptUrl) return;
 
   await postAppsScript(appsScriptUrl, payload);
+}
+
+export async function sincronizarLoteBoletasConSheet(
+  appsScriptUrl: string | null | undefined,
+  items: SheetBoletaPayload[]
+) {
+  if (!appsScriptUrl || items.length === 0) return;
+
+  for (let inicio = 0; inicio < items.length; inicio += LOTE_APPS_SCRIPT) {
+    await postAppsScript(appsScriptUrl, {
+      items: items.slice(inicio, inicio + LOTE_APPS_SCRIPT),
+    });
+  }
 }
