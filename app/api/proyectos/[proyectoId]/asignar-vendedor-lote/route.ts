@@ -126,7 +126,6 @@ export async function POST(req: Request, { params }: PageProps) {
           estado: "asignada",
           canal: "Vendedor",
           vendedor_nombre,
-          vendedor_asignado_en: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .in("id", idsDisponibles);
