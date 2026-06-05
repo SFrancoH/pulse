@@ -232,7 +232,7 @@ export default function ProyectoVentaClient({
   const rangoFin = rangoInicio + 999;
 
   return (
-    <main id="pulse-venta-root" className="overflow-x-hidden bg-[#F2EDE4] pb-32 text-[#1A1A1A]">
+    <main id="pulse-venta-root" className="overflow-x-hidden bg-[#F2EDE4] pb-10 text-[#1A1A1A]">
       <div className="sticky top-0 z-50 flex items-center justify-center gap-3 border-b border-[#E0D9CE] bg-white px-5 py-3 max-[932px]:flex-col max-[932px]:px-3">
         <div className="rounded-md bg-[#E8620A] px-6 py-2 text-[22px] font-semibold text-white max-[932px]:w-full max-[932px]:rounded-xl max-[932px]:py-3 max-[932px]:text-center max-[932px]:text-[28px]">
           {formatearCOP(precioBoleta)}
@@ -302,9 +302,11 @@ export default function ProyectoVentaClient({
         )}
       </section>
 
-      <button type="button" onClick={reservar} className={["fixed bottom-5 right-5 z-[99] rounded-[28px] bg-[#E8620A] px-6 py-3 text-base font-semibold text-white shadow-[0_10px_25px_rgba(232,98,10,0.35)] transition max-[932px]:left-3 max-[932px]:right-3 max-[932px]:bottom-[calc(18px+env(safe-area-inset-bottom))] max-[932px]:rounded-[22px] max-[932px]:py-5 max-[932px]:text-[26px]", seleccionados.length > 0 ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-5 opacity-0"].join(" ")}>
-        Reservar {seleccionados.length}
-      </button>
+      <div className="sticky bottom-4 z-[99] mx-auto mt-8 w-[calc(100%-24px)] max-w-[520px] px-0">
+        <button type="button" onClick={reservar} className={["block w-full rounded-[22px] bg-[#E8620A] px-6 py-5 text-center text-[22px] font-semibold text-white shadow-[0_10px_25px_rgba(232,98,10,0.35)] transition", seleccionados.length > 0 ? "opacity-100" : "pointer-events-none opacity-0"].join(" ")}>
+          Reservar {seleccionados.length}
+        </button>
+      </div>
 
       {modalAbierto && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-4 max-[932px]:items-end max-[932px]:p-0">
