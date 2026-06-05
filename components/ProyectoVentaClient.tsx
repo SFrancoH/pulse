@@ -40,6 +40,25 @@ function normalizarNumero(value: string) {
   return limpio.padStart(4, "0").slice(-4);
 }
 
+function enviarAlturaIframe() {
+  if (typeof window === "undefined") return;
+
+  const height = Math.max(
+    document.body.scrollHeight,
+    document.documentElement.scrollHeight,
+    document.body.offsetHeight,
+    document.documentElement.offsetHeight
+  );
+
+  window.parent?.postMessage(
+    {
+      type: "PULSE_IFRAME_HEIGHT",
+      height: height + 40,
+    },
+    "*"
+  );
+}
+
 export default function ProyectoVentaClient({
   empresaNombre,
   proyectoNombre,
@@ -60,6 +79,20 @@ export default function ProyectoVentaClient({
   useEffect(() => {
     setBoletas(iniciales);
   }, [iniciales]);
+
+  useEffect(() => {
+    enviarAlturaIframe();
+
+    const timeout = window.setTimeout(enviarAlturaIframe, 250);
+    const interval = window.setInterval(enviarAlturaIframe, 800);
+    window.addEventListener("resize", enviarAlturaIframe);
+
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+      window.removeEventListener("resize", enviarAlturaIframe);
+    };
+  }, [boletas, seleccionados, modalAbierto, toast, cargandoPagina, modoBusqueda]);
 
   function mostrarToast(mensaje: string) {
     setToast(mensaje);
@@ -93,6 +126,7 @@ export default function ProyectoVentaClient({
       setPagina(data.page ?? page);
       setBoletas(data.boletas || []);
       window.scrollTo({ top: 0, behavior: "smooth" });
+      window.setTimeout(enviarAlturaIframe, 250);
     } catch (err) {
       mostrarToast(err instanceof Error ? err.message : "Error cargando números.");
     } finally {
@@ -121,6 +155,7 @@ export default function ProyectoVentaClient({
       setBoletas(data.boletas || []);
       setPagina(data.page ?? Math.floor(Number(numero) / 1000));
       setModoBusqueda(true);
+      window.setTimeout(enviarAlturaIframe, 250);
 
       if (!data.boletas || data.boletas.length === 0) {
         mostrarToast(`El número ${numero} no está disponible.`);
