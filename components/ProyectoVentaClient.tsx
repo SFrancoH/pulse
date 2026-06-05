@@ -40,20 +40,24 @@ function normalizarNumero(value: string) {
   return limpio.padStart(4, "0").slice(-4);
 }
 
+let ultimaAlturaEnviada = 0;
+
 function enviarAlturaIframe() {
   if (typeof window === "undefined") return;
 
-  const height = Math.max(
-    document.body.scrollHeight,
-    document.documentElement.scrollHeight,
-    document.body.offsetHeight,
-    document.documentElement.offsetHeight
-  );
+  const app = document.getElementById("pulse-venta-root");
+  const rect = app?.getBoundingClientRect();
+  const height = Math.ceil(rect?.height || document.body.getBoundingClientRect().height || 900);
+  const alturaFinal = Math.max(700, height + 24);
+
+  if (Math.abs(alturaFinal - ultimaAlturaEnviada) < 20) return;
+
+  ultimaAlturaEnviada = alturaFinal;
 
   window.parent?.postMessage(
     {
       type: "PULSE_IFRAME_HEIGHT",
-      height: height + 40,
+      height: alturaFinal,
     },
     "*"
   );
@@ -83,13 +87,13 @@ export default function ProyectoVentaClient({
   useEffect(() => {
     enviarAlturaIframe();
 
-    const timeout = window.setTimeout(enviarAlturaIframe, 250);
-    const interval = window.setInterval(enviarAlturaIframe, 800);
+    const t1 = window.setTimeout(enviarAlturaIframe, 150);
+    const t2 = window.setTimeout(enviarAlturaIframe, 500);
     window.addEventListener("resize", enviarAlturaIframe);
 
     return () => {
-      window.clearTimeout(timeout);
-      window.clearInterval(interval);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
       window.removeEventListener("resize", enviarAlturaIframe);
     };
   }, [boletas, seleccionados, modalAbierto, toast, cargandoPagina, modoBusqueda]);
@@ -228,7 +232,7 @@ export default function ProyectoVentaClient({
   const rangoFin = rangoInicio + 999;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#F2EDE4] pb-32 text-[#1A1A1A]">
+    <main id="pulse-venta-root" className="overflow-x-hidden bg-[#F2EDE4] pb-32 text-[#1A1A1A]">
       <div className="sticky top-0 z-50 flex items-center justify-center gap-3 border-b border-[#E0D9CE] bg-white px-5 py-3 max-[932px]:flex-col max-[932px]:px-3">
         <div className="rounded-md bg-[#E8620A] px-6 py-2 text-[22px] font-semibold text-white max-[932px]:w-full max-[932px]:rounded-xl max-[932px]:py-3 max-[932px]:text-center max-[932px]:text-[28px]">
           {formatearCOP(precioBoleta)}
