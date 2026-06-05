@@ -85,6 +85,21 @@ export default function ProyectoVentaClient({
   }, [iniciales]);
 
   useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const htmlBg = html.style.backgroundColor;
+    const bodyBg = body.style.backgroundColor;
+
+    html.style.backgroundColor = "#F2EDE4";
+    body.style.backgroundColor = "#F2EDE4";
+
+    return () => {
+      html.style.backgroundColor = htmlBg;
+      body.style.backgroundColor = bodyBg;
+    };
+  }, []);
+
+  useEffect(() => {
     enviarAlturaIframe();
 
     const t1 = window.setTimeout(enviarAlturaIframe, 150);
