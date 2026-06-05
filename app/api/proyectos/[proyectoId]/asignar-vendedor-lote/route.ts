@@ -1,4 +1,4 @@
-import { sincronizarBoletaConSheet } from "@/lib/apps-script-sync";
+import { sincronizarLoteBoletasConSheet } from "@/lib/apps-script-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -43,7 +43,13 @@ function extraerNumeroEscaneado(valor: string, proyectoId: string) {
   };
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Error desconocido";
+}
+
 export async function POST(req: Request, { params }: PageProps) {
+  const errores: string[] = [];
+
   try {
     const { proyectoId } = await params;
     const body = (await req.json()) as Payload;
@@ -71,7 +77,6 @@ export async function POST(req: Request, { params }: PageProps) {
       );
     }
 
-    const errores: string[] = [];
     const numeros = Array.from(
       new Set(
         numerosRaw
@@ -101,7 +106,15 @@ export async function POST(req: Request, { params }: PageProps) {
       .eq("proyecto_id", proyectoId)
       .in("numero", numeros);
 
-    if (boletasError) throw boletasError;
+    if (boletasError) {
+      return Response.json(
+        {
+          success: false,
+          message: `Error consultando boletas: ${boletasError.message}`,
+        },
+        { status: 500 }
+      );
+    }
 
     const disponibles = (boletas || []).filter((boleta) => boleta.estado === "disponible");
     const idsDisponibles = disponibles.map((boleta) => boleta.id);
@@ -111,17 +124,27 @@ export async function POST(req: Request, { params }: PageProps) {
         .from("boletas")
         .update({
           estado: "asignada",
+          canal: "Vendedor",
           vendedor_nombre,
           vendedor_asignado_en: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .in("id", idsDisponibles);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        return Response.json(
+          {
+            success: false,
+            message: `Error actualizando boletas: ${updateError.message}`,
+          },
+          { status: 500 }
+        );
+      }
     }
 
     if (disponibles.length > 0) {
       const empresaId = disponibles[0].empresa_id;
+      const ordenadas = [...disponibles].sort((a, b) => a.numero.localeCompare(b.numero));
 
       const { error: historialError } = await supabaseAdmin
         .from("asignaciones_vendedores")
@@ -129,29 +152,40 @@ export async function POST(req: Request, { params }: PageProps) {
           empresa_id: empresaId,
           proyecto_id: proyectoId,
           vendedor_nombre,
-          numero_desde: disponibles[0].numero,
-          numero_hasta: disponibles[disponibles.length - 1].numero,
+          numero_desde: ordenadas[0].numero,
+          numero_hasta: ordenadas[ordenadas.length - 1].numero,
           cantidad: disponibles.length,
-          boleta_inicial_id: disponibles[0].id,
+          boleta_inicial_id: ordenadas[0].id,
         });
 
-      if (historialError) throw historialError;
+      if (historialError) {
+        errores.push(`Historial: ${historialError.message}`);
+      }
 
-      const { data: empresa } = await supabaseAdmin
+      const { data: empresa, error: empresaError } = await supabaseAdmin
         .from("empresas")
         .select("apps_script_url")
         .eq("id", empresaId)
         .maybeSingle();
 
+      if (empresaError) {
+        errores.push(`Apps Script URL: ${empresaError.message}`);
+      }
+
       if (empresa?.apps_script_url) {
-        for (const boleta of disponibles) {
-          await sincronizarBoletaConSheet(empresa.apps_script_url, {
-            proyecto: proyectoId,
-            numero: boleta.numero,
-            estado: "asignada",
-            vendedor: vendedor_nombre,
-            valor_pagado: "",
-          });
+        try {
+          await sincronizarLoteBoletasConSheet(
+            empresa.apps_script_url,
+            disponibles.map((boleta) => ({
+              proyecto: proyectoId,
+              numero: boleta.numero,
+              canal: "Vendedor",
+              vendedor: vendedor_nombre,
+              valor_pagado: "",
+            }))
+          );
+        } catch (error) {
+          errores.push(`Google Sheets: ${getErrorMessage(error)}`);
         }
       }
     }
@@ -173,7 +207,7 @@ export async function POST(req: Request, { params }: PageProps) {
       errores,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Error interno";
+    const message = getErrorMessage(error);
 
     return Response.json(
       {
