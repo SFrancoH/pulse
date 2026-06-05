@@ -13,6 +13,15 @@ type ApiResponse = {
   errores?: string[];
 };
 
+type CsvResumen = {
+  filasLeidas: number;
+  vendedores: number;
+  asignadas: number;
+  omitidas: number;
+  noEncontradas: string[];
+  errores: string[];
+};
+
 type Props = {
   params: Promise<{
     proyectoId: string;
@@ -30,10 +39,87 @@ function normalizarNumero(valor: string) {
   return limpio.padStart(4, "0").slice(-4);
 }
 
+function parseCsvLine(line: string) {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const next = line[i + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      i++;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
+function parseCsvAsignaciones(texto: string) {
+  const grupos = new Map<string, string[]>();
+  let filasLeidas = 0;
+  const errores: string[] = [];
+
+  const lineas = texto
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .map((linea) => linea.trim())
+    .filter(Boolean);
+
+  lineas.forEach((linea, index) => {
+    const columnas = parseCsvLine(linea);
+    const numeroRaw = columnas[0] || "";
+    const vendedorRaw = columnas[1] || "";
+
+    const esHeader =
+      index === 0 &&
+      /numero|número|boleta/i.test(numeroRaw) &&
+      /vendedor|asesor/i.test(vendedorRaw);
+
+    if (esHeader) return;
+
+    filasLeidas++;
+
+    const numero = normalizarNumero(numeroRaw);
+    const vendedor = vendedorRaw.trim();
+
+    if (!numero || !vendedor) {
+      errores.push(`Fila ${index + 1}: falta número o vendedor.`);
+      return;
+    }
+
+    const actuales = grupos.get(vendedor) || [];
+    if (!actuales.includes(numero)) {
+      actuales.push(numero);
+    }
+    grupos.set(vendedor, actuales);
+  });
+
+  return { grupos, filasLeidas, errores };
+}
+
 export default function AsignarVendedorPage({ params }: Props) {
   const { proyectoId } = use(params);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const pistolaInputRef = useRef<HTMLInputElement | null>(null);
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
   const ultimoScanRef = useRef("");
   const ultimoScanAtRef = useRef(0);
@@ -42,7 +128,9 @@ export default function AsignarVendedorPage({ params }: Props) {
   const [vendedor, setVendedor] = useState("");
   const [numeros, setNumeros] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [csvLoading, setCsvLoading] = useState(false);
   const [resultado, setResultado] = useState<ApiResponse | null>(null);
+  const [csvResumen, setCsvResumen] = useState<CsvResumen | null>(null);
   const [error, setError] = useState("");
   const [camaraActiva, setCamaraActiva] = useState(false);
   const [scannerMsg, setScannerMsg] = useState("");
@@ -195,28 +283,34 @@ export default function AsignarVendedorPage({ params }: Props) {
     setScannerMsg("Cámara detenida.");
   }
 
+  async function asignarLote(vendedorNombre: string, numerosLote: string[]) {
+    const res = await fetch(`/api/proyectos/${proyectoId}/asignar-vendedor-lote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        vendedor_nombre: vendedorNombre,
+        numeros: numerosLote,
+      }),
+    });
+
+    const data = (await res.json()) as ApiResponse;
+
+    if (!data.success) {
+      throw new Error(data.message || `No se pudo asignar el lote de ${vendedorNombre}.`);
+    }
+
+    return data;
+  }
+
   async function asignar() {
     setLoading(true);
     setError("");
     setResultado(null);
 
     try {
-      const res = await fetch(`/api/proyectos/${proyectoId}/asignar-vendedor-lote`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          vendedor_nombre: vendedor,
-          numeros,
-        }),
-      });
-
-      const data = (await res.json()) as ApiResponse;
-
-      if (!data.success) {
-        throw new Error(data.message || "No se pudo asignar el lote.");
-      }
+      const data = await asignarLote(vendedor, numeros);
 
       setResultado(data);
       setNumeros([]);
@@ -226,6 +320,53 @@ export default function AsignarVendedorPage({ params }: Props) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function procesarCsv(file: File) {
+    setCsvLoading(true);
+    setError("");
+    setResultado(null);
+    setCsvResumen(null);
+
+    try {
+      const texto = await file.text();
+      const { grupos, filasLeidas, errores } = parseCsvAsignaciones(texto);
+
+      if (grupos.size === 0) {
+        throw new Error("El CSV no contiene asignaciones válidas. Usa columna A para número y columna B para vendedor.");
+      }
+
+      let asignadas = 0;
+      let omitidas = 0;
+      const noEncontradas: string[] = [];
+      const erroresProceso = [...errores];
+
+      for (const [nombreVendedor, numerosVendedor] of grupos.entries()) {
+        try {
+          const data = await asignarLote(nombreVendedor, numerosVendedor);
+          asignadas += data.asignadas || 0;
+          omitidas += data.omitidas || 0;
+          if (data.no_encontradas?.length) noEncontradas.push(...data.no_encontradas);
+          if (data.errores?.length) erroresProceso.push(...data.errores);
+        } catch (err) {
+          erroresProceso.push(`${nombreVendedor}: ${err instanceof Error ? err.message : "Error desconocido"}`);
+        }
+      }
+
+      setCsvResumen({
+        filasLeidas,
+        vendedores: grupos.size,
+        asignadas,
+        omitidas,
+        noEncontradas,
+        errores: erroresProceso,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo procesar el CSV.");
+    } finally {
+      setCsvLoading(false);
+      if (csvInputRef.current) csvInputRef.current.value = "";
     }
   }
 
@@ -289,6 +430,49 @@ export default function AsignarVendedorPage({ params }: Props) {
                   {modoPistola ? "Modo pistola activo" : "Activar modo pistola"}
                 </button>
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#E0D9CE] bg-[#F9F6F1] p-4">
+              <p className="text-sm font-semibold">Subir CSV de asignaciones</p>
+              <p className="mt-1 text-sm text-[#6F665C]">Columna A: número de boleta. Columna B: nombre del vendedor. Puede tener encabezados.</p>
+
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                disabled={csvLoading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) procesarCsv(file);
+                }}
+                className="mt-4 w-full rounded-xl border border-[#E0D9CE] bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-[#1A1A1A] file:px-4 file:py-2 file:font-semibold file:text-white"
+              />
+
+              {csvLoading && <p className="mt-3 text-sm font-medium text-[#6F665C]">Procesando CSV...</p>}
+
+              {csvResumen && (
+                <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+                  <p className="font-semibold">CSV procesado</p>
+                  <div className="mt-2 space-y-1">
+                    <p>Filas leídas: {csvResumen.filasLeidas}</p>
+                    <p>Vendedores detectados: {csvResumen.vendedores}</p>
+                    <p>Asignadas: {csvResumen.asignadas}</p>
+                    <p>Omitidas: {csvResumen.omitidas}</p>
+                  </div>
+                  {csvResumen.noEncontradas.length > 0 && (
+                    <div className="mt-3">
+                      <p className="font-semibold">No encontradas:</p>
+                      <p className="break-all">{csvResumen.noEncontradas.join(", ")}</p>
+                    </div>
+                  )}
+                  {csvResumen.errores.length > 0 && (
+                    <div className="mt-3 text-red-700">
+                      <p className="font-semibold">Errores:</p>
+                      <p className="break-all">{csvResumen.errores.join(" | ")}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
