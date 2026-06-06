@@ -20,7 +20,6 @@ export async function POST(req: Request) {
     const nombre = String(body.nombre || "").trim();
     const slugEntrada = String(body.slug || slugify(nombre)).trim();
     const slug = slugify(slugEntrada || nombre);
-    const apps_script_url = String(body.apps_script_url || "").trim();
 
     if (!id || !nombre || !slug) {
       return Response.json(
@@ -36,7 +35,6 @@ export async function POST(req: Request) {
       id,
       nombre,
       slug,
-      apps_script_url,
       estado: "activa",
       updated_at: new Date().toISOString(),
     };
@@ -44,7 +42,7 @@ export async function POST(req: Request) {
     const { data, error } = await supabaseAdmin
       .from("empresas")
       .upsert(payload, { onConflict: "id" })
-      .select("id,nombre,slug,apps_script_url,estado")
+      .select("id,nombre,slug,estado")
       .single();
 
     if (error) {
