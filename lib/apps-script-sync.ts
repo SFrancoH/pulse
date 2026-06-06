@@ -10,8 +10,8 @@ type SheetBoletaPayload = {
   valor_pagado?: string | number | null;
 };
 
-const LOTE_APPS_SCRIPT = 100;
-const PAUSA_ENTRE_LOTES_MS = 250;
+const LOTE_APPS_SCRIPT = 500;
+const PAUSA_ENTRE_LOTES_MS = 100;
 
 function esperar(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
