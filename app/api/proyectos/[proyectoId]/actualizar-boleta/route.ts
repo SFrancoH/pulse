@@ -1,4 +1,3 @@
-import { sincronizarBoletaConSheet } from "@/lib/apps-script-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -27,30 +26,14 @@ function numeroBoleta(value: string) {
 function normalizarEstado(value: string) {
   const estado = value.trim().toLowerCase();
 
-  const permitidos = new Set([
-    "disponible",
-    "reservado",
-    "reservada",
-    "abonado",
-    "abonada",
-    "pagado",
-    "pagada",
-    "cancelado",
-    "cancelada",
-    "asignada",
-    "debe",
-  ]);
+  if (!estado) return "No disponible";
+  if (estado === "disponible") return "Disponible";
+  if (estado === "no disponible" || estado === "nodisponible") return "No disponible";
+  if (estado === "debe") return "Debe";
+  if (estado === "abonado" || estado === "abonada") return "Abonado";
+  if (estado === "pagado" || estado === "pagada") return "Pagado";
 
-  if (!estado) return "reservado";
-  if (!permitidos.has(estado)) return "reservado";
-
-  if (estado === "reservada") return "reservado";
-  if (estado === "abonada") return "abonado";
-  if (estado === "pagada") return "pagado";
-  if (estado === "cancelada") return "cancelado";
-  if (estado === "debe") return "reservado";
-
-  return estado;
+  return "No disponible";
 }
 
 function flattenPayload(value: unknown, prefix = "", output: Payload = {}) {
@@ -140,6 +123,7 @@ export async function POST(req: Request, { params }: PageProps) {
     }
 
     const estado = normalizarEstado(texto(payload, ["estado", "status", "etapa"]));
+    const canal = texto(payload, ["canal", "channel", "origen"]);
     const nombre_cliente = texto(payload, ["nombre_cliente", "nombre", "name", "contact_name", "full_name", "first_name"]);
     const telefono_cliente = texto(payload, ["telefono_cliente", "telefono", "phone", "contact_phone"]);
     const email_cliente = texto(payload, ["email_cliente", "email", "contact_email"]);
@@ -153,6 +137,7 @@ export async function POST(req: Request, { params }: PageProps) {
       updated_at: new Date().toISOString(),
     };
 
+    if (canal) updateData.canal = canal;
     if (nombre_cliente) updateData.nombre_cliente = nombre_cliente;
     if (telefono_cliente) updateData.telefono_cliente = telefono_cliente;
     if (email_cliente) updateData.email_cliente = email_cliente;
@@ -160,8 +145,8 @@ export async function POST(req: Request, { params }: PageProps) {
     if (comprobante_url) updateData.comprobante_url = comprobante_url;
     if (typeof valor_pagado === "number") updateData.valor_pagado = valor_pagado;
 
-    if (estado === "reservado") updateData.reservado_en = new Date().toISOString();
-    if (estado === "pagado") updateData.pagado_en = new Date().toISOString();
+    if (estado === "No disponible") updateData.reservado_en = new Date().toISOString();
+    if (estado === "Pagado") updateData.pagado_en = new Date().toISOString();
 
     const { data, error } = await supabaseAdmin
       .from("boletas")
@@ -183,24 +168,6 @@ export async function POST(req: Request, { params }: PageProps) {
         },
         { status: 404 }
       );
-    }
-
-    const { data: empresa } = await supabaseAdmin
-      .from("empresas")
-      .select("apps_script_url")
-      .eq("id", data.empresa_id)
-      .maybeSingle();
-
-    if (empresa?.apps_script_url) {
-      await sincronizarBoletaConSheet(empresa.apps_script_url, {
-        proyecto: proyectoId,
-        numero: data.numero,
-        estado: data.estado,
-        nombre: data.nombre_cliente,
-        telefono: data.telefono_cliente,
-        email: data.email_cliente,
-        valor_pagado: data.valor_pagado,
-      });
     }
 
     return Response.json({
