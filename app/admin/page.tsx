@@ -30,6 +30,12 @@ type ApiResponse = {
   message?: string;
 };
 
+type SyncResponse = {
+  success: boolean;
+  message?: string;
+  total?: number;
+};
+
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,6 +50,8 @@ export default function AdminDashboardPage() {
   const [formFormularioUrl, setFormFormularioUrl] = useState("");
   const [formFlyerUrl, setFormFlyerUrl] = useState("");
   const [modalError, setModalError] = useState("");
+  const [syncingProyectoId, setSyncingProyectoId] = useState("");
+  const [syncMessage, setSyncMessage] = useState("");
 
   useEffect(() => {
     cargar();
@@ -88,6 +96,30 @@ export default function AdminDashboardPage() {
   function cerrarModal() {
     if (creando) return;
     setModalAbierto(false);
+  }
+
+  async function actualizarBaseDatos(proyectoId: string) {
+    setSyncingProyectoId(proyectoId);
+    setSyncMessage("");
+    setError("");
+
+    try {
+      const res = await fetch(`/api/proyectos/${proyectoId}/actualizar-base-datos`, {
+        method: "POST",
+      });
+
+      const data = (await res.json()) as SyncResponse;
+
+      if (!data.success) {
+        throw new Error(data.message || "No se pudo actualizar la base de datos.");
+      }
+
+      setSyncMessage(`Base de datos actualizada correctamente. Registros sincronizados: ${data.total || 0}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error actualizando base de datos.");
+    } finally {
+      setSyncingProyectoId("");
+    }
   }
 
   async function crearProyecto(e: React.FormEvent<HTMLFormElement>) {
@@ -144,6 +176,12 @@ export default function AdminDashboardPage() {
             Crear nuevo proyecto
           </button>
         </div>
+
+        {syncMessage && (
+          <div className="mb-6 rounded-3xl border border-green-200 bg-green-50 p-5 text-green-700">
+            {syncMessage}
+          </div>
+        )}
 
         {loading && (
           <div className="rounded-3xl bg-white p-10 text-center text-lg shadow-sm">
@@ -208,6 +246,10 @@ export default function AdminDashboardPage() {
                           <a href={proyecto.ventas_url} className="rounded-2xl bg-[#E8620A] px-5 py-4 text-center text-lg font-semibold text-white">
                             Página de ventas
                           </a>
+
+                          <button type="button" onClick={() => actualizarBaseDatos(proyecto.id)} disabled={syncingProyectoId === proyecto.id} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold disabled:opacity-60">
+                            {syncingProyectoId === proyecto.id ? "Actualizando..." : "Actualizar base de datos"}
+                          </button>
                         </div>
                       </div>
                     </article>
