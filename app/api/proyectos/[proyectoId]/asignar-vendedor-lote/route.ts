@@ -123,6 +123,7 @@ export async function POST(req: Request, { params }: PageProps) {
       const { error: updateError } = await supabaseAdmin
         .from("boletas")
         .update({
+          estado: "No disponible",
           canal: "Vendedor",
           vendedor_nombre,
           updated_at: new Date().toISOString(),
@@ -177,6 +178,7 @@ export async function POST(req: Request, { params }: PageProps) {
             encontradasLista.map((boleta) => ({
               proyecto: proyectoId,
               numero: boleta.numero,
+              estado: "No disponible",
               canal: "Vendedor",
               vendedor: vendedor_nombre,
               valor_pagado: "",
