@@ -6,7 +6,6 @@ type Empresa = {
   id: string;
   nombre: string;
   slug: string;
-  apps_script_url?: string;
 };
 
 type EmpresaResponse = {
@@ -29,7 +28,6 @@ export default function CrearEmpresaPage() {
   const [id, setId] = useState("");
   const [nombre, setNombre] = useState("");
   const [slug, setSlug] = useState("");
-  const [appsScriptUrl, setAppsScriptUrl] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -61,7 +59,6 @@ export default function CrearEmpresaPage() {
           id,
           nombre,
           slug,
-          apps_script_url: appsScriptUrl,
         }),
       });
 
@@ -137,17 +134,6 @@ export default function CrearEmpresaPage() {
               />
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium">URL Apps Script</label>
-              <input
-                type="url"
-                value={appsScriptUrl}
-                onChange={(e) => setAppsScriptUrl(e.target.value)}
-                placeholder="https://script.google.com/macros/s/.../exec"
-                className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none"
-              />
-            </div>
-
             <button
               type="submit"
               disabled={loading}
@@ -170,11 +156,6 @@ export default function CrearEmpresaPage() {
                 <div>
                   <p className="text-[#6F665C]">Slug</p>
                   <p className="break-all font-mono font-semibold">{empresaCreada.slug}</p>
-                </div>
-
-                <div>
-                  <p className="text-[#6F665C]">Apps Script</p>
-                  <p className="break-all font-mono font-semibold">{empresaCreada.apps_script_url}</p>
                 </div>
               </div>
 
