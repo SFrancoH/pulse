@@ -1,4 +1,3 @@
-import { sincronizarLoteBoletasConSheet } from "@/lib/apps-script-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -58,23 +57,11 @@ export async function POST(req: Request, { params }: PageProps) {
     const numerosRaw = Array.isArray(body.numeros) ? body.numeros : [];
 
     if (!vendedor_nombre) {
-      return Response.json(
-        {
-          success: false,
-          message: "El nombre del vendedor es obligatorio.",
-        },
-        { status: 400 }
-      );
+      return Response.json({ success: false, message: "El nombre del vendedor es obligatorio." }, { status: 400 });
     }
 
     if (numerosRaw.length === 0) {
-      return Response.json(
-        {
-          success: false,
-          message: "Debes enviar al menos un número.",
-        },
-        { status: 400 }
-      );
+      return Response.json({ success: false, message: "Debes enviar al menos un número." }, { status: 400 });
     }
 
     const numeros = Array.from(
@@ -90,14 +77,7 @@ export async function POST(req: Request, { params }: PageProps) {
     );
 
     if (numeros.length === 0) {
-      return Response.json(
-        {
-          success: false,
-          message: errores[0] || "No se encontraron números válidos.",
-          errores,
-        },
-        { status: 400 }
-      );
+      return Response.json({ success: false, message: errores[0] || "No se encontraron números válidos.", errores }, { status: 400 });
     }
 
     const { data: boletas, error: boletasError } = await supabaseAdmin
@@ -107,13 +87,7 @@ export async function POST(req: Request, { params }: PageProps) {
       .in("numero", numeros);
 
     if (boletasError) {
-      return Response.json(
-        {
-          success: false,
-          message: `Error consultando boletas: ${boletasError.message}`,
-        },
-        { status: 500 }
-      );
+      return Response.json({ success: false, message: `Error consultando boletas: ${boletasError.message}` }, { status: 500 });
     }
 
     const encontradasLista = boletas || [];
@@ -131,13 +105,7 @@ export async function POST(req: Request, { params }: PageProps) {
         .in("id", idsEncontradas);
 
       if (updateError) {
-        return Response.json(
-          {
-            success: false,
-            message: `Error actualizando boletas: ${updateError.message}`,
-          },
-          { status: 500 }
-        );
+        return Response.json({ success: false, message: `Error actualizando boletas: ${updateError.message}` }, { status: 500 });
       }
     }
 
@@ -160,40 +128,10 @@ export async function POST(req: Request, { params }: PageProps) {
       if (historialError) {
         errores.push(`Historial: ${historialError.message}`);
       }
-
-      const { data: empresa, error: empresaError } = await supabaseAdmin
-        .from("empresas")
-        .select("apps_script_url")
-        .eq("id", empresaId)
-        .maybeSingle();
-
-      if (empresaError) {
-        errores.push(`Apps Script URL: ${empresaError.message}`);
-      }
-
-      if (empresa?.apps_script_url) {
-        try {
-          await sincronizarLoteBoletasConSheet(
-            empresa.apps_script_url,
-            encontradasLista.map((boleta) => ({
-              proyecto: proyectoId,
-              numero: boleta.numero,
-              estado: "No disponible",
-              canal: "Vendedor",
-              vendedor: vendedor_nombre,
-              valor_pagado: "",
-            }))
-          );
-        } catch (error) {
-          errores.push(`Google Sheets: ${getErrorMessage(error)}`);
-        }
-      }
     }
 
     const encontradas = encontradasLista.length;
-    const noEncontradas = numeros.filter(
-      (numero) => !encontradasLista.some((boleta) => boleta.numero === numero)
-    );
+    const noEncontradas = numeros.filter((numero) => !encontradasLista.some((boleta) => boleta.numero === numero));
 
     return Response.json({
       success: true,
@@ -207,14 +145,6 @@ export async function POST(req: Request, { params }: PageProps) {
       errores,
     });
   } catch (error: unknown) {
-    const message = getErrorMessage(error);
-
-    return Response.json(
-      {
-        success: false,
-        message,
-      },
-      { status: 500 }
-    );
+    return Response.json({ success: false, message: getErrorMessage(error) }, { status: 500 });
   }
 }
