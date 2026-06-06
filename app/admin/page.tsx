@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Proyecto = {
   id: string;
@@ -30,13 +30,125 @@ type ApiResponse = {
   message?: string;
 };
 
-type SyncResponse = {
+type UpdateResponse = {
   success: boolean;
   message?: string;
-  total?: number;
+  recibidas?: number;
+  actualizadas?: number;
+  omitidas?: number;
+  no_encontradas?: string[];
+  errores?: string[];
 };
 
+type CsvItem = {
+  numero: string;
+  estado?: string;
+  canal?: string;
+  nombre?: string;
+  telefono?: string;
+  email?: string;
+  vendedor?: string;
+  valor_pagado?: string;
+};
+
+const CSV_CHUNK_SIZE = 200;
+
+function normalizarHeader(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function normalizarNumero(value: string) {
+  const limpio = String(value || "").replace(/\D/g, "");
+  if (!limpio) return "";
+  return limpio.padStart(4, "0").slice(-4);
+}
+
+function parseCsvLine(line: string) {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const next = line[i + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      i++;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
+function mapCsvRow(headers: string[], row: string[]): CsvItem | null {
+  const get = (...keys: string[]) => {
+    for (const key of keys) {
+      const index = headers.indexOf(key);
+      if (index >= 0 && row[index] !== undefined) return row[index].trim();
+    }
+    return "";
+  };
+
+  const numero = normalizarNumero(get("numero", "boleta", "consecutivo"));
+  if (!numero) return null;
+
+  return {
+    numero,
+    estado: get("estado"),
+    canal: get("canal"),
+    nombre: get("nombre", "nombre_cliente", "cliente"),
+    telefono: get("telefono", "telefono_cliente", "phone"),
+    email: get("email", "correo"),
+    vendedor: get("nombre_vendedor", "vendedor", "asesor"),
+    valor_pagado: get("valor_pagago", "valor_pagado", "valor", "valor_a_pagar"),
+  };
+}
+
+function parseCsvActualizar(texto: string) {
+  const lineas = texto
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .map((linea) => linea.trim())
+    .filter(Boolean);
+
+  if (lineas.length < 2) return [];
+
+  const headers = parseCsvLine(lineas[0]).map(normalizarHeader);
+  const items: CsvItem[] = [];
+
+  for (const linea of lineas.slice(1)) {
+    const item = mapCsvRow(headers, parseCsvLine(linea));
+    if (item) items.push(item);
+  }
+
+  return items;
+}
+
 export default function AdminDashboardPage() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const proyectoCsvRef = useRef<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [empresas, setEmpresas] = useState<EmpresaGrupo[]>([]);
@@ -98,27 +210,72 @@ export default function AdminDashboardPage() {
     setModalAbierto(false);
   }
 
-  async function actualizarBaseDatos(proyectoId: string) {
-    setSyncingProyectoId(proyectoId);
+  function abrirCsv(proyectoId: string) {
+    proyectoCsvRef.current = proyectoId;
+    setError("");
     setSyncMessage("");
+    fileInputRef.current?.click();
+  }
+
+  async function leerJsonSeguro(res: Response) {
+    const text = await res.text();
+    try {
+      return JSON.parse(text) as UpdateResponse;
+    } catch {
+      throw new Error(text || "El servidor no respondió JSON válido.");
+    }
+  }
+
+  async function procesarCsvSeleccionado(file: File) {
+    const proyectoId = proyectoCsvRef.current;
+    if (!proyectoId) return;
+
+    setSyncingProyectoId(proyectoId);
+    setSyncMessage("Leyendo CSV...");
     setError("");
 
     try {
-      const res = await fetch(`/api/proyectos/${proyectoId}/actualizar-base-datos`, {
-        method: "POST",
-      });
+      const texto = await file.text();
+      const items = parseCsvActualizar(texto);
 
-      const data = (await res.json()) as SyncResponse;
-
-      if (!data.success) {
-        throw new Error(data.message || "No se pudo actualizar la base de datos.");
+      if (items.length === 0) {
+        throw new Error("El CSV no tiene registros válidos. Debe incluir al menos la columna numero.");
       }
 
-      setSyncMessage(`Base de datos actualizada correctamente. Registros sincronizados: ${data.total || 0}.`);
+      let actualizadas = 0;
+      let omitidas = 0;
+      const noEncontradas: string[] = [];
+      const errores: string[] = [];
+
+      for (let inicio = 0; inicio < items.length; inicio += CSV_CHUNK_SIZE) {
+        const chunk = items.slice(inicio, inicio + CSV_CHUNK_SIZE);
+        setSyncMessage(`Actualizando ${Math.min(inicio + chunk.length, items.length)} de ${items.length} registros...`);
+
+        const res = await fetch(`/api/proyectos/${proyectoId}/actualizar-base-datos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: chunk }),
+        });
+
+        const data = await leerJsonSeguro(res);
+
+        if (!data.success) {
+          throw new Error(data.message || "No se pudo actualizar la base de datos.");
+        }
+
+        actualizadas += data.actualizadas || 0;
+        omitidas += data.omitidas || 0;
+        if (data.no_encontradas?.length) noEncontradas.push(...data.no_encontradas);
+        if (data.errores?.length) errores.push(...data.errores);
+      }
+
+      setSyncMessage(`CSV procesado. Actualizadas: ${actualizadas}. Omitidas: ${omitidas}. No encontradas: ${noEncontradas.length}. Errores: ${errores.length}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error actualizando base de datos.");
     } finally {
       setSyncingProyectoId("");
+      proyectoCsvRef.current = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -163,6 +320,17 @@ export default function AdminDashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#F2EDE4] px-4 py-8 text-[#1A1A1A]">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) procesarCsvSeleccionado(file);
+        }}
+      />
+
       <section className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -247,7 +415,7 @@ export default function AdminDashboardPage() {
                             Página de ventas
                           </a>
 
-                          <button type="button" onClick={() => actualizarBaseDatos(proyecto.id)} disabled={syncingProyectoId === proyecto.id} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold disabled:opacity-60">
+                          <button type="button" onClick={() => abrirCsv(proyecto.id)} disabled={syncingProyectoId === proyecto.id} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold disabled:opacity-60">
                             {syncingProyectoId === proyecto.id ? "Actualizando..." : "Actualizar base de datos"}
                           </button>
                         </div>
