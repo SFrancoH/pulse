@@ -10,7 +10,12 @@ type SheetBoletaPayload = {
   valor_pagado?: string | number | null;
 };
 
-const LOTE_APPS_SCRIPT = 500;
+const LOTE_APPS_SCRIPT = 100;
+const PAUSA_ENTRE_LOTES_MS = 250;
+
+function esperar(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function postAppsScript(appsScriptUrl: string, body: unknown) {
   if (!appsScriptUrl) return { success: false, skipped: true };
@@ -29,11 +34,19 @@ async function postAppsScript(appsScriptUrl: string, body: unknown) {
     throw new Error(`Apps Script error ${response.status}: ${text}`);
   }
 
+  let data: { success?: boolean; message?: string; raw?: string };
+
   try {
-    return JSON.parse(text);
+    data = JSON.parse(text);
   } catch {
-    return { success: true, raw: text };
+    data = { success: true, raw: text };
   }
+
+  if (data.success === false) {
+    throw new Error(data.message || "Apps Script respondió error.");
+  }
+
+  return data;
 }
 
 export async function sincronizarBoletasInicialesConSheet(
@@ -47,7 +60,7 @@ export async function sincronizarBoletasInicialesConSheet(
     const lote = numeros.slice(inicio, inicio + LOTE_APPS_SCRIPT).map((numero) => ({
       proyecto: proyectoId,
       numero,
-      estado: "disponible",
+      estado: "Disponible",
       canal: "Vacio",
       nombre: "",
       telefono: "",
@@ -57,6 +70,7 @@ export async function sincronizarBoletasInicialesConSheet(
     }));
 
     await postAppsScript(appsScriptUrl, { items: lote });
+    await esperar(PAUSA_ENTRE_LOTES_MS);
   }
 }
 
@@ -79,5 +93,6 @@ export async function sincronizarLoteBoletasConSheet(
     await postAppsScript(appsScriptUrl, {
       items: items.slice(inicio, inicio + LOTE_APPS_SCRIPT),
     });
+    await esperar(PAUSA_ENTRE_LOTES_MS);
   }
 }
