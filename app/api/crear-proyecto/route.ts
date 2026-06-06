@@ -1,5 +1,4 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { sincronizarBoletasInicialesConSheet } from "@/lib/apps-script-sync";
 import { requireAdminSession } from "@/lib/require-admin";
 import { slugify } from "@/lib/slug";
 
@@ -12,7 +11,8 @@ function crearBoletas(empresa_id: string, proyecto_id: string) {
     empresa_id,
     proyecto_id,
     numero: String(index).padStart(4, "0"),
-    estado: "disponible",
+    estado: "Disponible",
+    canal: "Vacio",
   }));
 }
 
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 
     const { data: empresa, error: empresaError } = await supabaseAdmin
       .from("empresas")
-      .select("id,nombre,slug,apps_script_url")
+      .select("id,nombre,slug")
       .eq("id", empresa_id)
       .single();
 
@@ -95,22 +95,6 @@ export async function POST(req: Request) {
       }
     }
 
-    let sheet_sync = "sin_configurar";
-
-    if (empresa.apps_script_url) {
-      try {
-        await sincronizarBoletasInicialesConSheet(
-          empresa.apps_script_url,
-          proyecto_id,
-          boletas.map((boleta) => boleta.numero)
-        );
-
-        sheet_sync = "sincronizado";
-      } catch {
-        sheet_sync = "error";
-      }
-    }
-
     const url = `${BASE_URL}/r/${empresa.slug}/${proyectoSlug}`;
     const webhook_url = `${BASE_URL}/api/proyectos/${proyecto_id}/actualizar-boleta`;
     const asignar_vendedor_url = `${BASE_URL}/admin/proyectos/${proyecto_id}/asignar-vendedor`;
@@ -123,13 +107,12 @@ export async function POST(req: Request) {
       url,
       webhook_url,
       asignar_vendedor_url,
-      sheet_sync,
     });
-  } catch {
+  } catch (error: unknown) {
     return Response.json(
       {
         success: false,
-        message: "Error interno.",
+        message: error instanceof Error ? error.message : "Error interno.",
       },
       { status: 500 }
     );
