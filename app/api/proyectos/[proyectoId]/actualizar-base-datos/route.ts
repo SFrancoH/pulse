@@ -1,4 +1,3 @@
-import { sincronizarLoteBoletasConSheet } from "@/lib/apps-script-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -23,7 +22,7 @@ type Payload = {
   items?: CsvItem[];
 };
 
-const ESTADOS_VALIDOS = new Set(["Disponible", "No disponible", "Debe", "Abonado", "Pagado", "disponible"]);
+const ESTADOS_VALIDOS = new Set(["Disponible", "No disponible", "Debe", "Abonado", "Pagado"]);
 
 function normalizarNumero(valor: unknown) {
   const limpio = String(valor || "").replace(/\D/g, "");
@@ -40,7 +39,6 @@ function normalizarEstado(valor: unknown) {
   const lower = raw.toLowerCase();
 
   if (!raw) return "";
-  if (raw === "disponible") return "disponible";
   if (lower === "disponible") return "Disponible";
   if (lower === "no disponible" || lower === "nodisponible") return "No disponible";
   if (lower === "debe") return "Debe";
@@ -78,6 +76,9 @@ function crearUpdateData(item: CsvItem) {
   if (vendedor) updateData.vendedor_nombre = vendedor;
   if (typeof valorPagado === "number") updateData.valor_pagado = valorPagado;
 
+  if (estado === "No disponible") updateData.reservado_en = new Date().toISOString();
+  if (estado === "Pagado") updateData.pagado_en = new Date().toISOString();
+
   return updateData;
 }
 
@@ -101,8 +102,6 @@ export async function POST(req: Request, { params }: PageProps) {
     let omitidas = 0;
     const no_encontradas: string[] = [];
     const errores: string[] = [];
-    const sincronizarItems: CsvItem[] = [];
-    let empresaId = "";
 
     for (const item of items) {
       const numero = normalizarNumero(item.numero);
@@ -120,7 +119,7 @@ export async function POST(req: Request, { params }: PageProps) {
         .update(updateData)
         .eq("proyecto_id", proyectoId)
         .eq("numero", numero)
-        .select("id,empresa_id,numero")
+        .select("id,numero")
         .maybeSingle();
 
       if (error) {
@@ -135,42 +134,7 @@ export async function POST(req: Request, { params }: PageProps) {
         continue;
       }
 
-      empresaId = empresaId || data.empresa_id;
       actualizadas++;
-      sincronizarItems.push({ ...item, numero });
-    }
-
-    if (empresaId && sincronizarItems.length > 0) {
-      const { data: empresa, error: empresaError } = await supabaseAdmin
-        .from("empresas")
-        .select("apps_script_url")
-        .eq("id", empresaId)
-        .maybeSingle();
-
-      if (empresaError) {
-        errores.push(`Apps Script URL: ${empresaError.message}`);
-      }
-
-      if (empresa?.apps_script_url) {
-        try {
-          await sincronizarLoteBoletasConSheet(
-            empresa.apps_script_url,
-            sincronizarItems.map((item) => ({
-              proyecto: proyectoId,
-              numero: normalizarNumero(item.numero),
-              estado: normalizarEstado(item.estado) || undefined,
-              canal: texto(item.canal),
-              nombre: texto(item.nombre),
-              telefono: texto(item.telefono),
-              email: texto(item.email),
-              vendedor: texto(item.vendedor),
-              valor_pagado: item.valor_pagado ?? "",
-            }))
-          );
-        } catch (error: unknown) {
-          errores.push(`Google Sheets: ${error instanceof Error ? error.message : "Error desconocido"}`);
-        }
-      }
     }
 
     return Response.json({
