@@ -13,13 +13,15 @@ type BoletaDisponible = {
   numero: string;
 };
 
+const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
+
 async function cargarBoletasDisponibles(empresaId: string, proyectoId: string) {
   const { data, error } = await supabaseAdmin
     .from("boletas")
     .select("id,numero")
     .eq("empresa_id", empresaId)
     .eq("proyecto_id", proyectoId)
-    .eq("estado", "disponible")
+    .in("estado", ESTADOS_DISPONIBLES)
     .order("numero", { ascending: true })
     .range(0, 999);
 
