@@ -7,6 +7,7 @@ type PageProps = {
 };
 
 const PAGE_SIZE = 1000;
+const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
 
 function clampPage(value: string | null) {
   const page = Number(value || 0);
@@ -31,7 +32,7 @@ export async function GET(req: Request, { params }: PageProps) {
         .from("boletas")
         .select("id,numero")
         .eq("proyecto_id", proyectoId)
-        .eq("estado", "disponible")
+        .in("estado", ESTADOS_DISPONIBLES)
         .eq("numero", numero)
         .order("numero", { ascending: true });
 
@@ -62,7 +63,7 @@ export async function GET(req: Request, { params }: PageProps) {
       .from("boletas")
       .select("id,numero")
       .eq("proyecto_id", proyectoId)
-      .eq("estado", "disponible")
+      .in("estado", ESTADOS_DISPONIBLES)
       .gte("numero", desdeTexto)
       .lte("numero", hastaTexto)
       .order("numero", { ascending: true });
