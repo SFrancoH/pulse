@@ -7,6 +7,7 @@ type PageProps = {
 };
 
 const PAGE_SIZE = 1000;
+const CONTAINS_LIMIT = 1000;
 const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
 
 function clampPage(value: string | null) {
@@ -21,11 +22,41 @@ function normalizarNumero(value: string | null) {
   return limpio.padStart(4, "0").slice(-4);
 }
 
+function normalizarContiene(value: string | null) {
+  return String(value || "").replace(/\D/g, "").slice(0, 4);
+}
+
 export async function GET(req: Request, { params }: PageProps) {
   try {
     const { proyectoId } = await params;
     const url = new URL(req.url);
     const numero = normalizarNumero(url.searchParams.get("numero"));
+    const contiene = normalizarContiene(url.searchParams.get("contiene"));
+
+    if (contiene) {
+      const { data, error } = await supabaseAdmin
+        .from("boletas")
+        .select("id,numero")
+        .eq("proyecto_id", proyectoId)
+        .in("estado", ESTADOS_DISPONIBLES)
+        .like("numero", `%${contiene}%`)
+        .order("numero", { ascending: true })
+        .limit(CONTAINS_LIMIT);
+
+      if (error) throw error;
+
+      return Response.json({
+        success: true,
+        mode: "search",
+        search_type: "contains",
+        contiene,
+        page: 0,
+        boletas: data || [],
+        limit: CONTAINS_LIMIT,
+        has_previous: false,
+        has_next: false,
+      });
+    }
 
     if (numero) {
       const { data, error } = await supabaseAdmin
@@ -41,6 +72,7 @@ export async function GET(req: Request, { params }: PageProps) {
       return Response.json({
         success: true,
         mode: "search",
+        search_type: "exact",
         numero,
         page: Math.floor(Number(numero) / PAGE_SIZE),
         desde: Number(numero),
