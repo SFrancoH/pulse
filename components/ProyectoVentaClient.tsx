@@ -40,6 +40,10 @@ function normalizarNumero(value: string) {
   return limpio.padStart(4, "0").slice(-4);
 }
 
+function normalizarContiene(value: string) {
+  return value.replace(/\D/g, "").slice(0, 4);
+}
+
 let ultimaAlturaEnviada = 0;
 
 function enviarAlturaIframe() {
@@ -73,6 +77,8 @@ export default function ProyectoVentaClient({
 }: ProyectoVentaClientProps) {
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [busqueda, setBusqueda] = useState("");
+  const [busquedaContiene, setBusquedaContiene] = useState("");
+  const [resultadoContiene, setResultadoContiene] = useState("");
   const [toast, setToast] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [pagina, setPagina] = useState(0);
@@ -138,6 +144,8 @@ export default function ProyectoVentaClient({
     try {
       setCargandoPagina(true);
       setBusqueda("");
+      setBusquedaContiene("");
+      setResultadoContiene("");
       setModoBusqueda(false);
 
       const data = await consultarBoletas(`/api/proyectos/${proyectoId}/boletas-disponibles?page=${page}`);
@@ -168,6 +176,7 @@ export default function ProyectoVentaClient({
 
     try {
       setCargandoPagina(true);
+      setResultadoContiene("");
 
       const data = await consultarBoletas(`/api/proyectos/${proyectoId}/boletas-disponibles?numero=${numero}`);
 
@@ -186,8 +195,44 @@ export default function ProyectoVentaClient({
     }
   }
 
+  async function buscarNumeroQueContenga() {
+    if (!proyectoId) {
+      mostrarToast("No se encontró el ID del proyecto.");
+      return;
+    }
+
+    const contiene = normalizarContiene(busquedaContiene);
+
+    if (!contiene) {
+      mostrarToast("Escribe uno o más dígitos para buscar coincidencias.");
+      return;
+    }
+
+    try {
+      setCargandoPagina(true);
+      setBusqueda("");
+
+      const data = await consultarBoletas(`/api/proyectos/${proyectoId}/boletas-disponibles?contiene=${contiene}`);
+
+      setBoletas(data.boletas || []);
+      setResultadoContiene(contiene);
+      setModoBusqueda(true);
+      window.setTimeout(enviarAlturaIframe, 250);
+
+      if (!data.boletas || data.boletas.length === 0) {
+        mostrarToast(`No hay números disponibles que contengan ${contiene}.`);
+      }
+    } catch (err) {
+      mostrarToast(err instanceof Error ? err.message : "Error buscando coincidencias.");
+    } finally {
+      setCargandoPagina(false);
+    }
+  }
+
   function limpiarBusqueda() {
     setBusqueda("");
+    setBusquedaContiene("");
+    setResultadoContiene("");
     cargarPagina(pagina);
   }
 
@@ -245,39 +290,64 @@ export default function ProyectoVentaClient({
 
   const rangoInicio = pagina * 1000;
   const rangoFin = rangoInicio + 999;
+  const textoResultado = resultadoContiene
+    ? `Resultados que contienen ${resultadoContiene}`
+    : modoBusqueda
+      ? "Resultado de búsqueda"
+      : `Números ${fmtNumero(rangoInicio)} al ${fmtNumero(rangoFin)}`;
 
   return (
     <main id="pulse-venta-root" className="overflow-x-hidden bg-[#F2EDE4] pb-36 text-[#1A1A1A]">
-      <div className="sticky top-0 z-50 flex items-center justify-center gap-3 border-b border-[#E0D9CE] bg-white px-5 py-3 max-[932px]:flex-col max-[932px]:px-3">
-        <div className="rounded-md bg-[#E8620A] px-6 py-2 text-[22px] font-semibold text-white max-[932px]:w-full max-[932px]:rounded-xl max-[932px]:py-3 max-[932px]:text-center max-[932px]:text-[28px]">
-          {formatearCOP(precioBoleta)}
-        </div>
+      <div className="sticky top-0 z-50 border-b border-[#E0D9CE] bg-white px-5 py-3 max-[932px]:px-3">
+        <div className="mx-auto flex max-w-[1100px] items-center justify-center gap-3 max-[932px]:flex-col">
+          <div className="rounded-md bg-[#E8620A] px-6 py-2 text-[22px] font-semibold text-white max-[932px]:w-full max-[932px]:rounded-xl max-[932px]:py-3 max-[932px]:text-center max-[932px]:text-[28px]">
+            {formatearCOP(precioBoleta)}
+          </div>
 
-        <div className="flex w-full max-w-xl gap-2 max-[932px]:max-w-none max-[932px]:flex-col">
-          <input
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                buscarNumero();
-              }
-            }}
-            placeholder="Buscar número... Ej: 5555"
-            className="w-full rounded-md border border-[#E0D9CE] bg-[#F2EDE4] px-4 py-2.5 outline-none focus:border-[#E8620A] max-[932px]:rounded-xl max-[932px]:py-4 max-[932px]:text-lg"
-          />
-          <button type="button" onClick={buscarNumero} disabled={cargandoPagina} className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white disabled:opacity-50">
-            Buscar
-          </button>
+          <div className="grid w-full max-w-3xl grid-cols-1 gap-2">
+            <div className="flex w-full gap-2 max-[932px]:flex-col">
+              <input
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    buscarNumero();
+                  }
+                }}
+                placeholder="Buscar número exacto... Ej: 5555"
+                className="w-full rounded-md border border-[#E0D9CE] bg-[#F2EDE4] px-4 py-2.5 outline-none focus:border-[#E8620A] max-[932px]:rounded-xl max-[932px]:py-4 max-[932px]:text-lg"
+              />
+              <button type="button" onClick={buscarNumero} disabled={cargandoPagina} className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white disabled:opacity-50">
+                Buscar
+              </button>
+            </div>
+
+            <div className="flex w-full gap-2 max-[932px]:flex-col">
+              <input
+                value={busquedaContiene}
+                onChange={(e) => setBusquedaContiene(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    buscarNumeroQueContenga();
+                  }
+                }}
+                placeholder="Buscar número que contenga... Ej: 26"
+                className="w-full rounded-md border border-[#E0D9CE] bg-white px-4 py-2.5 outline-none focus:border-[#E8620A] max-[932px]:rounded-xl max-[932px]:py-4 max-[932px]:text-lg"
+              />
+              <button type="button" onClick={buscarNumeroQueContenga} disabled={cargandoPagina} className="rounded-xl bg-[#E8620A] px-5 py-3 font-semibold text-white disabled:opacity-50">
+                Buscar coincidencias
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       <section className="mx-auto max-w-[1100px] px-5 pb-3 pt-6 max-[932px]:px-3">
         <p className="text-sm uppercase tracking-[3px] text-[#9A9187]">{empresaNombre}</p>
         <h1 className="mt-2 text-[32px] font-bold max-[932px]:text-[34px]">{proyectoNombre}</h1>
-        <p className="mt-2 text-sm text-[#9A9187]">
-          {modoBusqueda ? "Resultado de búsqueda" : `Números ${fmtNumero(rangoInicio)} al ${fmtNumero(rangoFin)}`}
-        </p>
+        <p className="mt-2 text-sm text-[#9A9187]">{textoResultado}</p>
       </section>
 
       <section className="mx-auto flex max-w-[1100px] flex-wrap gap-2 px-5 pb-5 max-[932px]:flex-col max-[932px]:px-3">
