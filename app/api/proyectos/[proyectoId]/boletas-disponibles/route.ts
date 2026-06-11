@@ -32,6 +32,56 @@ export async function GET(req: Request, { params }: PageProps) {
     const url = new URL(req.url);
     const numero = normalizarNumero(url.searchParams.get("numero"));
     const contiene = normalizarContiene(url.searchParams.get("contiene"));
+    const aleatorio = url.searchParams.get("aleatorio") === "1";
+
+    if (aleatorio) {
+      const { count, error: countError } = await supabaseAdmin
+        .from("boletas")
+        .select("id", { count: "exact", head: true })
+        .eq("proyecto_id", proyectoId)
+        .in("estado", ESTADOS_DISPONIBLES);
+
+      if (countError) throw countError;
+
+      const total = count || 0;
+
+      if (total === 0) {
+        return Response.json({
+          success: true,
+          mode: "search",
+          search_type: "random",
+          page: 0,
+          boletas: [],
+          has_previous: false,
+          has_next: false,
+        });
+      }
+
+      const offset = Math.floor(Math.random() * total);
+
+      const { data, error } = await supabaseAdmin
+        .from("boletas")
+        .select("id,numero")
+        .eq("proyecto_id", proyectoId)
+        .in("estado", ESTADOS_DISPONIBLES)
+        .order("numero", { ascending: true })
+        .range(offset, offset);
+
+      if (error) throw error;
+
+      const boleta = data?.[0];
+
+      return Response.json({
+        success: true,
+        mode: "search",
+        search_type: "random",
+        numero: boleta?.numero,
+        page: boleta?.numero ? Math.floor(Number(boleta.numero) / PAGE_SIZE) : 0,
+        boletas: boleta ? [boleta] : [],
+        has_previous: false,
+        has_next: false,
+      });
+    }
 
     if (contiene) {
       const { data, error } = await supabaseAdmin
