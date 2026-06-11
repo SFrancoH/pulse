@@ -24,6 +24,7 @@ type BoletasResponse = {
   mode?: "page" | "search";
   page?: number;
   boletas?: Boleta[];
+  numero?: string;
 };
 
 function formatearCOP(valor: number) {
@@ -79,6 +80,7 @@ export default function ProyectoVentaClient({
   const [busqueda, setBusqueda] = useState("");
   const [busquedaContiene, setBusquedaContiene] = useState("");
   const [resultadoContiene, setResultadoContiene] = useState("");
+  const [resultadoAleatorio, setResultadoAleatorio] = useState("");
   const [toast, setToast] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [pagina, setPagina] = useState(0);
@@ -146,6 +148,7 @@ export default function ProyectoVentaClient({
       setBusqueda("");
       setBusquedaContiene("");
       setResultadoContiene("");
+      setResultadoAleatorio("");
       setModoBusqueda(false);
 
       const data = await consultarBoletas(`/api/proyectos/${proyectoId}/boletas-disponibles?page=${page}`);
@@ -177,6 +180,7 @@ export default function ProyectoVentaClient({
     try {
       setCargandoPagina(true);
       setResultadoContiene("");
+      setResultadoAleatorio("");
 
       const data = await consultarBoletas(`/api/proyectos/${proyectoId}/boletas-disponibles?numero=${numero}`);
 
@@ -211,6 +215,7 @@ export default function ProyectoVentaClient({
     try {
       setCargandoPagina(true);
       setBusqueda("");
+      setResultadoAleatorio("");
 
       const data = await consultarBoletas(`/api/proyectos/${proyectoId}/boletas-disponibles?contiene=${contiene}`);
 
@@ -229,10 +234,42 @@ export default function ProyectoVentaClient({
     }
   }
 
+  async function probarSuerte() {
+    if (!proyectoId) {
+      mostrarToast("No se encontró el ID del proyecto.");
+      return;
+    }
+
+    try {
+      setCargandoPagina(true);
+      setBusqueda("");
+      setBusquedaContiene("");
+      setResultadoContiene("");
+
+      const data = await consultarBoletas(`/api/proyectos/${proyectoId}/boletas-disponibles?aleatorio=1`);
+      const numeroAleatorio = data.numero || data.boletas?.[0]?.numero || "";
+
+      setBoletas(data.boletas || []);
+      setResultadoAleatorio(numeroAleatorio);
+      setPagina(data.page ?? (numeroAleatorio ? Math.floor(Number(numeroAleatorio) / 1000) : pagina));
+      setModoBusqueda(true);
+      window.setTimeout(enviarAlturaIframe, 250);
+
+      if (!numeroAleatorio) {
+        mostrarToast("No hay números disponibles para probar suerte.");
+      }
+    } catch (err) {
+      mostrarToast(err instanceof Error ? err.message : "Error generando número aleatorio.");
+    } finally {
+      setCargandoPagina(false);
+    }
+  }
+
   function limpiarBusqueda() {
     setBusqueda("");
     setBusquedaContiene("");
     setResultadoContiene("");
+    setResultadoAleatorio("");
     cargarPagina(pagina);
   }
 
@@ -290,11 +327,13 @@ export default function ProyectoVentaClient({
 
   const rangoInicio = pagina * 1000;
   const rangoFin = rangoInicio + 999;
-  const textoResultado = resultadoContiene
-    ? `Resultados que contienen ${resultadoContiene}`
-    : modoBusqueda
-      ? "Resultado de búsqueda"
-      : `Números ${fmtNumero(rangoInicio)} al ${fmtNumero(rangoFin)}`;
+  const textoResultado = resultadoAleatorio
+    ? `Tu número de la suerte es ${resultadoAleatorio}`
+    : resultadoContiene
+      ? `Resultados que contienen ${resultadoContiene}`
+      : modoBusqueda
+        ? "Resultado de búsqueda"
+        : `Números ${fmtNumero(rangoInicio)} al ${fmtNumero(rangoFin)}`;
 
   return (
     <main id="pulse-venta-root" className="overflow-x-hidden bg-[#F2EDE4] pb-36 text-[#1A1A1A]">
@@ -340,6 +379,10 @@ export default function ProyectoVentaClient({
                 Buscar coincidencias
               </button>
             </div>
+
+            <button type="button" onClick={probarSuerte} disabled={cargandoPagina} className="rounded-xl border border-[#E8620A] bg-white px-5 py-3 font-semibold text-[#E8620A] shadow-sm disabled:opacity-50 max-[932px]:py-4 max-[932px]:text-lg">
+              {cargandoPagina ? "Buscando..." : "Probar suerte"}
+            </button>
           </div>
         </div>
       </div>
@@ -348,22 +391,6 @@ export default function ProyectoVentaClient({
         <p className="text-sm uppercase tracking-[3px] text-[#9A9187]">{empresaNombre}</p>
         <h1 className="mt-2 text-[32px] font-bold max-[932px]:text-[34px]">{proyectoNombre}</h1>
         <p className="mt-2 text-sm text-[#9A9187]">{textoResultado}</p>
-      </section>
-
-      <section className="mx-auto flex max-w-[1100px] flex-wrap gap-2 px-5 pb-5 max-[932px]:flex-col max-[932px]:px-3">
-        <button type="button" disabled={pagina === 0 || cargandoPagina} onClick={() => cargarPagina(pagina - 1)} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-lg font-semibold disabled:opacity-40">
-          Ver números anteriores
-        </button>
-
-        <button type="button" disabled={pagina === 9 || cargandoPagina} onClick={() => cargarPagina(pagina + 1)} className="rounded-2xl bg-[#E8620A] px-5 py-4 text-lg font-semibold text-white disabled:opacity-40">
-          {cargandoPagina ? "Cargando..." : "Ver más números"}
-        </button>
-
-        {modoBusqueda && (
-          <button type="button" disabled={cargandoPagina} onClick={limpiarBusqueda} className="rounded-2xl border border-[#E8620A] bg-white px-5 py-4 text-lg font-semibold text-[#E8620A] disabled:opacity-40">
-            Volver a lista de números
-          </button>
-        )}
       </section>
 
       <section className="mx-auto max-w-[1100px] px-4 max-[932px]:px-3">
@@ -384,6 +411,22 @@ export default function ProyectoVentaClient({
           <div className="rounded-2xl border border-[#E0D9CE] bg-white p-10 text-center text-[#9A9187]">
             No se encontró ese número o no está disponible.
           </div>
+        )}
+      </section>
+
+      <section className="mx-auto mt-6 flex max-w-[1100px] flex-wrap gap-2 px-5 pb-8 max-[932px]:flex-col max-[932px]:px-3">
+        <button type="button" disabled={pagina === 0 || cargandoPagina || modoBusqueda} onClick={() => cargarPagina(pagina - 1)} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-lg font-semibold disabled:opacity-40">
+          Ver números anteriores
+        </button>
+
+        <button type="button" disabled={pagina === 9 || cargandoPagina || modoBusqueda} onClick={() => cargarPagina(pagina + 1)} className="rounded-2xl bg-[#E8620A] px-5 py-4 text-lg font-semibold text-white disabled:opacity-40">
+          {cargandoPagina ? "Cargando..." : "Ver más números"}
+        </button>
+
+        {modoBusqueda && (
+          <button type="button" disabled={cargandoPagina} onClick={limpiarBusqueda} className="rounded-2xl border border-[#E8620A] bg-white px-5 py-4 text-lg font-semibold text-[#E8620A] disabled:opacity-40">
+            Volver a lista de números
+          </button>
         )}
       </section>
 
