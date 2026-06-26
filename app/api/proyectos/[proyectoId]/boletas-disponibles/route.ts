@@ -33,6 +33,25 @@ export async function GET(req: Request, { params }: PageProps) {
     const numero = normalizarNumero(url.searchParams.get("numero"));
     const contiene = normalizarContiene(url.searchParams.get("contiene"));
     const aleatorio = url.searchParams.get("aleatorio") === "1";
+    const todas = url.searchParams.get("todas") === "1";
+
+    if (todas) {
+      const { data, error } = await supabaseAdmin
+        .from("boletas")
+        .select("id,numero")
+        .eq("proyecto_id", proyectoId)
+        .in("estado", ESTADOS_DISPONIBLES)
+        .order("numero", { ascending: true })
+        .limit(10000);
+
+      if (error) throw error;
+
+      return Response.json({
+        success: true,
+        mode: "all",
+        boletas: data || [],
+      });
+    }
 
     if (aleatorio) {
       const { count, error: countError } = await supabaseAdmin
@@ -46,19 +65,10 @@ export async function GET(req: Request, { params }: PageProps) {
       const total = count || 0;
 
       if (total === 0) {
-        return Response.json({
-          success: true,
-          mode: "search",
-          search_type: "random",
-          page: 0,
-          boletas: [],
-          has_previous: false,
-          has_next: false,
-        });
+        return Response.json({ success: true, mode: "search", search_type: "random", page: 0, boletas: [] });
       }
 
       const offset = Math.floor(Math.random() * total);
-
       const { data, error } = await supabaseAdmin
         .from("boletas")
         .select("id,numero")
@@ -70,7 +80,6 @@ export async function GET(req: Request, { params }: PageProps) {
       if (error) throw error;
 
       const boleta = data?.[0];
-
       return Response.json({
         success: true,
         mode: "search",
@@ -78,8 +87,6 @@ export async function GET(req: Request, { params }: PageProps) {
         numero: boleta?.numero,
         page: boleta?.numero ? Math.floor(Number(boleta.numero) / PAGE_SIZE) : 0,
         boletas: boleta ? [boleta] : [],
-        has_previous: false,
-        has_next: false,
       });
     }
 
@@ -95,17 +102,7 @@ export async function GET(req: Request, { params }: PageProps) {
 
       if (error) throw error;
 
-      return Response.json({
-        success: true,
-        mode: "search",
-        search_type: "contains",
-        contiene,
-        page: 0,
-        boletas: data || [],
-        limit: CONTAINS_LIMIT,
-        has_previous: false,
-        has_next: false,
-      });
+      return Response.json({ success: true, mode: "search", search_type: "contains", contiene, page: 0, boletas: data || [], limit: CONTAINS_LIMIT });
     }
 
     if (numero) {
@@ -119,20 +116,7 @@ export async function GET(req: Request, { params }: PageProps) {
 
       if (error) throw error;
 
-      return Response.json({
-        success: true,
-        mode: "search",
-        search_type: "exact",
-        numero,
-        page: Math.floor(Number(numero) / PAGE_SIZE),
-        desde: Number(numero),
-        hasta: Number(numero),
-        desde_texto: numero,
-        hasta_texto: numero,
-        boletas: data || [],
-        has_previous: true,
-        has_next: true,
-      });
+      return Response.json({ success: true, mode: "search", search_type: "exact", numero, page: Math.floor(Number(numero) / PAGE_SIZE), boletas: data || [] });
     }
 
     const page = clampPage(url.searchParams.get("page"));
@@ -152,18 +136,7 @@ export async function GET(req: Request, { params }: PageProps) {
 
     if (error) throw error;
 
-    return Response.json({
-      success: true,
-      mode: "page",
-      page,
-      desde,
-      hasta,
-      desde_texto: desdeTexto,
-      hasta_texto: hastaTexto,
-      boletas: data || [],
-      has_previous: page > 0,
-      has_next: page < 9,
-    });
+    return Response.json({ success: true, mode: "page", page, desde, hasta, desde_texto: desdeTexto, hasta_texto: hastaTexto, boletas: data || [] });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error interno";
     return Response.json({ success: false, message }, { status: 500 });
