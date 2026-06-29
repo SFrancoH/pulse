@@ -6,6 +6,11 @@ type PageProps = {
   }>;
 };
 
+type Boleta = {
+  id: string;
+  numero: string;
+};
+
 const PAGE_SIZE = 1000;
 const CONTAINS_LIMIT = 1000;
 const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
@@ -26,6 +31,29 @@ function normalizarContiene(value: string | null) {
   return String(value || "").replace(/\D/g, "").slice(0, 4);
 }
 
+async function cargarTodasLasDisponibles(proyectoId: string) {
+  const boletas: Boleta[] = [];
+
+  for (let desde = 0; desde < 10000; desde += PAGE_SIZE) {
+    const { data, error } = await supabaseAdmin
+      .from("boletas")
+      .select("id,numero")
+      .eq("proyecto_id", proyectoId)
+      .in("estado", ESTADOS_DISPONIBLES)
+      .order("numero", { ascending: true })
+      .range(desde, desde + PAGE_SIZE - 1);
+
+    if (error) throw error;
+
+    const lote = (data || []) as Boleta[];
+    boletas.push(...lote);
+
+    if (lote.length < PAGE_SIZE) break;
+  }
+
+  return boletas;
+}
+
 export async function GET(req: Request, { params }: PageProps) {
   try {
     const { proyectoId } = await params;
@@ -36,20 +64,12 @@ export async function GET(req: Request, { params }: PageProps) {
     const todas = url.searchParams.get("todas") === "1";
 
     if (todas) {
-      const { data, error } = await supabaseAdmin
-        .from("boletas")
-        .select("id,numero")
-        .eq("proyecto_id", proyectoId)
-        .in("estado", ESTADOS_DISPONIBLES)
-        .order("numero", { ascending: true })
-        .limit(10000);
-
-      if (error) throw error;
+      const boletas = await cargarTodasLasDisponibles(proyectoId);
 
       return Response.json({
         success: true,
         mode: "all",
-        boletas: data || [],
+        boletas,
       });
     }
 
