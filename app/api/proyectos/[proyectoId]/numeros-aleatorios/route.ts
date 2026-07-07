@@ -12,7 +12,8 @@ type Boleta = {
 
 const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
 const CANTIDAD_DEFAULT = 50;
-const CANTIDAD_MAXIMA = 100;
+const CANTIDAD_MAXIMA = 150;
+const TOTAL_GRUPOS_TEXTO = 3;
 
 function normalizarCantidad(value: string | null) {
   const cantidad = Number.parseInt(value || "", 10);
@@ -33,6 +34,22 @@ function mezclar<T>(items: T[]) {
   }
 
   return copia;
+}
+
+function dividirEnTresGrupos(numeros: string[]) {
+  const grupos: string[][] = Array.from({ length: TOTAL_GRUPOS_TEXTO }, () => []);
+
+  numeros.forEach((numero, index) => {
+    grupos[index % TOTAL_GRUPOS_TEXTO].push(numero);
+  });
+
+  return grupos;
+}
+
+function crearTextoPorGrupos(numeros: string[]) {
+  return dividirEnTresGrupos(numeros)
+    .map((grupo) => grupo.join(" - "))
+    .join(" | ");
 }
 
 export async function GET(req: Request, { params }: PageProps) {
@@ -57,7 +74,8 @@ export async function GET(req: Request, { params }: PageProps) {
       .slice(0, cantidadSolicitada)
       .map((boleta) => boleta.numero);
 
-    const numerosTexto = numeros.join(" - ");
+    const grupos = dividirEnTresGrupos(numeros);
+    const numerosTexto = crearTextoPorGrupos(numeros);
 
     if (formato === "texto" || formato === "text") {
       return new Response(numerosTexto, {
@@ -76,6 +94,7 @@ export async function GET(req: Request, { params }: PageProps) {
         cantidad_solicitada: cantidadSolicitada,
         cantidad_encontrada: numeros.length,
         numeros,
+        grupos,
         numeros_texto: numerosTexto,
       },
       {
