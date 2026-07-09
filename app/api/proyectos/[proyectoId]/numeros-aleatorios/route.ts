@@ -10,7 +10,7 @@ type Boleta = {
   numero: string;
 };
 
-const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
+const ESTADO_DISPONIBLE = "Disponible";
 const CANTIDAD_DEFAULT = 50;
 const CANTIDAD_MAXIMA = 150;
 const TOTAL_GRUPOS_TEXTO = 3;
@@ -63,7 +63,7 @@ export async function GET(req: Request, { params }: PageProps) {
       .from("boletas")
       .select("numero")
       .eq("proyecto_id", proyectoId)
-      .in("estado", ESTADOS_DISPONIBLES)
+      .eq("estado", ESTADO_DISPONIBLE)
       .order("numero", { ascending: true })
       .limit(10000);
 
