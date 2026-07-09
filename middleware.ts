@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-
-const COOKIE_NAME = "pulse_session";
+import { getSessionCookieName, verifyAdminSessionToken } from "@/lib/auth-token";
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -14,14 +13,37 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = req.cookies.get(COOKIE_NAME)?.value;
+  const token = req.cookies.get(getSessionCookieName())?.value;
+  const session = verifyAdminSessionToken(token);
 
-  if (!token) {
+  if (!session) {
     const loginUrl = new URL("/admin/login", req.url);
-    return NextResponse.redirect(loginUrl);
+    loginUrl.searchParams.set("next", pathname);
+
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.delete(getSessionCookieName());
+    return response;
   }
 
-  return NextResponse.next();
+  if ((session.rol === "empresa_admin" || session.rol === "vendedor") && !session.empresa_id) {
+    const loginUrl = new URL("/admin/login", req.url);
+    loginUrl.searchParams.set("next", pathname);
+
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.delete(getSessionCookieName());
+    return response;
+  }
+
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-admin-email", session.email);
+  requestHeaders.set("x-admin-role", session.rol);
+  if (session.empresa_id) requestHeaders.set("x-admin-empresa-id", session.empresa_id);
+
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 }
 
 export const config = {
