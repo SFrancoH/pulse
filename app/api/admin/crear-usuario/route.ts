@@ -1,18 +1,23 @@
-import { getCurrentAdminSession, hashPassword, requireSuperAdmin } from "@/lib/admin-auth";
+import { getCurrentAdminSession, hashPassword } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-const ROLES = new Set(["super_admin", "empresa_admin"]);
+const SUPER_ADMIN_ROLES = new Set(["super_admin", "empresa_admin", "vendedor"]);
+const EMPRESA_ADMIN_ROLES = new Set(["empresa_admin", "vendedor"]);
 
 export async function POST(req: Request) {
   try {
     const session = await getCurrentAdminSession();
-    requireSuperAdmin(session);
+
+    if (!session || (session.rol !== "super_admin" && session.rol !== "empresa_admin")) {
+      return Response.json({ success: false, message: "No autorizado." }, { status: 403 });
+    }
 
     const body = await req.json();
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
     const role = String(body.role || "empresa_admin").trim();
-    const empresa_id = String(body.empresa_id || "").trim() || null;
+
+    const allowedRoles = session.rol === "super_admin" ? SUPER_ADMIN_ROLES : EMPRESA_ADMIN_ROLES;
 
     if (!email || password.length < 8) {
       return Response.json(
@@ -21,15 +26,24 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!ROLES.has(role)) {
-      return Response.json({ success: false, message: "Rol inválido." }, { status: 400 });
+    if (!allowedRoles.has(role)) {
+      return Response.json({ success: false, message: "No puedes crear usuarios con ese rol." }, { status: 403 });
     }
 
-    if (role === "empresa_admin" && !empresa_id) {
-      return Response.json(
-        { success: false, message: "empresa_id es obligatorio para empresa_admin." },
-        { status: 400 }
-      );
+    let empresaId: string | null = null;
+
+    if (role !== "super_admin") {
+      empresaId =
+        session.rol === "empresa_admin"
+          ? session.empresa_id || null
+          : String(body.empresa_id || "").trim() || null;
+
+      if (!empresaId) {
+        return Response.json(
+          { success: false, message: "No fue posible determinar la empresa del usuario." },
+          { status: 400 }
+        );
+      }
     }
 
     const password_hash = await hashPassword(password);
@@ -41,7 +55,7 @@ export async function POST(req: Request) {
           email,
           password_hash,
           role,
-          empresa_id: role === "super_admin" ? null : empresa_id,
+          empresa_id: role === "super_admin" ? null : empresaId,
           estado: "activo",
           updated_at: new Date().toISOString(),
         },
@@ -53,7 +67,6 @@ export async function POST(req: Request) {
     return Response.json({ success: true, message: "Usuario creado correctamente." });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error interno";
-    const status = message === "No autorizado." ? 403 : 500;
-    return Response.json({ success: false, message }, { status });
+    return Response.json({ success: false, message }, { status: 500 });
   }
 }
