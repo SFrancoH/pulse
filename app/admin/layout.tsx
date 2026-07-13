@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { getCurrentAdminSession } from "@/lib/admin-auth";
+import AdminSellerSelectEnhancer from "./AdminSellerSelectEnhancer";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await getCurrentAdminSession();
@@ -8,6 +9,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <>
+      <AdminSellerSelectEnhancer />
       {session && (
         <nav className="sticky top-0 z-[1000] border-b border-[#E0D9CE] bg-white/95 px-4 py-3 backdrop-blur">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
