@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
-export type AdminRole = "super_admin" | "empresa_admin";
+export type AdminRole = "super_admin" | "empresa_admin" | "vendedor";
 
 export type AdminSession = {
   email: string;
