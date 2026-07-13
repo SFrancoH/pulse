@@ -29,3 +29,9 @@ body {
 .space-y-12 > section > div.mb-5 > button {
   display: none;
 }
+
+/* Evita que la clase base bg-white sobrescriba el estado seleccionado. */
+#pulse-venta-root button.bg-white.bg-\[\#E8620A\] {
+  background-color: #e8620a !important;
+  color: #ffffff;
+}
