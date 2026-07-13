@@ -3,8 +3,18 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-type Vendedor = { email: string };
-type VendedoresResponse = { success: boolean; vendedores?: Vendedor[]; message?: string };
+type Vendedor = {
+  id: string;
+  nombre?: string | null;
+  telefono?: string | null;
+  email: string;
+};
+
+type VendedoresResponse = {
+  success: boolean;
+  vendedores?: Vendedor[];
+  message?: string;
+};
 
 export default function AdminSellerSelectEnhancer() {
   const pathname = usePathname();
@@ -38,7 +48,7 @@ export default function AdminSellerSelectEnhancer() {
         const select = document.createElement("select");
         select.className = input.className;
         select.required = true;
-        select.setAttribute("aria-label", "Nombre del vendedor");
+        select.setAttribute("aria-label", "Vendedor");
 
         const placeholder = document.createElement("option");
         placeholder.value = "";
@@ -51,8 +61,10 @@ export default function AdminSellerSelectEnhancer() {
 
         for (const vendedor of data.vendedores || []) {
           const option = document.createElement("option");
-          option.value = vendedor.email;
-          option.textContent = vendedor.email;
+          option.value = vendedor.id;
+          const nombre = vendedor.nombre?.trim() || vendedor.email;
+          const telefono = vendedor.telefono?.trim();
+          option.textContent = telefono ? `${nombre} · ${telefono}` : nombre;
           select.appendChild(option);
         }
 

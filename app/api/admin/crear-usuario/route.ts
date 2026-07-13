@@ -13,6 +13,8 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    const nombre = String(body.nombre || "").trim();
+    const telefono = String(body.telefono || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
     const role = String(body.role || "empresa_admin").trim();
@@ -28,6 +30,13 @@ export async function POST(req: Request) {
 
     if (!allowedRoles.has(role)) {
       return Response.json({ success: false, message: "No puedes crear usuarios con ese rol." }, { status: 403 });
+    }
+
+    if (role === "vendedor" && (!nombre || !telefono)) {
+      return Response.json(
+        { success: false, message: "Nombre y teléfono son obligatorios para los vendedores." },
+        { status: 400 }
+      );
     }
 
     let empresaId: string | null = null;
@@ -52,6 +61,8 @@ export async function POST(req: Request) {
       .from("admin_users")
       .upsert(
         {
+          nombre: nombre || null,
+          telefono: telefono || null,
           email,
           password_hash,
           role,

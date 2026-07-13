@@ -1,3 +1,4 @@
+import { getCurrentAdminSession } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -7,8 +8,17 @@ type PageProps = {
 };
 
 type Payload = {
+  vendedor_user_id?: string;
   vendedor_nombre?: string;
   numeros?: string[];
+};
+
+type Vendedor = {
+  id: string;
+  empresa_id: string;
+  nombre: string | null;
+  telefono: string | null;
+  email: string;
 };
 
 function normalizarNumero(valor: string) {
@@ -46,23 +56,105 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Error desconocido";
 }
 
+function esUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+async function buscarVendedor(empresaId: string, identificador: string): Promise<Vendedor | null> {
+  const campos = "id,empresa_id,nombre,telefono,email";
+
+  if (esUuid(identificador)) {
+    const { data, error } = await supabaseAdmin
+      .from("admin_users")
+      .select(campos)
+      .eq("id", identificador)
+      .eq("empresa_id", empresaId)
+      .eq("role", "vendedor")
+      .eq("estado", "activo")
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data) return data as Vendedor;
+  }
+
+  const email = identificador.trim().toLowerCase();
+  if (email.includes("@")) {
+    const { data, error } = await supabaseAdmin
+      .from("admin_users")
+      .select(campos)
+      .eq("email", email)
+      .eq("empresa_id", empresaId)
+      .eq("role", "vendedor")
+      .eq("estado", "activo")
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data) return data as Vendedor;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("admin_users")
+    .select(campos)
+    .eq("nombre", identificador.trim())
+    .eq("empresa_id", empresaId)
+    .eq("role", "vendedor")
+    .eq("estado", "activo")
+    .limit(2);
+
+  if (error) throw error;
+  if ((data || []).length === 1) return data![0] as Vendedor;
+  if ((data || []).length > 1) {
+    throw new Error("Hay más de un vendedor con ese nombre. Selecciónalo desde la lista usando su ID.");
+  }
+
+  return null;
+}
+
 export async function POST(req: Request, { params }: PageProps) {
   const errores: string[] = [];
 
   try {
+    const session = await getCurrentAdminSession();
+    if (!session) {
+      return Response.json({ success: false, message: "No autorizado." }, { status: 401 });
+    }
+
     const { proyectoId } = await params;
     const body = (await req.json()) as Payload;
-
-    const vendedor_nombre = String(body.vendedor_nombre || "").trim();
+    const identificadorVendedor = String(body.vendedor_user_id || body.vendedor_nombre || "").trim();
     const numerosRaw = Array.isArray(body.numeros) ? body.numeros : [];
 
-    if (!vendedor_nombre) {
-      return Response.json({ success: false, message: "El nombre del vendedor es obligatorio." }, { status: 400 });
+    if (!identificadorVendedor) {
+      return Response.json({ success: false, message: "Debes seleccionar un vendedor." }, { status: 400 });
     }
 
     if (numerosRaw.length === 0) {
       return Response.json({ success: false, message: "Debes enviar al menos un número." }, { status: 400 });
     }
+
+    const { data: proyecto, error: proyectoError } = await supabaseAdmin
+      .from("proyectos")
+      .select("id,empresa_id")
+      .eq("id", proyectoId)
+      .maybeSingle();
+
+    if (proyectoError || !proyecto) {
+      return Response.json({ success: false, message: "Proyecto no encontrado." }, { status: 404 });
+    }
+
+    if (session.rol !== "super_admin" && session.empresa_id !== proyecto.empresa_id) {
+      return Response.json({ success: false, message: "No autorizado para este proyecto." }, { status: 403 });
+    }
+
+    const vendedor = await buscarVendedor(proyecto.empresa_id, identificadorVendedor);
+    if (!vendedor) {
+      return Response.json(
+        { success: false, message: "El vendedor no existe, no está activo o no pertenece a la empresa del proyecto." },
+        { status: 400 }
+      );
+    }
+
+    const vendedorNombre = vendedor.nombre?.trim() || vendedor.email;
 
     const numeros = Array.from(
       new Set(
@@ -84,6 +176,7 @@ export async function POST(req: Request, { params }: PageProps) {
       .from("boletas")
       .select("id,empresa_id,proyecto_id,numero,estado")
       .eq("proyecto_id", proyectoId)
+      .eq("empresa_id", proyecto.empresa_id)
       .in("numero", numeros);
 
     if (boletasError) {
@@ -98,8 +191,9 @@ export async function POST(req: Request, { params }: PageProps) {
         .from("boletas")
         .update({
           estado: "No disponible",
-          canal: "Vendedor",
-          vendedor_nombre,
+          canal: "Vendedores",
+          vendedor_nombre: vendedorNombre,
+          vendedor_user_id: vendedor.id,
           updated_at: new Date().toISOString(),
         })
         .in("id", idsEncontradas);
@@ -110,15 +204,14 @@ export async function POST(req: Request, { params }: PageProps) {
     }
 
     if (encontradasLista.length > 0) {
-      const empresaId = encontradasLista[0].empresa_id;
       const ordenadas = [...encontradasLista].sort((a, b) => a.numero.localeCompare(b.numero));
 
       const { error: historialError } = await supabaseAdmin
         .from("asignaciones_vendedores")
         .insert({
-          empresa_id: empresaId,
+          empresa_id: proyecto.empresa_id,
           proyecto_id: proyectoId,
-          vendedor_nombre,
+          vendedor_nombre: vendedorNombre,
           numero_desde: ordenadas[0].numero,
           numero_hasta: ordenadas[ordenadas.length - 1].numero,
           cantidad: encontradasLista.length,
@@ -136,7 +229,8 @@ export async function POST(req: Request, { params }: PageProps) {
     return Response.json({
       success: true,
       message: "Asignación por lote procesada correctamente.",
-      vendedor_nombre,
+      vendedor_user_id: vendedor.id,
+      vendedor_nombre: vendedorNombre,
       solicitadas: numeros.length,
       encontradas,
       asignadas: encontradas,

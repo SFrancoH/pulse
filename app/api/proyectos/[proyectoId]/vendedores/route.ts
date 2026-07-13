@@ -29,11 +29,11 @@ export async function GET(_req: Request, { params }: PageProps) {
 
     const { data: vendedores, error } = await supabaseAdmin
       .from("admin_users")
-      .select("email")
+      .select("id,nombre,telefono,email")
       .eq("empresa_id", proyecto.empresa_id)
       .eq("role", "vendedor")
       .eq("estado", "activo")
-      .order("email", { ascending: true });
+      .order("nombre", { ascending: true });
 
     if (error) throw error;
 

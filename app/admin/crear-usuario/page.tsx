@@ -12,6 +12,8 @@ type SessionResponse = {
 };
 
 export default function CrearUsuarioPage() {
+  const [nombre, setNombre] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<AdminRole>("empresa_admin");
@@ -61,6 +63,8 @@ export default function CrearUsuarioPage() {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          nombre,
+          telefono,
           email,
           password,
           role,
@@ -75,6 +79,8 @@ export default function CrearUsuarioPage() {
       }
 
       setMessage("Usuario creado correctamente.");
+      setNombre("");
+      setTelefono("");
       setEmail("");
       setPassword("");
     } catch (err) {
@@ -105,6 +111,16 @@ export default function CrearUsuarioPage() {
             <div className="rounded-xl bg-[#F2EDE4] px-4 py-3 text-sm">Cargando permisos...</div>
           ) : currentRole ? (
             <>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Nombre completo</label>
+                <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" required={role === "vendedor"} />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium">Número de teléfono</label>
+                <input type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" required={role === "vendedor"} />
+              </div>
+
               <div>
                 <label className="mb-2 block text-sm font-medium">Email</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" required />
