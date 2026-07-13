@@ -5,6 +5,13 @@ import { verifyPassword } from "@/lib/admin-auth";
 
 export async function POST(req: Request) {
   try {
+    const requestOrigin = req.headers.get("origin");
+    const expectedOrigin = new URL(req.url).origin;
+
+    if (requestOrigin && requestOrigin !== expectedOrigin) {
+      return Response.json({ success: false, message: "Origen no autorizado." }, { status: 403 });
+    }
+
     const body = await req.json();
 
     const email = String(body.email || "").trim().toLowerCase();
@@ -33,13 +40,15 @@ export async function POST(req: Request) {
     });
 
     const cookieStore = await cookies();
+    const isProduction = process.env.NODE_ENV === "production";
 
     cookieStore.set({
       name: getSessionCookieName(),
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      partitioned: isProduction,
       path: "/",
       maxAge: 60 * 60 * 8,
     });

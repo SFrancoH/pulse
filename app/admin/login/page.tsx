@@ -1,10 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+type LoginResponse = {
+  success?: boolean;
+  message?: string;
+  redirect_to?: string;
+};
+
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,23 +23,29 @@ export default function AdminLoginPage() {
 
       const res = await fetch("/api/admin/login", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: LoginResponse = {};
 
-      if (!data.success) {
+      try {
+        data = responseText ? (JSON.parse(responseText) as LoginResponse) : {};
+      } catch {
+        throw new Error("El servidor no respondió correctamente.");
+      }
+
+      if (!res.ok || !data.success) {
         throw new Error(data.message || "Credenciales inválidas.");
       }
 
-      router.push(data.redirect_to || "/admin");
-      router.refresh();
+      window.location.assign(data.redirect_to || "/admin");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error interno");
-    } finally {
       setLoading(false);
     }
   }
