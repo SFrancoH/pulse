@@ -7,7 +7,7 @@ type BoletaResponse = {
   success: boolean;
   message?: string;
   proyecto?: { nombre: string; flyer_url?: string | null; precio_boleta: number };
-  boleta?: { numero: string; estado: string; disponible: boolean; nombre_cliente?: string | null; valor_pagado: number; saldo_pendiente: number };
+  boleta?: { numero: string; estado: string; disponible: boolean; nombre_cliente?: string | null; telefono_cliente?: string | null; valor_pagado: number; saldo_pendiente: number };
   vendedor?: { nombre: string; telefono?: string | null } | null;
 };
 
@@ -64,6 +64,7 @@ export default function BoletaPublicaPage() {
           <dl className="mt-7 grid gap-4 rounded-2xl bg-[#F9F6F1] p-5 sm:grid-cols-2">
             <div><dt className="text-sm text-[#7A7066]">Titular</dt><dd className="mt-1 text-lg font-semibold">{boleta.nombre_cliente || "Sin asignar"}</dd></div>
             <div><dt className="text-sm text-[#7A7066]">Valor de la boleta</dt><dd className="mt-1 text-lg font-semibold">{dinero.format(proyecto.precio_boleta)}</dd></div>
+            <div><dt className="text-sm text-[#7A7066]">Teléfono</dt><dd className="mt-1 text-lg font-semibold">{boleta.telefono_cliente || "No registrado"}</dd></div>
             <div><dt className="text-sm text-[#7A7066]">Valor abonado</dt><dd className="mt-1 text-lg font-semibold">{dinero.format(boleta.valor_pagado)}</dd></div>
             <div><dt className="text-sm text-[#7A7066]">Saldo pendiente</dt><dd className="mt-1 text-lg font-semibold">{dinero.format(boleta.saldo_pendiente)}</dd></div>
           </dl>

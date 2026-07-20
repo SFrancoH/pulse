@@ -17,7 +17,7 @@ export async function GET(req: Request) {
 
     const { data: boleta, error: boletaError } = await supabaseAdmin
       .from("boletas")
-      .select("id,numero,estado,nombre_cliente,valor_pagado,vendedor_nombre,vendedor_user_id,empresa_id,proyecto_id")
+      .select("id,numero,estado,nombre_cliente,telefono_cliente,valor_pagado,vendedor_nombre,vendedor_user_id,empresa_id,proyecto_id")
       .eq("id", boletaId)
       .eq("empresa_id", empresaId)
       .eq("proyecto_id", proyectoId)
@@ -68,6 +68,7 @@ export async function GET(req: Request) {
         estado: boleta.estado,
         disponible: boleta.estado === "Disponible",
         nombre_cliente: boleta.nombre_cliente,
+        telefono_cliente: boleta.telefono_cliente,
         valor_pagado: valorPagado,
         saldo_pendiente: Math.max(precioBoleta - valorPagado, 0),
       },
