@@ -92,7 +92,6 @@ function parseCsvAsignaciones(texto: string) {
       index === 0 &&
       /numero|número|boleta/i.test(numeroRaw) &&
       /vendedor|asesor/i.test(vendedorRaw);
-
     if (esHeader) return;
 
     filasLeidas++;
@@ -482,13 +481,13 @@ export default function AsignarVendedorPage({ params }: Props) {
                 <input
                   ref={pistolaInputRef}
                   type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  autoComplete="off"
                   value={inputCodigo}
                   onChange={(e) => {
-                    const valor = e.target.value;
+                    const valor = e.target.value.replace(/\D/g, "").slice(0, 4);
                     setInputCodigo(valor);
-                    if (modoPistola && normalizarNumero(valor).length === 4) {
-                      manejarPistola(valor);
-                    }
                   }}
                   onBlur={() => {
                     if (modoPistola) setTimeout(() => pistolaInputRef.current?.focus(), 100);
@@ -496,6 +495,8 @@ export default function AsignarVendedorPage({ params }: Props) {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === "Tab") {
                       e.preventDefault();
+                      if (!inputCodigo.trim()) return;
+
                       if (modoPistola) {
                         manejarPistola(inputCodigo);
                       } else {
@@ -550,7 +551,7 @@ export default function AsignarVendedorPage({ params }: Props) {
                 <p>Omitidas: {resultado.omitidas || 0}</p>
               </div>
               {resultado.no_encontradas && resultado.no_encontradas.length > 0 && <div className="mt-4"><p className="font-semibold">No encontradas:</p><p className="mt-1 break-all">{resultado.no_encontradas.join(", ")}</p></div>}
-              {resultado.errores && resultado.errores.length > 0 && <div className="mt-4"><p className="font-semibold">Errores:</p><p className="mt-1 break-all">{resultado.errores.join(", ")}</p></div>}
+              {resultado.errores && resultado.errores.length > 0 && <div className="mt-4"><p className="font-semibold">Errores:</p><p className="mt-1 break-all">{resultado.errores.join(" | ")}</p></div>}
             </div>
           )}
         </div>
