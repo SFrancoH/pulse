@@ -1,5 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import ProyectoVentaClient from "@/components/ProyectoVentaClient";
+import { getCurrentAdminSession } from "@/lib/admin-auth";
+import { requireProjectAccess } from "@/lib/require-admin";
 
 type PageProps = {
   params: Promise<{
@@ -14,16 +16,26 @@ type BoletaDisponible = {
 };
 
 const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
+const ESTADOS_ASIGNADOS_A_VENDEDOR = ["Disponible", "disponible", "No disponible", "no disponible"];
 
-async function cargarBoletasDisponibles(empresaId: string, proyectoId: string) {
-  const { data, error } = await supabaseAdmin
+async function cargarBoletasDisponibles(empresaId: string, proyectoId: string, vendedorUserId?: string | null) {
+  let query = supabaseAdmin
     .from("boletas")
     .select("id,numero")
     .eq("empresa_id", empresaId)
     .eq("proyecto_id", proyectoId)
-    .in("estado", ESTADOS_DISPONIBLES)
     .order("numero", { ascending: true })
     .range(0, 999);
+
+  if (vendedorUserId) {
+    query = query
+      .eq("vendedor_user_id", vendedorUserId)
+      .in("estado", ESTADOS_ASIGNADOS_A_VENDEDOR);
+  } else {
+    query = query.in("estado", ESTADOS_DISPONIBLES);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
@@ -32,6 +44,8 @@ async function cargarBoletasDisponibles(empresaId: string, proyectoId: string) {
 
 export default async function ProyectoPage({ params }: PageProps) {
   const { empresaSlug, proyectoSlug } = await params;
+  const session = await getCurrentAdminSession();
+  const vendedorUserId = session?.rol === "vendedor" ? session.user_id : null;
 
   const { data: empresa } = await supabaseAdmin
     .from("empresas")
@@ -66,7 +80,22 @@ export default async function ProyectoPage({ params }: PageProps) {
     );
   }
 
-  const boletas = await cargarBoletasDisponibles(empresa.id, proyecto.id);
+  if (session?.rol === "vendedor") {
+    const access = await requireProjectAccess(proyecto.id);
+
+    if (access.error) {
+      return (
+        <main className="min-h-screen bg-[#F2EDE4] px-4 py-10 text-[#1A1A1A]">
+          <section className="mx-auto max-w-xl rounded-2xl bg-white p-8 text-center shadow-sm">
+            <h1 className="text-3xl font-bold">Acceso no autorizado</h1>
+            <p className="mt-3 text-[#6F665C]">No tienes números asignados en este proyecto.</p>
+          </section>
+        </main>
+      );
+    }
+  }
+
+  const boletas = await cargarBoletasDisponibles(empresa.id, proyecto.id, vendedorUserId);
 
   return (
     <ProyectoVentaClient
