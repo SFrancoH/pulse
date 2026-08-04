@@ -8,7 +8,10 @@ Estos scripts están diseñados para una base de datos activa. Ninguno incluye
 1. Ejecutar `20260804_01_seller_access_preflight.sql`.
 2. Confirmar que las consultas de huérfanos y cruces de empresa regresan cero filas.
 3. Ejecutar `20260804_02_seller_access_schema.sql` en una ventana de menor tráfico.
-4. Ejecutar `20260804_03_seller_access_indexes.sql` fuera de una transacción.
+4. Abrir `20260804_03_seller_access_indexes.sql` y ejecutar cada sentencia
+   `CREATE INDEX CONCURRENTLY` por separado. En Supabase SQL Editor no se debe
+   ejecutar el archivo completo como un único lote porque puede envolverlo en una
+   transacción y devolver el error `25001`.
 5. Desplegar el código de la aplicación.
 6. Ejecutar `20260804_04_seller_access_validate.sql` después de confirmar el funcionamiento.
 
