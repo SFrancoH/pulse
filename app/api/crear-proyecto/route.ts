@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { requireAdminSession } from "@/lib/require-admin";
+import { canAccessEmpresa, requireCompanyManagerSession } from "@/lib/require-admin";
 import { slugify } from "@/lib/slug";
 
 const TOTAL_NUMEROS = 10000;
@@ -29,8 +29,8 @@ function crearBoletas(empresaId: string, proyectoId: string) {
 }
 
 export async function POST(req: Request) {
-  const auth = await requireAdminSession();
-  if (auth.error) return auth.error;
+  const auth = await requireCompanyManagerSession();
+  if (auth.error || !auth.session) return auth.error;
 
   try {
     const body = await req.json();
@@ -42,6 +42,10 @@ export async function POST(req: Request) {
 
     if (!empresaId || !nombre) {
       return Response.json({ success: false, message: "Datos inválidos." }, { status: 400 });
+    }
+
+    if (!canAccessEmpresa(auth.session, empresaId)) {
+      return Response.json({ success: false, message: "No autorizado para esta empresa." }, { status: 403 });
     }
 
     const { data: empresa, error: empresaError } = await supabaseAdmin
@@ -57,7 +61,7 @@ export async function POST(req: Request) {
     const proyectoSlug = slugify(nombre);
     const proyectoId = `${empresaId}_${proyectoSlug.replace(/-/g, "_")}`;
 
-    const { error: proyectoError } = await supabaseAdmin.from("proyectos").upsert({
+    const { error: proyectoError } = await supabaseAdmin.from("proyectos").insert({
       id: proyectoId,
       empresa_id: empresaId,
       nombre,

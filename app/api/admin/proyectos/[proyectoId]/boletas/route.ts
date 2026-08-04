@@ -1,40 +1,38 @@
-import { getCurrentAdminSession } from "@/lib/admin-auth";
+import { requireProjectAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = { params: Promise<{ proyectoId: string }> };
 
 const ESTADOS = new Set(["Disponible", "No disponible", "Debe", "Abonado", "Pagado"]);
-const CAMPOS = new Set(["estado", "nombre_cliente", "telefono_cliente", "email_cliente", "valor_pagado", "vendedor_nombre", "canal"]);
+const CAMPOS_ADMIN = new Set([
+  "estado",
+  "nombre_cliente",
+  "telefono_cliente",
+  "email_cliente",
+  "valor_pagado",
+  "vendedor_nombre",
+  "canal",
+]);
+const CAMPOS_VENDEDOR = new Set([
+  "estado",
+  "nombre_cliente",
+  "telefono_cliente",
+  "email_cliente",
+  "valor_pagado",
+]);
 const PAGE_SIZE = 1000;
 
-async function proyectoAutorizado(proyectoId: string) {
-  const session = await getCurrentAdminSession();
-  if (!session) return { error: Response.json({ success: false, message: "No autorizado." }, { status: 401 }) };
-
-  const { data: proyecto, error } = await supabaseAdmin
-    .from("proyectos")
-    .select("id,empresa_id,nombre")
-    .eq("id", proyectoId)
-    .maybeSingle();
-
-  if (error || !proyecto) return { error: Response.json({ success: false, message: "Proyecto no encontrado." }, { status: 404 }) };
-  if (session.rol !== "super_admin" && session.empresa_id !== proyecto.empresa_id) {
-    return { error: Response.json({ success: false, message: "No autorizado para este proyecto." }, { status: 403 }) };
-  }
-
-  return { proyecto };
-}
-
-function limpiarCambios(input: Record<string, unknown>) {
+function limpiarCambios(input: Record<string, unknown>, vendedor: boolean) {
   const cambios: Record<string, unknown> = {};
+  const camposPermitidos = vendedor ? CAMPOS_VENDEDOR : CAMPOS_ADMIN;
 
   for (const [campo, valor] of Object.entries(input || {})) {
-    if (!CAMPOS.has(campo)) continue;
+    if (!camposPermitidos.has(campo)) continue;
 
     if (campo === "estado") {
       const estado = String(valor || "").trim();
-      if (estado && !ESTADOS.has(estado)) throw new Error(`Estado inválido: ${estado}`);
-      cambios.estado = estado || null;
+      if (!ESTADOS.has(estado)) throw new Error(`Estado inválido: ${estado || "vacío"}`);
+      cambios.estado = estado;
     } else if (campo === "valor_pagado") {
       if (valor === "" || valor === null || valor === undefined) cambios.valor_pagado = 0;
       else {
@@ -54,20 +52,24 @@ function limpiarCambios(input: Record<string, unknown>) {
 export async function GET(_req: Request, { params }: PageProps) {
   try {
     const { proyectoId } = await params;
-    const auth = await proyectoAutorizado(proyectoId);
-    if (auth.error) return auth.error;
+    const auth = await requireProjectAccess(proyectoId);
+    if (auth.error || !auth.session || !auth.proyecto) return auth.error;
 
+    const esVendedor = auth.session.rol === "vendedor";
     const boletas: unknown[] = [];
     let desde = 0;
 
     while (true) {
-      const { data, error } = await supabaseAdmin
+      let query = supabaseAdmin
         .from("boletas")
         .select("id,numero,estado,nombre_cliente,telefono_cliente,email_cliente,valor_pagado,vendedor_nombre,canal")
         .eq("proyecto_id", proyectoId)
         .order("numero", { ascending: true })
         .range(desde, desde + PAGE_SIZE - 1);
 
+      if (esVendedor) query = query.eq("vendedor_user_id", auth.session.user_id!);
+
+      const { data, error } = await query;
       if (error) throw error;
 
       const lote = data || [];
@@ -77,35 +79,56 @@ export async function GET(_req: Request, { params }: PageProps) {
       desde += PAGE_SIZE;
     }
 
-    return Response.json({ success: true, proyecto: auth.proyecto, boletas, total: boletas.length });
+    return Response.json({
+      success: true,
+      role: auth.session.rol,
+      proyecto: auth.proyecto,
+      boletas,
+      total: boletas.length,
+    });
   } catch (error: unknown) {
-    return Response.json({ success: false, message: error instanceof Error ? error.message : "Error interno." }, { status: 500 });
+    return Response.json(
+      { success: false, message: error instanceof Error ? error.message : "Error interno." },
+      { status: 500 }
+    );
   }
 }
 
 export async function PATCH(req: Request, { params }: PageProps) {
   try {
     const { proyectoId } = await params;
-    const auth = await proyectoAutorizado(proyectoId);
-    if (auth.error) return auth.error;
+    const auth = await requireProjectAccess(proyectoId);
+    if (auth.error || !auth.session) return auth.error;
 
+    const esVendedor = auth.session.rol === "vendedor";
     const body = await req.json();
     const ids = Array.isArray(body.ids) ? body.ids.map(String).filter(Boolean) : [];
-    const cambios = limpiarCambios(body.cambios || {});
+    const cambios = limpiarCambios(body.cambios || {}, esVendedor);
 
-    if (ids.length === 0) return Response.json({ success: false, message: "Selecciona al menos una boleta." }, { status: 400 });
-    if (Object.keys(cambios).length === 1) return Response.json({ success: false, message: "No hay cambios para aplicar." }, { status: 400 });
+    if (ids.length === 0) {
+      return Response.json({ success: false, message: "Selecciona al menos una boleta." }, { status: 400 });
+    }
 
-    const { data, error } = await supabaseAdmin
+    if (Object.keys(cambios).length === 1) {
+      return Response.json({ success: false, message: "No hay cambios permitidos para aplicar." }, { status: 400 });
+    }
+
+    let query = supabaseAdmin
       .from("boletas")
       .update(cambios)
       .eq("proyecto_id", proyectoId)
-      .in("id", ids)
-      .select("id");
+      .in("id", ids);
 
+    if (esVendedor) query = query.eq("vendedor_user_id", auth.session.user_id!);
+
+    const { data, error } = await query.select("id");
     if (error) throw error;
+
     return Response.json({ success: true, actualizadas: data?.length || 0 });
   } catch (error: unknown) {
-    return Response.json({ success: false, message: error instanceof Error ? error.message : "Error interno." }, { status: 500 });
+    return Response.json(
+      { success: false, message: error instanceof Error ? error.message : "Error interno." },
+      { status: 500 }
+    );
   }
 }

@@ -1,3 +1,4 @@
+import { requireCompanyManagerSession, requireProjectManagerAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type AsignarPayload = {
@@ -35,6 +36,9 @@ async function leerPayload(req: Request): Promise<AsignarPayload> {
 
 export async function POST(req: Request) {
   try {
+    const manager = await requireCompanyManagerSession();
+    if (manager.error) return manager.error;
+
     const body = await leerPayload(req);
 
     const boleta_id = limpiarTexto(body.boleta_id);
@@ -66,6 +70,29 @@ export async function POST(req: Request) {
         { status: 404 }
       );
     }
+
+    const auth = await requireProjectManagerAccess(boletaInicial.proyecto_id);
+    if (auth.error || !auth.session) return auth.error;
+
+    const { data: vendedores, error: vendedorError } = await supabaseAdmin
+      .from("admin_users")
+      .select("id,nombre,email")
+      .eq("empresa_id", boletaInicial.empresa_id)
+      .eq("role", "vendedor")
+      .eq("estado", "activo")
+      .eq("nombre", vendedor_nombre)
+      .limit(2);
+
+    if (vendedorError) throw vendedorError;
+    if ((vendedores || []).length !== 1) {
+      return Response.json(
+        { success: false, message: "Selecciona un vendedor activo y con nombre único en la empresa." },
+        { status: 400 }
+      );
+    }
+
+    const vendedor = vendedores![0];
+    const vendedorNombre = vendedor.nombre?.trim() || vendedor.email;
 
     const numeroDesde = normalizarNumero(boletaInicial.numero || "");
     const numeroHasta = numero_hasta_raw ? normalizarNumero(numero_hasta_raw) : numeroDesde;
@@ -106,17 +133,23 @@ export async function POST(req: Request) {
       throw candidatasError;
     }
 
-    const disponibles = (candidatas || []).filter((item) => item.estado === "disponible");
+    const disponibles = (candidatas || []).filter(
+      (item) => String(item.estado || "").toLowerCase() === "disponible"
+    );
     const idsDisponibles = disponibles.map((item) => item.id);
 
     if (idsDisponibles.length > 0) {
       const { error: updateError } = await supabaseAdmin
         .from("boletas")
         .update({
-          estado: "asignada",
-          vendedor_nombre,
-          vendedor_asignado_en: new Date().toISOString(),
+          estado: "No disponible",
+          canal: "Vendedores",
+          vendedor_nombre: vendedorNombre,
+          vendedor_user_id: vendedor.id,
+          updated_at: new Date().toISOString(),
         })
+        .eq("empresa_id", boletaInicial.empresa_id)
+        .eq("proyecto_id", boletaInicial.proyecto_id)
         .in("id", idsDisponibles);
 
       if (updateError) {
@@ -129,7 +162,9 @@ export async function POST(req: Request) {
       .insert({
         empresa_id: boletaInicial.empresa_id,
         proyecto_id: boletaInicial.proyecto_id,
-        vendedor_nombre,
+        vendedor_user_id: vendedor.id,
+        asignado_por_user_id: auth.session.user_id || null,
+        vendedor_nombre: vendedorNombre,
         numero_desde: numeroDesde,
         numero_hasta: numeroHasta,
         cantidad: idsDisponibles.length,
@@ -151,7 +186,8 @@ export async function POST(req: Request) {
     return Response.json({
       success: true,
       message: "Asignación realizada correctamente.",
-      vendedor_nombre,
+      vendedor_user_id: vendedor.id,
+      vendedor_nombre: vendedorNombre,
       numero_desde: numeroDesde,
       numero_hasta: numeroHasta,
       solicitadas: candidatas?.length || 0,

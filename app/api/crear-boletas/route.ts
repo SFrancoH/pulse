@@ -1,3 +1,4 @@
+import { requireProjectManagerAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const TOTAL_NUMEROS = 10000;
@@ -19,7 +20,7 @@ function crearNumeros(empresa_id: string, proyecto_id: string) {
     empresa_id,
     proyecto_id,
     numero: String(index).padStart(4, "0"),
-    estado: "disponible",
+    estado: "Disponible",
   }));
 }
 
@@ -36,6 +37,16 @@ export async function POST(req: Request) {
           success: false,
           message: "Faltan empresa_id y proyecto_id. También se acepta nombre_proyecto como proyecto_id.",
         },
+        { status: 400 }
+      );
+    }
+
+    const auth = await requireProjectManagerAccess(proyecto_id);
+    if (auth.error || !auth.proyecto) return auth.error;
+
+    if (auth.proyecto.empresa_id !== empresa_id) {
+      return Response.json(
+        { success: false, message: "El proyecto no pertenece a la empresa indicada." },
         { status: 400 }
       );
     }

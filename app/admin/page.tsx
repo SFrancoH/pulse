@@ -10,7 +10,8 @@ type Proyecto = {
   estado?: string | null;
   flyer_url?: string | null;
   ventas_url: string;
-  asignar_vendedor_url: string;
+  base_datos_url: string;
+  asignar_vendedor_url?: string | null;
 };
 
 type EmpresaGrupo = {
@@ -164,6 +165,8 @@ export default function AdminDashboardPage() {
   const [modalError, setModalError] = useState("");
   const [syncingProyectoId, setSyncingProyectoId] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
+  const canManageProjects = role === "super_admin" || role === "empresa_admin";
+  const isSeller = role === "vendedor";
 
   useEffect(() => {
     cargar();
@@ -336,13 +339,19 @@ export default function AdminDashboardPage() {
           <div>
             <p className="text-sm uppercase tracking-[3px] text-[#7A7066]">Panel administrativo</p>
             <h1 className="mt-2 text-4xl font-bold">
-              {role === "super_admin" ? "Todos los proyectos" : "Proyectos de tu empresa"}
+              {role === "super_admin"
+                ? "Todos los proyectos"
+                : isSeller
+                  ? "Tus proyectos asignados"
+                  : "Proyectos de tu empresa"}
             </h1>
           </div>
 
-          <button type="button" onClick={() => abrirModal()} className="rounded-2xl bg-[#E8620A] px-6 py-4 text-lg font-semibold text-white">
-            Crear nuevo proyecto
-          </button>
+          {canManageProjects && (
+            <button type="button" onClick={() => abrirModal()} className="rounded-2xl bg-[#E8620A] px-6 py-4 text-lg font-semibold text-white">
+              Crear nuevo proyecto
+            </button>
+          )}
         </div>
 
         {syncMessage && (
@@ -375,9 +384,11 @@ export default function AdminDashboardPage() {
               <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
                 <h2 className="text-3xl font-bold">{grupo.empresa.nombre}</h2>
 
-                <button type="button" onClick={() => abrirModal(grupo.empresa.id)} className="rounded-xl border border-[#1A1A1A] bg-white px-5 py-3 font-semibold">
-                  Crear nuevo proyecto
-                </button>
+                {canManageProjects && (
+                  <button type="button" onClick={() => abrirModal(grupo.empresa.id)} className="rounded-xl border border-[#1A1A1A] bg-white px-5 py-3 font-semibold">
+                    Crear nuevo proyecto
+                  </button>
+                )}
               </div>
 
               {grupo.proyectos.length === 0 ? (
@@ -407,17 +418,25 @@ export default function AdminDashboardPage() {
                         </div>
 
                         <div className="grid gap-3">
-                          <Link href={proyecto.asignar_vendedor_url} className="rounded-2xl bg-[#1A1A1A] px-5 py-4 text-center text-lg font-semibold text-white">
-                            Asignar vendedor
-                          </Link>
+                          {canManageProjects && proyecto.asignar_vendedor_url && (
+                            <Link href={proyecto.asignar_vendedor_url} className="rounded-2xl bg-[#1A1A1A] px-5 py-4 text-center text-lg font-semibold text-white">
+                              Asignar vendedor
+                            </Link>
+                          )}
 
                           <a href={proyecto.ventas_url} className="rounded-2xl bg-[#E8620A] px-5 py-4 text-center text-lg font-semibold text-white">
                             Página de ventas
                           </a>
 
-                          <button type="button" onClick={() => abrirCsv(proyecto.id)} disabled={syncingProyectoId === proyecto.id} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold disabled:opacity-60">
-                            {syncingProyectoId === proyecto.id ? "Actualizando..." : "Actualizar base de datos"}
-                          </button>
+                          <Link href={proyecto.base_datos_url} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold">
+                            Base de datos
+                          </Link>
+
+                          {canManageProjects && (
+                            <button type="button" onClick={() => abrirCsv(proyecto.id)} disabled={syncingProyectoId === proyecto.id} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold disabled:opacity-60">
+                              {syncingProyectoId === proyecto.id ? "Actualizando..." : "Actualizar por CSV"}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </article>
@@ -429,7 +448,7 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      {modalAbierto && (
+      {modalAbierto && canManageProjects && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4">
           <div className="max-h-[92vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white shadow-xl">
             <div className="flex items-center justify-between bg-[#1A1A1A] px-6 py-5 text-white">

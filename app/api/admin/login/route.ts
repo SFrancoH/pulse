@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     const { data: user, error } = await supabaseAdmin
       .from("admin_users")
-      .select("email,password_hash,role,empresa_id,estado")
+      .select("id,email,password_hash,role,empresa_id,estado")
       .eq("email", email)
       .maybeSingle();
 
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     }
 
     const token = createAdminSessionToken({
+      user_id: user.id,
       email: user.email,
       rol: user.role,
       empresa_id: user.empresa_id,

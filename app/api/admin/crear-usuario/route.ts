@@ -2,7 +2,7 @@ import { getCurrentAdminSession, hashPassword } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const SUPER_ADMIN_ROLES = new Set(["super_admin", "empresa_admin", "vendedor"]);
-const EMPRESA_ADMIN_ROLES = new Set(["empresa_admin", "vendedor"]);
+const EMPRESA_ADMIN_ROLES = new Set(["vendedor"]);
 
 export async function POST(req: Request) {
   try {
@@ -59,19 +59,20 @@ export async function POST(req: Request) {
 
     const { error } = await supabaseAdmin
       .from("admin_users")
-      .upsert(
-        {
-          nombre: nombre || null,
-          telefono: telefono || null,
-          email,
-          password_hash,
-          role,
-          empresa_id: role === "super_admin" ? null : empresaId,
-          estado: "activo",
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "email" }
-      );
+      .insert({
+        nombre: nombre || null,
+        telefono: telefono || null,
+        email,
+        password_hash,
+        role,
+        empresa_id: role === "super_admin" ? null : empresaId,
+        estado: "activo",
+        updated_at: new Date().toISOString(),
+      });
+
+    if (error?.code === "23505") {
+      return Response.json({ success: false, message: "Ya existe un usuario con ese correo." }, { status: 409 });
+    }
 
     if (error) throw error;
 

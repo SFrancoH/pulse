@@ -1,3 +1,4 @@
+import { requireProjectManagerAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -76,15 +77,15 @@ function crearUpdateData(item: CsvItem) {
   if (vendedor) updateData.vendedor_nombre = vendedor;
   if (typeof valorPagado === "number") updateData.valor_pagado = valorPagado;
 
-  if (estado === "No disponible") updateData.reservado_en = new Date().toISOString();
-  if (estado === "Pagado") updateData.pagado_en = new Date().toISOString();
-
   return updateData;
 }
 
 export async function POST(req: Request, { params }: PageProps) {
   try {
     const { proyectoId } = await params;
+    const auth = await requireProjectManagerAccess(proyectoId);
+    if (auth.error || !auth.proyecto) return auth.error;
+
     const body = (await req.json()) as Payload;
     const items = Array.isArray(body.items) ? body.items : [];
 
@@ -117,6 +118,7 @@ export async function POST(req: Request, { params }: PageProps) {
       const { data, error } = await supabaseAdmin
         .from("boletas")
         .update(updateData)
+        .eq("empresa_id", auth.proyecto.empresa_id)
         .eq("proyecto_id", proyectoId)
         .eq("numero", numero)
         .select("id,numero")

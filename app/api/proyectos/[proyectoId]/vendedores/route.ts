@@ -1,4 +1,4 @@
-import { getCurrentAdminSession } from "@/lib/admin-auth";
+import { requireProjectManagerAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -7,30 +7,14 @@ type PageProps = {
 
 export async function GET(_req: Request, { params }: PageProps) {
   try {
-    const session = await getCurrentAdminSession();
-    if (!session) {
-      return Response.json({ success: false, message: "No autorizado." }, { status: 401 });
-    }
-
     const { proyectoId } = await params;
-    const { data: proyecto, error: proyectoError } = await supabaseAdmin
-      .from("proyectos")
-      .select("empresa_id")
-      .eq("id", proyectoId)
-      .maybeSingle();
-
-    if (proyectoError || !proyecto) {
-      return Response.json({ success: false, message: "Proyecto no encontrado." }, { status: 404 });
-    }
-
-    if (session.rol !== "super_admin" && session.empresa_id !== proyecto.empresa_id) {
-      return Response.json({ success: false, message: "No autorizado para este proyecto." }, { status: 403 });
-    }
+    const auth = await requireProjectManagerAccess(proyectoId);
+    if (auth.error || !auth.proyecto) return auth.error;
 
     const { data: vendedores, error } = await supabaseAdmin
       .from("admin_users")
       .select("id,nombre,telefono,email")
-      .eq("empresa_id", proyecto.empresa_id)
+      .eq("empresa_id", auth.proyecto.empresa_id)
       .eq("role", "vendedor")
       .eq("estado", "activo")
       .order("nombre", { ascending: true });
