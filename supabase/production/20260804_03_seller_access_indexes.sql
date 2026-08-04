@@ -4,9 +4,11 @@
 --
 -- CREATE INDEX CONCURRENTLY evita bloquear las escrituras normales durante
 -- la construcción del índice. Este archivo NO debe ejecutarse dentro de BEGIN/COMMIT.
-
-set lock_timeout = '5s';
-set statement_timeout = '0';
+--
+-- IMPORTANTE PARA SUPABASE SQL EDITOR:
+-- Seleccionar y ejecutar cada sentencia CREATE INDEX CONCURRENTLY por separado.
+-- Si se ejecuta todo el archivo de una vez, el editor puede envolver el lote en
+-- una transacción y PostgreSQL responderá con el error 25001 sin crear índices.
 
 create index concurrently if not exists idx_boletas_vendedor_proyecto_numero
   on public.boletas (vendedor_user_id, proyecto_id, numero);
@@ -19,6 +21,3 @@ create index concurrently if not exists idx_asignaciones_proyecto_created_at
 
 create index concurrently if not exists idx_admin_users_empresa_role_estado
   on public.admin_users (empresa_id, role, estado);
-
-reset statement_timeout;
-reset lock_timeout;
