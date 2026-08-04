@@ -40,7 +40,7 @@ export default function CrearUsuarioPage() {
 
         setCurrentRole(data.role);
         setEmpresaId(data.empresa_id || "");
-        setRole("empresa_admin");
+        setRole(data.role === "empresa_admin" ? "vendedor" : "empresa_admin");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error cargando la sesión.");
       } finally {
@@ -93,7 +93,7 @@ export default function CrearUsuarioPage() {
   const allowedRoles: AdminRole[] =
     currentRole === "super_admin"
       ? ["empresa_admin", "vendedor", "super_admin"]
-      : ["empresa_admin", "vendedor"];
+      : ["vendedor"];
 
   return (
     <main className="min-h-screen bg-[#F2EDE4] px-4 py-10 text-[#1A1A1A]">

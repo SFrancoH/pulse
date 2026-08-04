@@ -1,4 +1,4 @@
-import { getCurrentAdminSession } from "@/lib/admin-auth";
+import { requireProjectManagerAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -114,12 +114,12 @@ export async function POST(req: Request, { params }: PageProps) {
   const errores: string[] = [];
 
   try {
-    const session = await getCurrentAdminSession();
-    if (!session) {
-      return Response.json({ success: false, message: "No autorizado." }, { status: 401 });
-    }
-
     const { proyectoId } = await params;
+    const auth = await requireProjectManagerAccess(proyectoId);
+    if (auth.error || !auth.session || !auth.proyecto) return auth.error;
+
+    const session = auth.session;
+    const proyecto = auth.proyecto;
     const body = (await req.json()) as Payload;
     const identificadorVendedor = String(body.vendedor_user_id || body.vendedor_nombre || "").trim();
     const numerosRaw = Array.isArray(body.numeros) ? body.numeros : [];
@@ -130,20 +130,6 @@ export async function POST(req: Request, { params }: PageProps) {
 
     if (numerosRaw.length === 0) {
       return Response.json({ success: false, message: "Debes enviar al menos un número." }, { status: 400 });
-    }
-
-    const { data: proyecto, error: proyectoError } = await supabaseAdmin
-      .from("proyectos")
-      .select("id,empresa_id")
-      .eq("id", proyectoId)
-      .maybeSingle();
-
-    if (proyectoError || !proyecto) {
-      return Response.json({ success: false, message: "Proyecto no encontrado." }, { status: 404 });
-    }
-
-    if (session.rol !== "super_admin" && session.empresa_id !== proyecto.empresa_id) {
-      return Response.json({ success: false, message: "No autorizado para este proyecto." }, { status: 403 });
     }
 
     const vendedor = await buscarVendedor(proyecto.empresa_id, identificadorVendedor);
@@ -184,9 +170,12 @@ export async function POST(req: Request, { params }: PageProps) {
     }
 
     const encontradasLista = boletas || [];
-    const idsEncontradas = encontradasLista.map((boleta) => boleta.id);
+    const asignables = encontradasLista.filter(
+      (boleta) => String(boleta.estado || "").toLowerCase() === "disponible"
+    );
+    const idsAsignables = asignables.map((boleta) => boleta.id);
 
-    if (idsEncontradas.length > 0) {
+    if (idsAsignables.length > 0) {
       const { error: updateError } = await supabaseAdmin
         .from("boletas")
         .update({
@@ -196,25 +185,29 @@ export async function POST(req: Request, { params }: PageProps) {
           vendedor_user_id: vendedor.id,
           updated_at: new Date().toISOString(),
         })
-        .in("id", idsEncontradas);
+        .eq("empresa_id", proyecto.empresa_id)
+        .eq("proyecto_id", proyectoId)
+        .in("id", idsAsignables);
 
       if (updateError) {
         return Response.json({ success: false, message: `Error actualizando boletas: ${updateError.message}` }, { status: 500 });
       }
     }
 
-    if (encontradasLista.length > 0) {
-      const ordenadas = [...encontradasLista].sort((a, b) => a.numero.localeCompare(b.numero));
+    if (asignables.length > 0) {
+      const ordenadas = [...asignables].sort((a, b) => a.numero.localeCompare(b.numero));
 
       const { error: historialError } = await supabaseAdmin
         .from("asignaciones_vendedores")
         .insert({
           empresa_id: proyecto.empresa_id,
           proyecto_id: proyectoId,
+          vendedor_user_id: vendedor.id,
+          asignado_por_user_id: session.user_id || null,
           vendedor_nombre: vendedorNombre,
           numero_desde: ordenadas[0].numero,
           numero_hasta: ordenadas[ordenadas.length - 1].numero,
-          cantidad: encontradasLista.length,
+          cantidad: asignables.length,
           boleta_inicial_id: ordenadas[0].id,
         });
 
@@ -224,6 +217,7 @@ export async function POST(req: Request, { params }: PageProps) {
     }
 
     const encontradas = encontradasLista.length;
+    const asignadas = asignables.length;
     const noEncontradas = numeros.filter((numero) => !encontradasLista.some((boleta) => boleta.numero === numero));
 
     return Response.json({
@@ -233,8 +227,8 @@ export async function POST(req: Request, { params }: PageProps) {
       vendedor_nombre: vendedorNombre,
       solicitadas: numeros.length,
       encontradas,
-      asignadas: encontradas,
-      omitidas: 0,
+      asignadas,
+      omitidas: encontradas - asignadas,
       no_encontradas: noEncontradas,
       errores,
     });

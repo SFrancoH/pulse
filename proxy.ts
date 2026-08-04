@@ -6,6 +6,7 @@ const COOKIE_NAME = "pulse_session";
 type AdminRole = "super_admin" | "empresa_admin" | "vendedor";
 
 type AdminSession = {
+  user_id?: string | null;
   email: string;
   rol: AdminRole;
   empresa_id?: string | null;
@@ -82,6 +83,10 @@ function redirectToLogin(req: NextRequest, pathname: string) {
   return response;
 }
 
+function redirectToAdmin(req: NextRequest) {
+  return NextResponse.redirect(new URL("/admin", req.url));
+}
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -104,9 +109,18 @@ export async function proxy(req: NextRequest) {
     return redirectToLogin(req, pathname);
   }
 
+  const rutaSoloAdministradores =
+    pathname.startsWith("/admin/crear-") ||
+    /^\/admin\/proyectos\/[^/]+\/(asignar-vendedor|actualizar-base-datos)$/.test(pathname);
+
+  if (session.rol === "vendedor" && rutaSoloAdministradores) {
+    return redirectToAdmin(req);
+  }
+
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-admin-email", session.email);
   requestHeaders.set("x-admin-role", session.rol);
+  if (session.user_id) requestHeaders.set("x-admin-user-id", session.user_id);
   if (session.empresa_id) requestHeaders.set("x-admin-empresa-id", session.empresa_id);
 
   return NextResponse.next({
