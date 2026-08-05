@@ -1,4 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentAdminSession } from "@/lib/admin-auth";
+import { requireProjectAccess } from "@/lib/require-admin";
 
 type PageProps = {
   params: Promise<{
@@ -14,6 +16,7 @@ type Boleta = {
 const PAGE_SIZE = 1000;
 const CONTAINS_LIMIT = 1000;
 const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
+const ESTADOS_ASIGNADOS_A_VENDEDOR = ["Disponible", "disponible", "No disponible", "no disponible"];
 
 function clampPage(value: string | null) {
   const page = Number(value || 0);
@@ -31,17 +34,27 @@ function normalizarContiene(value: string | null) {
   return String(value || "").replace(/\D/g, "").slice(0, 4);
 }
 
-async function cargarTodasLasDisponibles(proyectoId: string) {
+function aplicarFiltroDeVendedor<T extends { eq: (column: string, value: string) => T }>(query: T, vendedorUserId?: string | null) {
+  return vendedorUserId ? query.eq("vendedor_user_id", vendedorUserId) : query;
+}
+
+function estadosVisibles(vendedorUserId?: string | null) {
+  return vendedorUserId ? ESTADOS_ASIGNADOS_A_VENDEDOR : ESTADOS_DISPONIBLES;
+}
+
+async function cargarTodasLasDisponibles(proyectoId: string, vendedorUserId?: string | null) {
   const boletas: Boleta[] = [];
 
   for (let desde = 0; desde < 10000; desde += PAGE_SIZE) {
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("boletas")
       .select("id,numero")
       .eq("proyecto_id", proyectoId)
-      .in("estado", ESTADOS_DISPONIBLES)
       .order("numero", { ascending: true })
       .range(desde, desde + PAGE_SIZE - 1);
+
+    query = aplicarFiltroDeVendedor(query, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -57,6 +70,18 @@ async function cargarTodasLasDisponibles(proyectoId: string) {
 export async function GET(req: Request, { params }: PageProps) {
   try {
     const { proyectoId } = await params;
+    const session = await getCurrentAdminSession();
+    const vendedorUserId = session?.rol === "vendedor" ? session.user_id : null;
+
+    if (session?.rol === "vendedor") {
+      if (!vendedorUserId) {
+        return Response.json({ success: false, message: "No fue posible identificar al vendedor." }, { status: 403 });
+      }
+
+      const access = await requireProjectAccess(proyectoId);
+      if (access.error) return access.error;
+    }
+
     const url = new URL(req.url);
     const numero = normalizarNumero(url.searchParams.get("numero"));
     const contiene = normalizarContiene(url.searchParams.get("contiene"));
@@ -64,7 +89,7 @@ export async function GET(req: Request, { params }: PageProps) {
     const todas = url.searchParams.get("todas") === "1";
 
     if (todas) {
-      const boletas = await cargarTodasLasDisponibles(proyectoId);
+      const boletas = await cargarTodasLasDisponibles(proyectoId, vendedorUserId);
 
       return Response.json({
         success: true,
@@ -74,11 +99,13 @@ export async function GET(req: Request, { params }: PageProps) {
     }
 
     if (aleatorio) {
-      const { count, error: countError } = await supabaseAdmin
+      let countQuery = supabaseAdmin
         .from("boletas")
         .select("id", { count: "exact", head: true })
-        .eq("proyecto_id", proyectoId)
-        .in("estado", ESTADOS_DISPONIBLES);
+        .eq("proyecto_id", proyectoId);
+
+      countQuery = aplicarFiltroDeVendedor(countQuery, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
+      const { count, error: countError } = await countQuery;
 
       if (countError) throw countError;
 
@@ -89,13 +116,15 @@ export async function GET(req: Request, { params }: PageProps) {
       }
 
       const offset = Math.floor(Math.random() * total);
-      const { data, error } = await supabaseAdmin
+      let randomQuery = supabaseAdmin
         .from("boletas")
         .select("id,numero")
         .eq("proyecto_id", proyectoId)
-        .in("estado", ESTADOS_DISPONIBLES)
         .order("numero", { ascending: true })
         .range(offset, offset);
+
+      randomQuery = aplicarFiltroDeVendedor(randomQuery, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
+      const { data, error } = await randomQuery;
 
       if (error) throw error;
 
@@ -111,14 +140,16 @@ export async function GET(req: Request, { params }: PageProps) {
     }
 
     if (contiene) {
-      const { data, error } = await supabaseAdmin
+      let containsQuery = supabaseAdmin
         .from("boletas")
         .select("id,numero")
         .eq("proyecto_id", proyectoId)
-        .in("estado", ESTADOS_DISPONIBLES)
         .like("numero", `%${contiene}%`)
         .order("numero", { ascending: true })
         .limit(CONTAINS_LIMIT);
+
+      containsQuery = aplicarFiltroDeVendedor(containsQuery, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
+      const { data, error } = await containsQuery;
 
       if (error) throw error;
 
@@ -126,13 +157,15 @@ export async function GET(req: Request, { params }: PageProps) {
     }
 
     if (numero) {
-      const { data, error } = await supabaseAdmin
+      let exactQuery = supabaseAdmin
         .from("boletas")
         .select("id,numero")
         .eq("proyecto_id", proyectoId)
-        .in("estado", ESTADOS_DISPONIBLES)
         .eq("numero", numero)
         .order("numero", { ascending: true });
+
+      exactQuery = aplicarFiltroDeVendedor(exactQuery, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
+      const { data, error } = await exactQuery;
 
       if (error) throw error;
 
@@ -145,14 +178,16 @@ export async function GET(req: Request, { params }: PageProps) {
     const desdeTexto = String(desde).padStart(4, "0");
     const hastaTexto = String(hasta).padStart(4, "0");
 
-    const { data, error } = await supabaseAdmin
+    let pageQuery = supabaseAdmin
       .from("boletas")
       .select("id,numero")
       .eq("proyecto_id", proyectoId)
-      .in("estado", ESTADOS_DISPONIBLES)
       .gte("numero", desdeTexto)
       .lte("numero", hastaTexto)
       .order("numero", { ascending: true });
+
+    pageQuery = aplicarFiltroDeVendedor(pageQuery, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
+    const { data, error } = await pageQuery;
 
     if (error) throw error;
 
