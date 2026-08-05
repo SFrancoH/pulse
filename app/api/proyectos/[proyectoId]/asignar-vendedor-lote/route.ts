@@ -1,4 +1,5 @@
 import { requireProjectManagerAccess } from "@/lib/require-admin";
+import { crearUrlPublicaDeVendedor, getOrCreateSellerSalesLink } from "@/lib/seller-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -219,6 +220,13 @@ export async function POST(req: Request, { params }: PageProps) {
     const encontradas = encontradasLista.length;
     const asignadas = asignables.length;
     const noEncontradas = numeros.filter((numero) => !encontradasLista.some((boleta) => boleta.numero === numero));
+    const salesLink = asignadas > 0
+      ? await getOrCreateSellerSalesLink({
+          empresaId: proyecto.empresa_id,
+          proyectoId,
+          vendedorUserId: vendedor.id,
+        })
+      : null;
 
     return Response.json({
       success: true,
@@ -230,6 +238,7 @@ export async function POST(req: Request, { params }: PageProps) {
       asignadas,
       omitidas: encontradas - asignadas,
       no_encontradas: noEncontradas,
+      sales_url: salesLink ? crearUrlPublicaDeVendedor(salesLink.token) : null,
       errores,
     });
   } catch (error: unknown) {
