@@ -11,6 +11,7 @@ type ApiResponse = {
   omitidas?: number;
   no_encontradas?: string[];
   errores?: string[];
+  sales_url?: string | null;
 };
 
 type CsvResumen = {
@@ -552,6 +553,19 @@ export default function AsignarVendedorPage({ params }: Props) {
               </div>
               {resultado.no_encontradas && resultado.no_encontradas.length > 0 && <div className="mt-4"><p className="font-semibold">No encontradas:</p><p className="mt-1 break-all">{resultado.no_encontradas.join(", ")}</p></div>}
               {resultado.errores && resultado.errores.length > 0 && <div className="mt-4"><p className="font-semibold">Errores:</p><p className="mt-1 break-all">{resultado.errores.join(" | ")}</p></div>}
+              {resultado.sales_url && (
+                <div className="mt-4 rounded-xl border border-green-300 bg-white p-4 text-[#1A1A1A]">
+                  <p className="font-semibold">Enlace público del vendedor</p>
+                  <p className="mt-1 break-all text-xs text-[#6F665C]">{resultado.sales_url}</p>
+                  <button
+                    type="button"
+                    onClick={() => void navigator.clipboard.writeText(resultado.sales_url || "")}
+                    className="mt-3 rounded-lg bg-[#1A1A1A] px-4 py-2 font-semibold text-white"
+                  >
+                    Copiar enlace
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

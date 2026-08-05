@@ -17,6 +17,9 @@ type ProyectoVentaClientProps = {
   formularioCompraUrl: string | null;
   boletas: Boleta[];
   proyectoId?: string;
+  boletasEndpoint?: string;
+  formTrackingParams?: Record<string, string>;
+  officeWhatsappUrl?: string;
 };
 
 type BoletasResponse = {
@@ -24,6 +27,7 @@ type BoletasResponse = {
   message?: string;
   mode?: "page" | "search" | "all";
   boletas?: Boleta[];
+  search_status?: "office" | "not_found";
 };
 
 function formatearCOP(valor: number) {
@@ -81,6 +85,9 @@ export default function ProyectoVentaClient({
   formularioCompraUrl,
   boletas: iniciales,
   proyectoId,
+  boletasEndpoint,
+  formTrackingParams,
+  officeWhatsappUrl,
 }: ProyectoVentaClientProps) {
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [busqueda, setBusqueda] = useState("");
@@ -92,19 +99,22 @@ export default function ProyectoVentaClient({
   const [cargandoPagina, setCargandoPagina] = useState(false);
   const [toast, setToast] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [avisoOficina, setAvisoOficina] = useState(false);
 
   useEffect(() => {
     let activo = true;
 
     async function cargarTodasLasBoletas() {
-      if (!proyectoId) {
+      const endpoint = boletasEndpoint || (proyectoId ? `/api/proyectos/${proyectoId}/boletas-disponibles` : "");
+
+      if (!endpoint) {
         setTodasLasBoletas(mezclarBoletas(iniciales));
         return;
       }
 
       try {
         setCargandoPagina(true);
-        const res = await fetch(`/api/proyectos/${proyectoId}/boletas-disponibles?todas=1`, {
+        const res = await fetch(`${endpoint}?todas=1`, {
           cache: "no-store",
         });
         const data = (await res.json()) as BoletasResponse;
@@ -134,7 +144,7 @@ export default function ProyectoVentaClient({
     return () => {
       activo = false;
     };
-  }, [proyectoId, iniciales]);
+  }, [proyectoId, boletasEndpoint, iniciales]);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -203,7 +213,7 @@ export default function ProyectoVentaClient({
     window.setTimeout(enviarAlturaIframe, 250);
   }
 
-  function buscarNumero() {
+  async function buscarNumero() {
     const numero = normalizarNumero(busqueda);
 
     if (!numero) {
@@ -215,8 +225,19 @@ export default function ProyectoVentaClient({
     setResultados(encontrada ? [encontrada] : []);
     setTipoResultado("exacto");
     setBusquedaContiene("");
+    setAvisoOficina(false);
 
-    if (!encontrada) mostrarToast(`El número ${numero} no está disponible.`);
+    if (!encontrada && boletasEndpoint) {
+      try {
+        const response = await fetch(`${boletasEndpoint}?numero=${numero}`, { cache: "no-store" });
+        const data = (await response.json()) as BoletasResponse;
+        setAvisoOficina(data.success && data.search_status === "office");
+      } catch {
+        setAvisoOficina(false);
+      }
+    }
+
+    if (!encontrada) mostrarToast(`El número ${numero} no está disponible en este enlace.`);
   }
 
   function buscarNumeroQueContenga() {
@@ -258,6 +279,7 @@ export default function ProyectoVentaClient({
     setTipoResultado(null);
     setBusqueda("");
     setBusquedaContiene("");
+    setAvisoOficina(false);
   }
 
   function toggleNumero(numero: string) {
@@ -280,6 +302,8 @@ export default function ProyectoVentaClient({
     const params = new URLSearchParams();
     seleccionados.forEach((numero, index) => params.set(`consecutivo_${index + 1}`, numero));
 
+    Object.entries(formTrackingParams || {}).forEach(([key, value]) => params.set(key, value));
+
     for (let index = seleccionados.length; index < MAX_SELECCION; index++) {
       params.set(`consecutivo_${index + 1}`, "");
     }
@@ -289,7 +313,7 @@ export default function ProyectoVentaClient({
 
     const separador = formularioCompraUrl.includes("?") ? "&" : "?";
     return `${formularioCompraUrl}${separador}${params.toString()}`;
-  }, [formularioCompraUrl, proyectoNombre, seleccionados, totalPagar]);
+  }, [formTrackingParams, formularioCompraUrl, proyectoNombre, seleccionados, totalPagar]);
 
   function reservar() {
     if (seleccionados.length === 0) {
@@ -354,6 +378,16 @@ export default function ProyectoVentaClient({
           </div>
         ) : (
           <div className="rounded-2xl border border-[#E0D9CE] bg-white p-10 text-center text-[#9A9187]">No se encontró ese número o no está disponible.</div>
+        )}
+
+        {avisoOficina && officeWhatsappUrl && (
+          <div className="mt-5 rounded-2xl border border-[#E8620A] bg-white p-5 text-center">
+            <p className="font-semibold">Este número está disponible, pero no está habilitado en este enlace de venta.</p>
+            <p className="mt-2 text-sm text-[#6F665C]">Si deseas reservarlo, comunícate directamente con la oficina de Javier Toyotas.</p>
+            <a href={officeWhatsappUrl} target="_blank" rel="noreferrer" className="mt-4 inline-block rounded-xl bg-[#25D366] px-5 py-3 font-semibold text-white">
+              Hablar por WhatsApp con la oficina
+            </a>
+          </div>
         )}
       </section>
 
