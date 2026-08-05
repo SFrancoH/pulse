@@ -10,7 +10,7 @@ export type SellerSalesLink = {
   estado: "activo" | "revocado";
 };
 
-const PUBLIC_SALES_PAGE_URL = process.env.PUBLIC_SELLER_SALES_PAGE_URL || "https://javiertoyotas.com/";
+const PUBLIC_SALES_PAGE_URL = process.env.PUBLIC_SELLER_SALES_PAGE_URL || "https://javiertoyotas.com/proyecto";
 
 function crearToken() {
   return randomBytes(24).toString("base64url");
