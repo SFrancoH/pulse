@@ -32,7 +32,7 @@ function NumeroGanador({ numero }: { numero: string }) {
       {numero.split("").map((digito, index) => (
         <div
           key={`${numero}-${index}`}
-          className="flex h-[54px] w-[48px] items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] text-[27px] font-black text-[#73F49A]"
+          className="flex h-[54px] w-[48px] items-center justify-center rounded-xl border border-[#E0D9CE] bg-[#F9F6F1] text-[27px] font-black text-[#E8620A]"
         >
           {digito}
         </div>
@@ -60,36 +60,38 @@ export default function PreviousWinners() {
             <article
               key={winner.numero}
               className={[
-                "overflow-hidden rounded-[24px] bg-[#161616] text-white shadow-[0_12px_30px_rgba(0,0,0,0.14)]",
+                "overflow-hidden rounded-[24px] border border-[#E0D9CE] bg-white text-[#1A1A1A] shadow-[0_12px_30px_rgba(0,0,0,0.08)]",
                 index === WINNERS.length - 1 ? "col-span-2 mx-auto w-full max-w-[538px] max-[760px]:col-span-1" : "",
               ].join(" ")}
             >
-              <div className="relative bg-black">
-                <video
-                  src={winner.video}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="aspect-video w-full bg-black object-cover"
-                />
+              <div className="px-5 pt-5 sm:px-6 sm:pt-6">
+                <div className="relative mx-auto w-full max-w-[310px] overflow-hidden rounded-[22px] bg-black shadow-sm">
+                  <video
+                    src={winner.video}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="aspect-[9/16] w-full bg-black object-cover"
+                  />
 
-                <div className="pointer-events-none absolute left-4 top-4 rounded-full bg-black/70 px-4 py-2 text-xs font-bold tracking-wide backdrop-blur-sm">
-                  <span className="mr-2 text-[#73F49A]">✓</span>
-                  Premio entregado
+                  <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/75 px-3 py-2 text-[11px] font-bold tracking-wide text-white backdrop-blur-sm">
+                    <span className="mr-2 text-[#73F49A]">✓</span>
+                    Premio entregado
+                  </div>
                 </div>
               </div>
 
               <div className="p-5 sm:p-6">
-                <p className="text-xs font-semibold uppercase tracking-[2px] text-[#9C9C9C]">Número ganador</p>
+                <p className="text-xs font-semibold uppercase tracking-[2px] text-[#8A8178]">Número ganador</p>
                 <NumeroGanador numero={winner.numero} />
 
                 <div className="mt-5 border-l-2 border-[#E8620A] pl-4">
-                  <p className="text-xs font-semibold uppercase tracking-[2px] text-[#9C9C9C]">Sorteo</p>
-                  <p className="mt-1 text-lg font-bold">{winner.fecha}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[2px] text-[#8A8178]">Sorteo</p>
+                  <p className="mt-1 text-lg font-bold text-[#1A1A1A]">{winner.fecha}</p>
                 </div>
 
-                <div className="mt-5 rounded-2xl bg-white/[0.06] px-4 py-4 text-sm leading-6 text-white/75">
-                  Video de entrega del premio correspondiente al número ganador <strong className="text-white">{winner.numero}</strong>.
+                <div className="mt-5 rounded-2xl bg-[#F9F6F1] px-4 py-4 text-sm leading-6 text-[#6F665C]">
+                  Video de entrega del premio correspondiente al número ganador <strong className="text-[#1A1A1A]">{winner.numero}</strong>.
                 </div>
               </div>
             </article>

@@ -24,6 +24,9 @@ type ProyectoSalesHeroProps = {
 const JAVIER_TOYOTAS_LOGO =
   "https://assets.cdn.filesafe.space/z6D7TmXDOdu2At3H4Tqy/media/6a23040c3c3faf82cadd1459.png";
 
+const EDSA_LOGO =
+  "https://assets.cdn.filesafe.space/z6D7TmXDOdu2At3H4Tqy/media/6a2303eb7eee184e871d27ce.png";
+
 const EMPTY_COUNTDOWN: CountdownValue = {
   days: 0,
   hours: 0,
@@ -153,6 +156,17 @@ export default function ProyectoSalesHero({
               title="Anticipado"
               targetDate="2026-09-12T00:00:00-05:00"
               dateLabel="12 de septiembre del 2026"
+            />
+          </div>
+
+          <div className="mt-7 rounded-[24px] border border-[#E0D9CE] bg-white px-5 py-6 text-center shadow-sm sm:px-8">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#8A8178] sm:text-sm">
+              Avalados por
+            </p>
+            <img
+              src={EDSA_LOGO}
+              alt="EDSA"
+              className="mx-auto mt-4 h-auto max-h-[90px] w-auto max-w-[230px] object-contain sm:max-w-[300px]"
             />
           </div>
         </section>
