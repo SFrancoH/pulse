@@ -1,8 +1,9 @@
--- PULSE project public sales token
+-- PULSE project public sales token + Office defaults
 -- Fecha: 2026-08-12
 --
 -- Agrega un token unico directamente a proyectos (sin tabla adicional).
 -- Los proyectos existentes reciben un token durante esta migracion.
+-- Las boletas nuevas quedan en el pool Oficina por defecto.
 
 begin;
 
@@ -30,5 +31,8 @@ alter table public.proyectos
     replace(gen_random_uuid()::text, '-', '') ||
     substring(replace(gen_random_uuid()::text, '-', '') from 1 for 16)
   );
+
+alter table public.boletas
+  alter column vendedor_nombre set default 'Oficina';
 
 commit;
