@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type Props = { params: Promise<{ token: string }> };
 
-const ESTADOS_VENTA = ["Disponible", "disponible", "No disponible", "no disponible"];
+const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
 
 function normalizarNumero(value: string | null) {
   const limpio = String(value || "").replace(/\D/g, "");
@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: Props) {
       .eq("empresa_id", link.empresa_id)
       .eq("proyecto_id", link.proyecto_id)
       .eq("vendedor_user_id", link.vendedor_user_id)
-      .in("estado", ESTADOS_VENTA)
+      .in("estado", ESTADOS_DISPONIBLES)
       .order("numero", { ascending: true });
 
     if (numero) {
@@ -34,15 +34,22 @@ export async function GET(req: Request, { params }: Props) {
 
       const { data: externa, error: externaError } = await supabaseAdmin
         .from("boletas")
-        .select("id,estado,vendedor_user_id")
+        .select("id,estado,vendedor_nombre,vendedor_user_id")
         .eq("empresa_id", link.empresa_id)
         .eq("proyecto_id", link.proyecto_id)
         .eq("numero", numero)
         .maybeSingle();
 
       if (externaError) throw externaError;
-      const mostrarOficina = Boolean(externa && ESTADOS_VENTA.includes(String(externa.estado)) && externa.vendedor_user_id !== link.vendedor_user_id);
-      return Response.json({ success: true, boletas: [], search_status: mostrarOficina ? "office" : "not_found" });
+
+      const esOficina = Boolean(
+        externa &&
+        ESTADOS_DISPONIBLES.includes(String(externa.estado)) &&
+        String(externa.vendedor_nombre || "").trim().toLowerCase() === "oficina" &&
+        !externa.vendedor_user_id
+      );
+
+      return Response.json({ success: true, boletas: [], search_status: esOficina ? "office" : "not_found" });
     }
 
     const { data, error } = await query.range(0, 9999);
