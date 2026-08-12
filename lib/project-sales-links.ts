@@ -8,6 +8,7 @@ export type ProjectSalesLink = {
   slug: string;
   precio_boleta: number | null;
   formulario_compra_url: string | null;
+  flyer_url: string | null;
   sales_token: string;
   estado: string | null;
 };
@@ -32,7 +33,7 @@ export async function getActiveProjectSalesLink(token: string) {
 
   const { data, error } = await supabaseAdmin
     .from("proyectos")
-    .select("id,empresa_id,nombre,slug,precio_boleta,formulario_compra_url,sales_token,estado")
+    .select("id,empresa_id,nombre,slug,precio_boleta,formulario_compra_url,flyer_url,sales_token,estado")
     .eq("sales_token", token)
     .eq("estado", "activo")
     .maybeSingle();
