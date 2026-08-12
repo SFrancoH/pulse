@@ -13,6 +13,11 @@ type BoletaResponse = {
 
 const dinero = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 
+function whatsappUrl(telefono: string) {
+  const numero = String(telefono || "").replace(/\D/g, "");
+  return numero ? `https://wa.me/${numero}` : "";
+}
+
 export default function BoletaPublicaPage() {
   const params = useSearchParams();
   const [data, setData] = useState<BoletaResponse | null>(null);
@@ -72,7 +77,16 @@ export default function BoletaPublicaPage() {
           {vendedor && (
             <div className="mt-6 rounded-2xl border border-[#E8620A]/30 bg-orange-50 p-5">
               <p className="font-semibold">Este número fue asignado al vendedor {vendedor.nombre}.</p>
-              {vendedor.telefono && <a href={`tel:${vendedor.telefono}`} className="mt-2 inline-block text-lg font-bold text-[#E8620A]">Teléfono: {vendedor.telefono}</a>}
+              {vendedor.telefono && (
+                <a
+                  href={whatsappUrl(vendedor.telefono)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-block text-lg font-bold text-[#E8620A]"
+                >
+                  Teléfono: {vendedor.telefono}
+                </a>
+              )}
             </div>
           )}
 
