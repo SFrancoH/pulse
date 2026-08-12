@@ -1,4 +1,6 @@
 import { getCurrentAdminSession } from "@/lib/admin-auth";
+import { crearUrlPublicaDeProyecto } from "@/lib/project-sales-links";
+import { crearUrlPublicaDeVendedor, getOrCreateSellerSalesLink } from "@/lib/seller-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://pulse-sand-omega.vercel.app";
@@ -18,6 +20,7 @@ type Proyecto = {
   estado: string | null;
   flyer_url?: string | null;
   precio_boleta?: number | null;
+  sales_token: string;
 };
 
 async function proyectosDelVendedor(userId: string, empresaId: string) {
@@ -89,7 +92,7 @@ export async function GET() {
     if (proyectosPermitidos === null || proyectosPermitidos.length > 0) {
       let proyectosQuery = supabaseAdmin
         .from("proyectos")
-        .select("id,empresa_id,nombre,slug,estado,flyer_url,precio_boleta")
+        .select("id,empresa_id,nombre,slug,estado,flyer_url,precio_boleta,sales_token")
         .in("empresa_id", empresaIds)
         .order("created_at", { ascending: false });
 
@@ -102,13 +105,29 @@ export async function GET() {
       proyectos = (data || []) as Proyecto[];
     }
 
+    const sellerUrls = new Map<string, string>();
+
+    if (session.rol === "vendedor" && session.user_id && session.empresa_id) {
+      for (const proyecto of proyectos) {
+        const link = await getOrCreateSellerSalesLink({
+          empresaId: session.empresa_id,
+          proyectoId: proyecto.id,
+          vendedorUserId: session.user_id,
+        });
+        sellerUrls.set(proyecto.id, crearUrlPublicaDeVendedor(link.token));
+      }
+    }
+
     const grupos = empresasTipadas.map((empresa) => ({
       empresa,
       proyectos: proyectos
         .filter((proyecto) => proyecto.empresa_id === empresa.id)
         .map((proyecto) => ({
           ...proyecto,
-          ventas_url: `${BASE_URL}/r/${empresa.slug}/${proyecto.slug}`,
+          ventas_url:
+            session.rol === "vendedor"
+              ? sellerUrls.get(proyecto.id) || ""
+              : crearUrlPublicaDeProyecto(proyecto.sales_token),
           base_datos_url: `${BASE_URL}/admin/proyectos/${proyecto.id}/base-datos`,
           asignar_vendedor_url:
             session.rol === "vendedor"

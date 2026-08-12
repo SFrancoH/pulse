@@ -161,7 +161,7 @@ export async function POST(req: Request, { params }: PageProps) {
 
     const { data: boletas, error: boletasError } = await supabaseAdmin
       .from("boletas")
-      .select("id,empresa_id,proyecto_id,numero,estado")
+      .select("id,empresa_id,proyecto_id,numero,estado,vendedor_nombre,vendedor_user_id")
       .eq("proyecto_id", proyectoId)
       .eq("empresa_id", proyecto.empresa_id)
       .in("numero", numeros);
@@ -172,15 +172,20 @@ export async function POST(req: Request, { params }: PageProps) {
 
     const encontradasLista = boletas || [];
     const asignables = encontradasLista.filter(
-      (boleta) => String(boleta.estado || "").toLowerCase() === "disponible"
+      (boleta) =>
+        String(boleta.estado || "").toLowerCase() === "disponible" &&
+        String(boleta.vendedor_nombre || "").trim().toLowerCase() === "oficina" &&
+        !boleta.vendedor_user_id
     );
     const idsAsignables = asignables.map((boleta) => boleta.id);
 
+    let asignadasReales: Array<{ id: string; numero: string }> = [];
+
     if (idsAsignables.length > 0) {
-      const { error: updateError } = await supabaseAdmin
+      const { data: actualizadas, error: updateError } = await supabaseAdmin
         .from("boletas")
         .update({
-          estado: "No disponible",
+          estado: "Disponible",
           canal: "Vendedores",
           vendedor_nombre: vendedorNombre,
           vendedor_user_id: vendedor.id,
@@ -188,15 +193,21 @@ export async function POST(req: Request, { params }: PageProps) {
         })
         .eq("empresa_id", proyecto.empresa_id)
         .eq("proyecto_id", proyectoId)
-        .in("id", idsAsignables);
+        .in("id", idsAsignables)
+        .in("estado", ["Disponible", "disponible"])
+        .eq("vendedor_nombre", "Oficina")
+        .is("vendedor_user_id", null)
+        .select("id,numero");
 
       if (updateError) {
         return Response.json({ success: false, message: `Error actualizando boletas: ${updateError.message}` }, { status: 500 });
       }
+
+      asignadasReales = actualizadas || [];
     }
 
-    if (asignables.length > 0) {
-      const ordenadas = [...asignables].sort((a, b) => a.numero.localeCompare(b.numero));
+    if (asignadasReales.length > 0) {
+      const ordenadas = [...asignadasReales].sort((a, b) => a.numero.localeCompare(b.numero));
 
       const { error: historialError } = await supabaseAdmin
         .from("asignaciones_vendedores")
@@ -208,7 +219,7 @@ export async function POST(req: Request, { params }: PageProps) {
           vendedor_nombre: vendedorNombre,
           numero_desde: ordenadas[0].numero,
           numero_hasta: ordenadas[ordenadas.length - 1].numero,
-          cantidad: asignables.length,
+          cantidad: asignadasReales.length,
           boleta_inicial_id: ordenadas[0].id,
         });
 
@@ -218,7 +229,7 @@ export async function POST(req: Request, { params }: PageProps) {
     }
 
     const encontradas = encontradasLista.length;
-    const asignadas = asignables.length;
+    const asignadas = asignadasReales.length;
     const noEncontradas = numeros.filter((numero) => !encontradasLista.some((boleta) => boleta.numero === numero));
     const salesLink = asignadas > 0
       ? await getOrCreateSellerSalesLink({

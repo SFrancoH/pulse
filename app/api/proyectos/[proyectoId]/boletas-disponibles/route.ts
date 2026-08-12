@@ -16,7 +16,6 @@ type Boleta = {
 const PAGE_SIZE = 1000;
 const CONTAINS_LIMIT = 1000;
 const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
-const ESTADOS_ASIGNADOS_A_VENDEDOR = ["Disponible", "disponible", "No disponible", "no disponible"];
 
 function clampPage(value: string | null) {
   const page = Number(value || 0);
@@ -34,14 +33,6 @@ function normalizarContiene(value: string | null) {
   return String(value || "").replace(/\D/g, "").slice(0, 4);
 }
 
-function aplicarFiltroDeVendedor<T extends { eq: (column: string, value: string) => T }>(query: T, vendedorUserId?: string | null) {
-  return vendedorUserId ? query.eq("vendedor_user_id", vendedorUserId) : query;
-}
-
-function estadosVisibles(vendedorUserId?: string | null) {
-  return vendedorUserId ? ESTADOS_ASIGNADOS_A_VENDEDOR : ESTADOS_DISPONIBLES;
-}
-
 async function cargarTodasLasDisponibles(proyectoId: string, vendedorUserId?: string | null) {
   const boletas: Boleta[] = [];
 
@@ -50,12 +41,17 @@ async function cargarTodasLasDisponibles(proyectoId: string, vendedorUserId?: st
       .from("boletas")
       .select("id,numero")
       .eq("proyecto_id", proyectoId)
+      .in("estado", ESTADOS_DISPONIBLES)
       .order("numero", { ascending: true })
       .range(desde, desde + PAGE_SIZE - 1);
 
-    query = aplicarFiltroDeVendedor(query, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
-    const { data, error } = await query;
+    if (vendedorUserId) {
+      query = query.eq("vendedor_user_id", vendedorUserId);
+    } else {
+      query = query.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
+    }
 
+    const { data, error } = await query;
     if (error) throw error;
 
     const lote = (data || []) as Boleta[];
@@ -90,27 +86,26 @@ export async function GET(req: Request, { params }: PageProps) {
 
     if (todas) {
       const boletas = await cargarTodasLasDisponibles(proyectoId, vendedorUserId);
-
-      return Response.json({
-        success: true,
-        mode: "all",
-        boletas,
-      });
+      return Response.json({ success: true, mode: "all", boletas });
     }
 
     if (aleatorio) {
       let countQuery = supabaseAdmin
         .from("boletas")
         .select("id", { count: "exact", head: true })
-        .eq("proyecto_id", proyectoId);
+        .eq("proyecto_id", proyectoId)
+        .in("estado", ESTADOS_DISPONIBLES);
 
-      countQuery = aplicarFiltroDeVendedor(countQuery, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
+      if (vendedorUserId) {
+        countQuery = countQuery.eq("vendedor_user_id", vendedorUserId);
+      } else {
+        countQuery = countQuery.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
+      }
+
       const { count, error: countError } = await countQuery;
-
       if (countError) throw countError;
 
       const total = count || 0;
-
       if (total === 0) {
         return Response.json({ success: true, mode: "search", search_type: "random", page: 0, boletas: [] });
       }
@@ -120,12 +115,17 @@ export async function GET(req: Request, { params }: PageProps) {
         .from("boletas")
         .select("id,numero")
         .eq("proyecto_id", proyectoId)
+        .in("estado", ESTADOS_DISPONIBLES)
         .order("numero", { ascending: true })
         .range(offset, offset);
 
-      randomQuery = aplicarFiltroDeVendedor(randomQuery, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
-      const { data, error } = await randomQuery;
+      if (vendedorUserId) {
+        randomQuery = randomQuery.eq("vendedor_user_id", vendedorUserId);
+      } else {
+        randomQuery = randomQuery.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
+      }
 
+      const { data, error } = await randomQuery;
       if (error) throw error;
 
       const boleta = data?.[0];
@@ -145,12 +145,17 @@ export async function GET(req: Request, { params }: PageProps) {
         .select("id,numero")
         .eq("proyecto_id", proyectoId)
         .like("numero", `%${contiene}%`)
+        .in("estado", ESTADOS_DISPONIBLES)
         .order("numero", { ascending: true })
         .limit(CONTAINS_LIMIT);
 
-      containsQuery = aplicarFiltroDeVendedor(containsQuery, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
-      const { data, error } = await containsQuery;
+      if (vendedorUserId) {
+        containsQuery = containsQuery.eq("vendedor_user_id", vendedorUserId);
+      } else {
+        containsQuery = containsQuery.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
+      }
 
+      const { data, error } = await containsQuery;
       if (error) throw error;
 
       return Response.json({ success: true, mode: "search", search_type: "contains", contiene, page: 0, boletas: data || [], limit: CONTAINS_LIMIT });
@@ -162,11 +167,16 @@ export async function GET(req: Request, { params }: PageProps) {
         .select("id,numero")
         .eq("proyecto_id", proyectoId)
         .eq("numero", numero)
+        .in("estado", ESTADOS_DISPONIBLES)
         .order("numero", { ascending: true });
 
-      exactQuery = aplicarFiltroDeVendedor(exactQuery, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
-      const { data, error } = await exactQuery;
+      if (vendedorUserId) {
+        exactQuery = exactQuery.eq("vendedor_user_id", vendedorUserId);
+      } else {
+        exactQuery = exactQuery.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
+      }
 
+      const { data, error } = await exactQuery;
       if (error) throw error;
 
       return Response.json({ success: true, mode: "search", search_type: "exact", numero, page: Math.floor(Number(numero) / PAGE_SIZE), boletas: data || [] });
@@ -184,11 +194,16 @@ export async function GET(req: Request, { params }: PageProps) {
       .eq("proyecto_id", proyectoId)
       .gte("numero", desdeTexto)
       .lte("numero", hastaTexto)
+      .in("estado", ESTADOS_DISPONIBLES)
       .order("numero", { ascending: true });
 
-    pageQuery = aplicarFiltroDeVendedor(pageQuery, vendedorUserId).in("estado", estadosVisibles(vendedorUserId));
-    const { data, error } = await pageQuery;
+    if (vendedorUserId) {
+      pageQuery = pageQuery.eq("vendedor_user_id", vendedorUserId);
+    } else {
+      pageQuery = pageQuery.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
+    }
 
+    const { data, error } = await pageQuery;
     if (error) throw error;
 
     return Response.json({ success: true, mode: "page", page, desde, hasta, desde_texto: desdeTexto, hasta_texto: hastaTexto, boletas: data || [] });

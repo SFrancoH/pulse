@@ -55,6 +55,8 @@ export async function GET(req: Request) {
 
     const valorPagado = Number(boleta.valor_pagado || 0);
     const precioBoleta = Number(proyecto.precio_boleta || 0);
+    const vendedorNombre = String(boleta.vendedor_nombre || "").trim();
+    const esOficina = vendedorNombre.toLowerCase() === "oficina";
 
     return Response.json({
       success: true,
@@ -66,16 +68,16 @@ export async function GET(req: Request) {
       boleta: {
         numero: boleta.numero,
         estado: boleta.estado,
-        disponible: boleta.estado === "Disponible",
+        disponible: String(boleta.estado || "").toLowerCase() === "disponible",
         nombre_cliente: boleta.nombre_cliente,
         telefono_cliente: boleta.telefono_cliente,
         valor_pagado: valorPagado,
         saldo_pendiente: Math.max(precioBoleta - valorPagado, 0),
       },
       vendedor: vendedor
-        ? { nombre: vendedor.nombre || boleta.vendedor_nombre || "Vendedor", telefono: vendedor.telefono }
-        : boleta.vendedor_nombre
-          ? { nombre: boleta.vendedor_nombre, telefono: null }
+        ? { nombre: vendedor.nombre || vendedorNombre || "Vendedor", telefono: vendedor.telefono }
+        : vendedorNombre && !esOficina
+          ? { nombre: vendedorNombre, telefono: null }
           : null,
     });
   } catch (error: unknown) {

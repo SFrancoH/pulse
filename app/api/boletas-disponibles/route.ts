@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 /**
  * GET /api/boletas-disponibles
  *
- * Retorna todas las boletas disponibles.
+ * Compatibilidad: retorna boletas disponibles del pool Oficina.
  *
  * Query params:
  * - empresa_id
@@ -31,12 +31,12 @@ export async function GET(req: Request) {
       .select("numero")
       .eq("empresa_id", empresa_id)
       .eq("proyecto_id", proyecto_id)
-      .eq("estado", "disponible")
+      .in("estado", ["Disponible", "disponible"])
+      .eq("vendedor_nombre", "Oficina")
+      .is("vendedor_user_id", null)
       .order("numero", { ascending: true });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     return Response.json({
       success: true,

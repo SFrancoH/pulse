@@ -122,27 +122,30 @@ export async function POST(req: Request) {
 
     const { data: candidatas, error: candidatasError } = await supabaseAdmin
       .from("boletas")
-      .select("id,numero,estado")
+      .select("id,numero,estado,vendedor_nombre,vendedor_user_id")
       .eq("empresa_id", boletaInicial.empresa_id)
       .eq("proyecto_id", boletaInicial.proyecto_id)
       .gte("numero", numeroDesde)
       .lte("numero", numeroHasta)
       .order("numero", { ascending: true });
 
-    if (candidatasError) {
-      throw candidatasError;
-    }
+    if (candidatasError) throw candidatasError;
 
     const disponibles = (candidatas || []).filter(
-      (item) => String(item.estado || "").toLowerCase() === "disponible"
+      (item) =>
+        String(item.estado || "").toLowerCase() === "disponible" &&
+        String(item.vendedor_nombre || "").trim().toLowerCase() === "oficina" &&
+        !item.vendedor_user_id
     );
     const idsDisponibles = disponibles.map((item) => item.id);
 
+    let actualizadas: Array<{ id: string; numero: string }> = [];
+
     if (idsDisponibles.length > 0) {
-      const { error: updateError } = await supabaseAdmin
+      const { data, error: updateError } = await supabaseAdmin
         .from("boletas")
         .update({
-          estado: "No disponible",
+          estado: "Disponible",
           canal: "Vendedores",
           vendedor_nombre: vendedorNombre,
           vendedor_user_id: vendedor.id,
@@ -150,34 +153,38 @@ export async function POST(req: Request) {
         })
         .eq("empresa_id", boletaInicial.empresa_id)
         .eq("proyecto_id", boletaInicial.proyecto_id)
-        .in("id", idsDisponibles);
+        .in("id", idsDisponibles)
+        .in("estado", ["Disponible", "disponible"])
+        .eq("vendedor_nombre", "Oficina")
+        .is("vendedor_user_id", null)
+        .select("id,numero");
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
+      actualizadas = data || [];
     }
 
-    const { error: historialError } = await supabaseAdmin
-      .from("asignaciones_vendedores")
-      .insert({
-        empresa_id: boletaInicial.empresa_id,
-        proyecto_id: boletaInicial.proyecto_id,
-        vendedor_user_id: vendedor.id,
-        asignado_por_user_id: auth.session.user_id || null,
-        vendedor_nombre: vendedorNombre,
-        numero_desde: numeroDesde,
-        numero_hasta: numeroHasta,
-        cantidad: idsDisponibles.length,
-        boleta_inicial_id: boletaInicial.id,
-      });
+    if (actualizadas.length > 0) {
+      const ordenadas = [...actualizadas].sort((a, b) => a.numero.localeCompare(b.numero));
+      const { error: historialError } = await supabaseAdmin
+        .from("asignaciones_vendedores")
+        .insert({
+          empresa_id: boletaInicial.empresa_id,
+          proyecto_id: boletaInicial.proyecto_id,
+          vendedor_user_id: vendedor.id,
+          asignado_por_user_id: auth.session.user_id || null,
+          vendedor_nombre: vendedorNombre,
+          numero_desde: ordenadas[0].numero,
+          numero_hasta: ordenadas[ordenadas.length - 1].numero,
+          cantidad: actualizadas.length,
+          boleta_inicial_id: ordenadas[0].id,
+        });
 
-    if (historialError) {
-      throw historialError;
+      if (historialError) throw historialError;
     }
 
     const url = new URL(req.url);
     url.pathname = `/asignar/${boleta_id}`;
-    url.search = `?ok=1&asignadas=${idsDisponibles.length}&omitidas=${(candidatas?.length || 0) - idsDisponibles.length}`;
+    url.search = `?ok=1&asignadas=${actualizadas.length}&omitidas=${(candidatas?.length || 0) - actualizadas.length}`;
 
     if (!req.headers.get("content-type")?.includes("application/json")) {
       return Response.redirect(url, 303);
@@ -191,8 +198,8 @@ export async function POST(req: Request) {
       numero_desde: numeroDesde,
       numero_hasta: numeroHasta,
       solicitadas: candidatas?.length || 0,
-      asignadas: idsDisponibles.length,
-      omitidas: (candidatas?.length || 0) - idsDisponibles.length,
+      asignadas: actualizadas.length,
+      omitidas: (candidatas?.length || 0) - actualizadas.length,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error interno";
