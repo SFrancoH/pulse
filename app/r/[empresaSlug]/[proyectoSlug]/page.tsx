@@ -16,7 +16,6 @@ type BoletaDisponible = {
 };
 
 const ESTADOS_DISPONIBLES = ["Disponible", "disponible"];
-const ESTADOS_ASIGNADOS_A_VENDEDOR = ["Disponible", "disponible", "No disponible", "no disponible"];
 
 async function cargarBoletasDisponibles(empresaId: string, proyectoId: string, vendedorUserId?: string | null) {
   let query = supabaseAdmin
@@ -24,19 +23,17 @@ async function cargarBoletasDisponibles(empresaId: string, proyectoId: string, v
     .select("id,numero")
     .eq("empresa_id", empresaId)
     .eq("proyecto_id", proyectoId)
+    .in("estado", ESTADOS_DISPONIBLES)
     .order("numero", { ascending: true })
     .range(0, 999);
 
   if (vendedorUserId) {
-    query = query
-      .eq("vendedor_user_id", vendedorUserId)
-      .in("estado", ESTADOS_ASIGNADOS_A_VENDEDOR);
+    query = query.eq("vendedor_user_id", vendedorUserId);
   } else {
-    query = query.in("estado", ESTADOS_DISPONIBLES);
+    query = query.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
   }
 
   const { data, error } = await query;
-
   if (error) throw error;
 
   return (data || []) as BoletaDisponible[];
@@ -65,9 +62,10 @@ export default async function ProyectoPage({ params }: PageProps) {
 
   const { data: proyecto } = await supabaseAdmin
     .from("proyectos")
-    .select("id,nombre,slug,precio_boleta,formulario_compra_url")
+    .select("id,nombre,slug,precio_boleta,formulario_compra_url,estado")
     .eq("empresa_id", empresa.id)
     .eq("slug", proyectoSlug)
+    .eq("estado", "activo")
     .maybeSingle();
 
   if (!proyecto) {
