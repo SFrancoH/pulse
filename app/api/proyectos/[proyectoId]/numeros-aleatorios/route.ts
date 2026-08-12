@@ -64,6 +64,8 @@ export async function GET(req: Request, { params }: PageProps) {
       .select("numero")
       .eq("proyecto_id", proyectoId)
       .eq("estado", ESTADO_DISPONIBLE)
+      .eq("vendedor_nombre", "Oficina")
+      .is("vendedor_user_id", null)
       .order("numero", { ascending: true })
       .limit(10000);
 
@@ -106,12 +108,6 @@ export async function GET(req: Request, { params }: PageProps) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error interno";
 
-    return Response.json(
-      {
-        success: false,
-        message,
-      },
-      { status: 500 }
-    );
+    return Response.json({ success: false, message }, { status: 500 });
   }
 }
