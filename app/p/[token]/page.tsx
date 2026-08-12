@@ -1,3 +1,4 @@
+import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaClient from "@/components/ProyectoVentaClient";
 import { getActiveSellerSalesLink } from "@/lib/seller-sales-links";
@@ -32,13 +33,14 @@ export default async function SellerPublicSalesPage({ params }: Props) {
   }
 
   const vendedorNombre = vendedor.nombre?.trim() || vendedor.email;
+  const esSorteoOctubre = proyecto.id === OCTOBER_PROJECT_ID;
 
   return (
     <>
       <ProyectoSalesHero
         proyectoNombre={proyecto.nombre || ""}
         flyerUrl={proyecto.flyer_url}
-        showOctoberPromo={proyecto.id === OCTOBER_PROJECT_ID}
+        showOctoberPromo={esSorteoOctubre}
       />
 
       <ProyectoVentaClient
@@ -51,6 +53,8 @@ export default async function SellerPublicSalesPage({ params }: Props) {
         formTrackingParams={{ ref: token, sales_rep: vendedorNombre }}
         officeWhatsappUrl="https://wa.me/573147903518"
       />
+
+      {esSorteoOctubre && <PreviousWinners />}
     </>
   );
 }

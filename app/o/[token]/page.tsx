@@ -1,3 +1,4 @@
+import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaClient from "@/components/ProyectoVentaClient";
 import { getActiveProjectSalesLink } from "@/lib/project-sales-links";
@@ -34,12 +35,14 @@ export default async function OfficePublicSalesPage({ params }: Props) {
     return <main className="min-h-screen bg-[#F2EDE4] p-10 text-center text-[#1A1A1A]">Enlace de venta no disponible.</main>;
   }
 
+  const esSorteoOctubre = proyecto.id === OCTOBER_PROJECT_ID;
+
   return (
     <>
       <ProyectoSalesHero
         proyectoNombre={proyecto.nombre || ""}
         flyerUrl={proyecto.flyer_url}
-        showOctoberPromo={proyecto.id === OCTOBER_PROJECT_ID}
+        showOctoberPromo={esSorteoOctubre}
       />
 
       <ProyectoVentaClient
@@ -51,6 +54,8 @@ export default async function OfficePublicSalesPage({ params }: Props) {
         boletasEndpoint={`/api/public/project-sales/${token}/boletas`}
         formTrackingParams={{ ref: token, sales_rep: "Oficina" }}
       />
+
+      {esSorteoOctubre && <PreviousWinners />}
     </>
   );
 }
