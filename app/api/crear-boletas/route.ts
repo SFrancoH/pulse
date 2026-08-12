@@ -21,6 +21,9 @@ function crearNumeros(empresa_id: string, proyecto_id: string) {
     proyecto_id,
     numero: String(index).padStart(4, "0"),
     estado: "Disponible",
+    canal: "Oficina",
+    vendedor_nombre: "Oficina",
+    vendedor_user_id: null,
   }));
 }
 
@@ -64,10 +67,7 @@ export async function POST(req: Request) {
           ignoreDuplicates: true,
         });
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       creadas += lote.length;
     }
 
@@ -77,9 +77,7 @@ export async function POST(req: Request) {
       .eq("empresa_id", empresa_id)
       .eq("proyecto_id", proyecto_id);
 
-    if (countError) {
-      throw countError;
-    }
+    if (countError) throw countError;
 
     return Response.json({
       success: true,
