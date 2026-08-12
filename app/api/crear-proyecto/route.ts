@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { canAccessEmpresa, requireCompanyManagerSession } from "@/lib/require-admin";
+import { crearProjectSalesToken, crearUrlPublicaDeProyecto } from "@/lib/project-sales-links";
 import { slugify } from "@/lib/slug";
 
 const TOTAL_NUMEROS = 10000;
@@ -22,7 +23,9 @@ function crearBoletas(empresaId: string, proyectoId: string) {
       proyecto_id: proyectoId,
       numero: String(index).padStart(4, "0"),
       estado: "Disponible",
-      canal: "Vacio",
+      canal: "Oficina",
+      vendedor_nombre: "Oficina",
+      vendedor_user_id: null,
       comprobante_url: url.toString(),
     };
   });
@@ -60,6 +63,7 @@ export async function POST(req: Request) {
 
     const proyectoSlug = slugify(nombre);
     const proyectoId = `${empresaId}_${proyectoSlug.replace(/-/g, "_")}`;
+    const salesToken = crearProjectSalesToken();
 
     const { error: proyectoError } = await supabaseAdmin.from("proyectos").insert({
       id: proyectoId,
@@ -69,6 +73,7 @@ export async function POST(req: Request) {
       precio_boleta: precioBoleta,
       formulario_compra_url: formularioCompraUrl,
       flyer_url: flyerUrl,
+      sales_token: salesToken,
       estado: "activo",
     });
     if (proyectoError) throw proyectoError;
@@ -87,7 +92,9 @@ export async function POST(req: Request) {
       empresa_id: empresaId,
       proyecto_id: proyectoId,
       proyecto_slug: proyectoSlug,
-      url: `${BASE_URL}/r/${empresa.slug}/${proyectoSlug}`,
+      sales_token: salesToken,
+      url: crearUrlPublicaDeProyecto(salesToken),
+      pulse_url: `${BASE_URL}/o/${salesToken}`,
       webhook_url: `${BASE_URL}/api/proyectos/${proyectoId}/actualizar-boleta`,
       asignar_vendedor_url: `${BASE_URL}/admin/proyectos/${proyectoId}/asignar-vendedor`,
       total_boletas: boletas.length,
