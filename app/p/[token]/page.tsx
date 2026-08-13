@@ -24,7 +24,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
       .eq("empresa_id", link.empresa_id)
       .eq("estado", "activo")
       .maybeSingle(),
-    supabaseAdmin.from("admin_users").select("nombre,email").eq("id", link.vendedor_user_id).eq("estado", "activo").maybeSingle(),
+    supabaseAdmin.from("admin_users").select("nombre,email,telefono").eq("id", link.vendedor_user_id).eq("estado", "activo").maybeSingle(),
     supabaseAdmin.from("boletas").select("id,numero").eq("empresa_id", link.empresa_id).eq("proyecto_id", link.proyecto_id).eq("vendedor_user_id", link.vendedor_user_id).in("estado", ESTADOS_DISPONIBLES).order("numero", { ascending: true }).range(0, 999),
   ]);
 
@@ -33,6 +33,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
   }
 
   const vendedorNombre = vendedor.nombre?.trim() || vendedor.email;
+  const vendedorTelefono = vendedor.telefono?.trim() || "";
   const esSorteoOctubre = proyecto.id === OCTOBER_PROJECT_ID;
 
   return (
@@ -50,7 +51,13 @@ export default async function SellerPublicSalesPage({ params }: Props) {
         formularioCompraUrl={proyecto.formulario_compra_url || ""}
         boletas={boletas || []}
         boletasEndpoint={`/api/public/sales-links/${token}/boletas`}
-        formTrackingParams={{ ref: token, sales_rep: vendedorNombre }}
+        formTrackingParams={{
+          ref: token,
+          sales_rep: vendedorNombre,
+          vendedor_id: link.vendedor_user_id,
+          vendedor_nombre: vendedorNombre,
+          vendedor_telefono: vendedorTelefono,
+        }}
         officeWhatsappUrl="https://wa.me/573147903518"
       />
 
