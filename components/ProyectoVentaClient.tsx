@@ -25,9 +25,13 @@ type ProyectoVentaClientProps = {
 type BoletasResponse = {
   success: boolean;
   message?: string;
-  mode?: "page" | "search" | "all";
+  mode?: "page" | "search" | "contains";
   boletas?: Boleta[];
-  search_status?: "office" | "not_found";
+  search_status?: "allowed" | "office" | "not_found";
+  page?: number;
+  page_size?: number;
+  total?: number;
+  has_more?: boolean;
 };
 
 function formatearCOP(valor: number) {
@@ -89,10 +93,13 @@ export default function ProyectoVentaClient({
   formTrackingParams,
   officeWhatsappUrl,
 }: ProyectoVentaClientProps) {
+  const endpoint = boletasEndpoint || (proyectoId ? `/api/proyectos/${proyectoId}/boletas-disponibles` : "");
+
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [busquedaContiene, setBusquedaContiene] = useState("");
-  const [todasLasBoletas, setTodasLasBoletas] = useState<Boleta[]>([]);
+  const [boletasPagina, setBoletasPagina] = useState<Boleta[]>(() => mezclarBoletas(iniciales));
+  const [totalDisponibles, setTotalDisponibles] = useState(iniciales.length);
   const [resultados, setResultados] = useState<Boleta[] | null>(null);
   const [tipoResultado, setTipoResultado] = useState<"exacto" | "contiene" | "suerte" | null>(null);
   const [pagina, setPagina] = useState(0);
@@ -104,19 +111,16 @@ export default function ProyectoVentaClient({
   useEffect(() => {
     let activo = true;
 
-    async function cargarTodasLasBoletas() {
-      const endpoint = boletasEndpoint || (proyectoId ? `/api/proyectos/${proyectoId}/boletas-disponibles` : "");
-
+    async function cargarPrimeraPagina() {
       if (!endpoint) {
-        setTodasLasBoletas(mezclarBoletas(iniciales));
+        setBoletasPagina(mezclarBoletas(iniciales));
+        setTotalDisponibles(iniciales.length);
         return;
       }
 
       try {
         setCargandoPagina(true);
-        const res = await fetch(`${endpoint}?todas=1`, {
-          cache: "no-store",
-        });
+        const res = await fetch(`${endpoint}?page=0`, { cache: "no-store" });
         const data = (await res.json()) as BoletasResponse;
 
         if (!data.success) {
@@ -124,14 +128,17 @@ export default function ProyectoVentaClient({
         }
 
         if (activo) {
-          setTodasLasBoletas(mezclarBoletas(data.boletas || []));
+          setBoletasPagina(mezclarBoletas(data.boletas || []));
+          setTotalDisponibles(Number(data.total ?? data.boletas?.length ?? 0));
           setPagina(0);
           setResultados(null);
           setTipoResultado(null);
+          setAvisoOficina(false);
         }
       } catch (error) {
         if (activo) {
-          setTodasLasBoletas(mezclarBoletas(iniciales));
+          setBoletasPagina(mezclarBoletas(iniciales));
+          setTotalDisponibles(iniciales.length);
           mostrarToast(error instanceof Error ? error.message : "Error cargando números.");
         }
       } finally {
@@ -139,12 +146,12 @@ export default function ProyectoVentaClient({
       }
     }
 
-    cargarTodasLasBoletas();
+    cargarPrimeraPagina();
 
     return () => {
       activo = false;
     };
-  }, [proyectoId, boletasEndpoint, iniciales]);
+  }, [endpoint, iniciales]);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -172,22 +179,16 @@ export default function ProyectoVentaClient({
       window.clearTimeout(t2);
       window.removeEventListener("resize", enviarAlturaIframe);
     };
-  }, [todasLasBoletas, resultados, seleccionados, modalAbierto, toast, cargandoPagina, pagina]);
+  }, [boletasPagina, resultados, seleccionados, modalAbierto, toast, cargandoPagina, pagina]);
 
   function mostrarToast(mensaje: string) {
     setToast(mensaje);
     window.setTimeout(() => setToast(""), 3500);
   }
 
-  const totalPaginas = Math.max(1, Math.ceil(todasLasBoletas.length / PAGE_SIZE));
+  const totalPaginas = Math.max(1, Math.ceil(totalDisponibles / PAGE_SIZE));
   const enModoBusqueda = resultados !== null;
-
-  const boletasVisibles = useMemo(() => {
-    if (resultados !== null) return resultados;
-
-    const inicio = pagina * PAGE_SIZE;
-    return todasLasBoletas.slice(inicio, inicio + PAGE_SIZE);
-  }, [pagina, resultados, todasLasBoletas]);
+  const boletasVisibles = resultados ?? boletasPagina;
 
   const textoResultado = useMemo(() => {
     if (tipoResultado === "suerte" && resultados?.[0]) {
@@ -195,22 +196,44 @@ export default function ProyectoVentaClient({
     }
 
     if (tipoResultado === "contiene") {
-      return `Resultados que contienen ${normalizarContiene(busquedaContiene)}`;
+      return `${resultados?.length || 0} resultados que contienen ${normalizarContiene(busquedaContiene)}`;
     }
 
     if (tipoResultado === "exacto") return "Resultado de búsqueda";
 
-    const inicio = todasLasBoletas.length === 0 ? 0 : pagina * PAGE_SIZE + 1;
-    const fin = Math.min((pagina + 1) * PAGE_SIZE, todasLasBoletas.length);
-    return `${inicio.toLocaleString("es-CO")} a ${fin.toLocaleString("es-CO")} de ${todasLasBoletas.length.toLocaleString("es-CO")} números disponibles`;
-  }, [busquedaContiene, pagina, resultados, tipoResultado, todasLasBoletas.length]);
+    const inicio = totalDisponibles === 0 ? 0 : pagina * PAGE_SIZE + 1;
+    const fin = Math.min(pagina * PAGE_SIZE + boletasPagina.length, totalDisponibles);
+    return `${inicio.toLocaleString("es-CO")} a ${fin.toLocaleString("es-CO")} de ${totalDisponibles.toLocaleString("es-CO")} números disponibles`;
+  }, [boletasPagina.length, busquedaContiene, pagina, resultados, tipoResultado, totalDisponibles]);
 
-  function cambiarPagina(nuevaPagina: number) {
-    if (nuevaPagina < 0 || nuevaPagina >= totalPaginas || enModoBusqueda) return;
+  async function cambiarPagina(nuevaPagina: number) {
+    if (nuevaPagina < 0 || nuevaPagina >= totalPaginas || enModoBusqueda || cargandoPagina) return;
 
-    setPagina(nuevaPagina);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    window.setTimeout(enviarAlturaIframe, 250);
+    if (!endpoint) {
+      setPagina(nuevaPagina);
+      return;
+    }
+
+    try {
+      setCargandoPagina(true);
+      const response = await fetch(`${endpoint}?page=${nuevaPagina}`, { cache: "no-store" });
+      const data = (await response.json()) as BoletasResponse;
+
+      if (!data.success) {
+        throw new Error(data.message || "No se pudieron cargar los números.");
+      }
+
+      setBoletasPagina(mezclarBoletas(data.boletas || []));
+      setTotalDisponibles(Number(data.total ?? totalDisponibles));
+      setPagina(nuevaPagina);
+      setAvisoOficina(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.setTimeout(enviarAlturaIframe, 250);
+    } catch (error) {
+      mostrarToast(error instanceof Error ? error.message : "Error cargando números.");
+    } finally {
+      setCargandoPagina(false);
+    }
   }
 
   async function buscarNumero() {
@@ -221,26 +244,43 @@ export default function ProyectoVentaClient({
       return;
     }
 
-    const encontrada = todasLasBoletas.find((boleta) => boleta.numero === numero);
-    setResultados(encontrada ? [encontrada] : []);
     setTipoResultado("exacto");
     setBusquedaContiene("");
     setAvisoOficina(false);
 
-    if (!encontrada && boletasEndpoint) {
-      try {
-        const response = await fetch(`${boletasEndpoint}?numero=${numero}`, { cache: "no-store" });
-        const data = (await response.json()) as BoletasResponse;
-        setAvisoOficina(data.success && data.search_status === "office");
-      } catch {
-        setAvisoOficina(false);
-      }
+    if (!endpoint) {
+      const encontrada = boletasPagina.find((boleta) => boleta.numero === numero);
+      setResultados(encontrada ? [encontrada] : []);
+      if (!encontrada) mostrarToast(`El número ${numero} no está disponible en este enlace.`);
+      return;
     }
 
-    if (!encontrada) mostrarToast(`El número ${numero} no está disponible en este enlace.`);
+    try {
+      setCargandoPagina(true);
+      const response = await fetch(`${endpoint}?numero=${encodeURIComponent(numero)}`, { cache: "no-store" });
+      const data = (await response.json()) as BoletasResponse;
+
+      if (!data.success) {
+        throw new Error(data.message || "No se pudo consultar el número.");
+      }
+
+      const encontradas = data.boletas || [];
+      setResultados(encontradas);
+      setAvisoOficina(data.search_status === "office");
+
+      if (encontradas.length === 0) {
+        mostrarToast(`El número ${numero} no está disponible en este enlace.`);
+      }
+    } catch (error) {
+      setResultados([]);
+      setAvisoOficina(false);
+      mostrarToast(error instanceof Error ? error.message : "Error consultando el número.");
+    } finally {
+      setCargandoPagina(false);
+    }
   }
 
-  function buscarNumeroQueContenga() {
+  async function buscarNumeroQueContenga() {
     const contiene = normalizarContiene(busquedaContiene);
 
     if (!contiene) {
@@ -248,30 +288,52 @@ export default function ProyectoVentaClient({
       return;
     }
 
-    const coincidencias = todasLasBoletas
-      .filter((boleta) => boleta.numero.includes(contiene))
-      .slice(0, PAGE_SIZE);
-
-    setResultados(coincidencias);
     setTipoResultado("contiene");
     setBusqueda("");
+    setAvisoOficina(false);
 
-    if (coincidencias.length === 0) {
-      mostrarToast(`No hay números disponibles que contengan ${contiene}.`);
+    if (!endpoint) {
+      const coincidencias = boletasPagina.filter((boleta) => boleta.numero.includes(contiene)).slice(0, PAGE_SIZE);
+      setResultados(coincidencias);
+      if (coincidencias.length === 0) mostrarToast(`No hay números disponibles que contengan ${contiene}.`);
+      return;
+    }
+
+    try {
+      setCargandoPagina(true);
+      const response = await fetch(`${endpoint}?contiene=${encodeURIComponent(contiene)}`, { cache: "no-store" });
+      const data = (await response.json()) as BoletasResponse;
+
+      if (!data.success) {
+        throw new Error(data.message || "No se pudieron consultar las coincidencias.");
+      }
+
+      const coincidencias = data.boletas || [];
+      setResultados(coincidencias);
+
+      if (coincidencias.length === 0) {
+        mostrarToast(`No hay números disponibles que contengan ${contiene}.`);
+      }
+    } catch (error) {
+      setResultados([]);
+      mostrarToast(error instanceof Error ? error.message : "Error consultando coincidencias.");
+    } finally {
+      setCargandoPagina(false);
     }
   }
 
   function probarSuerte() {
-    if (todasLasBoletas.length === 0) {
+    if (boletasPagina.length === 0) {
       mostrarToast("No hay números disponibles para probar suerte.");
       return;
     }
 
-    const indice = Math.floor(Math.random() * todasLasBoletas.length);
-    setResultados([todasLasBoletas[indice]]);
+    const indice = Math.floor(Math.random() * boletasPagina.length);
+    setResultados([boletasPagina[indice]]);
     setTipoResultado("suerte");
     setBusqueda("");
     setBusquedaContiene("");
+    setAvisoOficina(false);
   }
 
   function volverALista() {
@@ -348,7 +410,7 @@ export default function ProyectoVentaClient({
               <button type="button" onClick={buscarNumeroQueContenga} disabled={cargandoPagina} className="rounded-xl bg-[#E8620A] px-5 py-3 font-semibold text-white disabled:opacity-50">Buscar coincidencias</button>
             </div>
 
-            <button type="button" onClick={probarSuerte} disabled={cargandoPagina || todasLasBoletas.length === 0} className="rounded-xl border border-[#E8620A] bg-white px-5 py-3 font-semibold text-[#E8620A] shadow-sm disabled:opacity-50 max-[932px]:py-4 max-[932px]:text-lg">
+            <button type="button" onClick={probarSuerte} disabled={cargandoPagina || boletasPagina.length === 0} className="rounded-xl border border-[#E8620A] bg-white px-5 py-3 font-semibold text-[#E8620A] shadow-sm disabled:opacity-50 max-[932px]:py-4 max-[932px]:text-lg">
               {cargandoPagina ? "Cargando números..." : "Probar suerte"}
             </button>
           </div>
@@ -362,7 +424,7 @@ export default function ProyectoVentaClient({
       </section>
 
       <section className="mx-auto max-w-[1100px] px-4 max-[932px]:px-3">
-        {cargandoPagina && todasLasBoletas.length === 0 ? (
+        {cargandoPagina && boletasVisibles.length === 0 ? (
           <div className="rounded-2xl border border-[#E0D9CE] bg-white p-10 text-center text-[#9A9187]">Cargando números disponibles...</div>
         ) : boletasVisibles.length > 0 ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(90px,1fr))] gap-2 max-[932px]:grid-cols-2 max-[932px]:gap-3">
