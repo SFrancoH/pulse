@@ -424,7 +424,11 @@ export default function AdminDashboardPage() {
                             </Link>
                           )}
 
-                          <a href={proyecto.ventas_url} className="rounded-2xl bg-[#E8620A] px-5 py-4 text-center text-lg font-semibold text-white">
+                          <a
+                            href={proyecto.ventas_url}
+                            target={isSeller ? "_top" : undefined}
+                            className="rounded-2xl bg-[#E8620A] px-5 py-4 text-center text-lg font-semibold text-white"
+                          >
                             Página de ventas
                           </a>
 
