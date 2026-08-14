@@ -1,5 +1,5 @@
 const DEFAULT_GOOGLE_SHEETS_SYNC_URL =
-  "https://script.google.com/macros/s/AKfycbxQoU6Ufl6hGs5IcL2JJRI3pLGGpOZsOG1YXS9kqngNgWBKreVc3541FrC2Tnz3lr7f-Q/exec";
+  "https://script.google.com/macros/s/AKfycbwTx5BhpcFs88kineicjAfGu7qgrWILO7X4EIdrVXKJb0sQjnee6MZ5DJ0gp1XCfwLKkw/exec";
 
 type SyncResult = {
   success: boolean;
