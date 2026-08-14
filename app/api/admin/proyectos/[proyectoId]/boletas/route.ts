@@ -1,3 +1,4 @@
+import { sincronizarDisponibilidadesGoogleSheet } from "@/lib/google-sheets-sync";
 import { requireProjectAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -121,8 +122,17 @@ export async function PATCH(req: Request, { params }: PageProps) {
 
     if (esVendedor) query = query.eq("vendedor_user_id", auth.session.user_id!);
 
-    const { data, error } = await query.select("id");
+    const { data, error } = await query.select("id,numero,estado");
     if (error) throw error;
+
+    if (typeof cambios.estado === "string" && data?.length) {
+      await sincronizarDisponibilidadesGoogleSheet(
+        data.map((boleta) => ({
+          numero: boleta.numero,
+          estado: boleta.estado,
+        }))
+      );
+    }
 
     return Response.json({ success: true, actualizadas: data?.length || 0 });
   } catch (error: unknown) {
