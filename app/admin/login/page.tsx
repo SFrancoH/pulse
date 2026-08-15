@@ -11,6 +11,7 @@ type LoginResponse = {
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -71,22 +72,37 @@ export default function AdminLoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-2xl border border-[#E0D9CE] px-4 py-4 outline-none focus:border-[#E8620A]"
+              className="w-full rounded-2xl border border-[#E0D9CE] bg-white px-4 py-4 text-black caret-black opacity-100 outline-none placeholder:text-[#7A7066] focus:border-[#E8620A]"
+              style={{ WebkitTextFillColor: "#000000" }}
               placeholder="admin@pulse.com"
+              autoComplete="email"
               required
             />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-[#1A1A1A]">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-2xl border border-[#E0D9CE] px-4 py-4 outline-none focus:border-[#E8620A]"
-              placeholder="••••••••••"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-2xl border border-[#E0D9CE] bg-white px-4 py-4 pr-36 text-black caret-black opacity-100 outline-none placeholder:text-[#7A7066] focus:border-[#E8620A]"
+                style={{ WebkitTextFillColor: "#000000" }}
+                placeholder="••••••••••"
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#1A1A1A] hover:text-[#E8620A] focus:outline-none"
+                aria-pressed={showPassword}
+                aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+              >
+                {showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+              </button>
+            </div>
           </div>
 
           <button
