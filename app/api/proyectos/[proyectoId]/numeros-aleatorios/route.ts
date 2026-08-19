@@ -25,6 +25,10 @@ function normalizarCantidad(value: string | null) {
   return Math.min(cantidad, CANTIDAD_MAXIMA);
 }
 
+function normalizarNumero(numero: unknown) {
+  return String(numero ?? "").trim().padStart(4, "0");
+}
+
 function mezclar<T>(items: T[]) {
   const copia = [...items];
 
@@ -74,7 +78,7 @@ export async function GET(req: Request, { params }: PageProps) {
     const disponibles = (data || []) as Boleta[];
     const numeros = mezclar(disponibles)
       .slice(0, cantidadSolicitada)
-      .map((boleta) => boleta.numero);
+      .map((boleta) => normalizarNumero(boleta.numero));
 
     const grupos = dividirEnTresGrupos(numeros);
     const numerosTexto = crearTextoPorGrupos(numeros);
