@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { getCurrentAdminSession } from "@/lib/admin-auth";
 import GestionVendedores from "@/components/GestionVendedores";
+import AdminReassignButtonEnhancer from "./AdminReassignButtonEnhancer";
 import AdminSellerSelectEnhancer from "./AdminSellerSelectEnhancer";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -11,6 +12,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <>
       <AdminSellerSelectEnhancer />
+      <AdminReassignButtonEnhancer enabled={canManageUsers} />
       {session && (
         <nav className="sticky top-0 z-[1000] border-b border-[#E0D9CE] bg-white/95 px-4 py-3 backdrop-blur">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
