@@ -25,7 +25,6 @@ type Boleta = {
   vendedor_user_id: string | null;
   nombre_cliente: string | null;
   telefono_cliente: string | null;
-  puede_reasignar: boolean;
 };
 
 type ApiResponse = {
@@ -156,7 +155,7 @@ export default function ReasignarNumeroPage({ params }: Props) {
       : vendedorSeleccionado?.nombre || vendedorSeleccionado?.email || "el vendedor";
 
     const confirmado = window.confirm(
-      `¿Confirmas mover el número ${boleta.numero} a ${nombreDestino}?`
+      `¿Confirmas mover el número ${boleta.numero} a ${nombreDestino}? El estado ${boleta.estado || "actual"} se conservará sin cambios.`
     );
 
     if (!confirmado) return;
@@ -202,6 +201,8 @@ export default function ReasignarNumeroPage({ params }: Props) {
     ? boleta.vendedor_nombre || "Vendedor"
     : "Oficina";
 
+  const esDisponible = String(boleta?.estado || "").trim().toLowerCase() === "disponible";
+
   return (
     <main className="min-h-screen bg-[#F2EDE4] px-4 py-10 text-[#1A1A1A]">
       <section className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-white shadow-sm">
@@ -214,7 +215,7 @@ export default function ReasignarNumeroPage({ params }: Props) {
         <div className="space-y-6 p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-xl text-sm text-[#6F665C]">
-              Busca un número disponible y muévelo a Oficina o a otro vendedor activo. No se modifican datos del cliente ni pagos.
+              Busca cualquier número del proyecto y muévelo a Oficina o a otro vendedor activo. El estado, cliente y pagos se conservan sin cambios.
             </p>
             <Link href="/admin" className="rounded-xl border border-[#1A1A1A] px-4 py-2 text-sm font-semibold">
               Volver al panel
@@ -277,46 +278,40 @@ export default function ReasignarNumeroPage({ params }: Props) {
                 </div>
               </div>
 
-              {!boleta.puede_reasignar ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-                  Este número no se puede mover porque su estado es <strong>{boleta.estado || "sin estado"}</strong>. Solo se permiten números en estado Disponible.
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold">Nueva asignación</label>
-                    <select
-                      value={destino}
-                      onChange={(e) => setDestino(e.target.value)}
-                      disabled={loadingVendedores || guardando}
-                      className="w-full rounded-xl border border-[#E0D9CE] bg-white px-4 py-3 outline-none disabled:opacity-60"
-                    >
-                      <option value="oficina">Oficina — liberar número</option>
-                      {vendedores.map((vendedor) => (
-                        <option key={vendedor.id} value={vendedor.id}>
-                          {vendedor.nombre || vendedor.email}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="mt-2 text-sm text-[#6F665C]">
-                      Oficina deja el número disponible para venta general. Un vendedor lo retira de la disponibilidad de Oficina.
-                    </p>
-                  </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Nueva asignación</label>
+                <select
+                  value={destino}
+                  onChange={(e) => setDestino(e.target.value)}
+                  disabled={loadingVendedores || guardando}
+                  className="w-full rounded-xl border border-[#E0D9CE] bg-white px-4 py-3 outline-none disabled:opacity-60"
+                >
+                  <option value="oficina">Oficina</option>
+                  {vendedores.map((vendedor) => (
+                    <option key={vendedor.id} value={vendedor.id}>
+                      {vendedor.nombre || vendedor.email}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-2 text-sm text-[#6F665C]">
+                  Este cambio solo modifica la asignación. {esDisponible
+                    ? "Como el número está Disponible, al asignarlo a Oficina volverá a la disponibilidad general."
+                    : `Como el número está ${boleta.estado || "en un estado no disponible"}, seguirá fuera de la disponibilidad general aunque se asigne a Oficina.`}
+                </p>
+              </div>
 
-                  <button
-                    type="button"
-                    onClick={reasignar}
-                    disabled={guardando || loadingVendedores}
-                    className="w-full rounded-2xl bg-[#1A1A1A] px-6 py-4 text-lg font-semibold text-white disabled:opacity-50"
-                  >
-                    {guardando
-                      ? "Guardando..."
-                      : destino === "oficina"
-                        ? "Liberar a Oficina"
-                        : "Reasignar a vendedor"}
-                  </button>
-                </>
-              )}
+              <button
+                type="button"
+                onClick={reasignar}
+                disabled={guardando || loadingVendedores}
+                className="w-full rounded-2xl bg-[#1A1A1A] px-6 py-4 text-lg font-semibold text-white disabled:opacity-50"
+              >
+                {guardando
+                  ? "Guardando..."
+                  : destino === "oficina"
+                    ? "Mover a Oficina"
+                    : "Reasignar a vendedor"}
+              </button>
             </div>
           )}
         </div>
