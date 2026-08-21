@@ -185,9 +185,12 @@ export default function ReasignarNumeroPage({ params }: Props) {
         throw new Error(data.message || "No se pudo reasignar el número.");
       }
 
-      setMensaje(data.message || "Número actualizado correctamente.");
-      setSyncWarning(data.sheet_sync?.warning || "");
+      const mensajeExito = data.message || "Número actualizado correctamente.";
+      const warning = data.sheet_sync?.warning || "";
+
       await buscar();
+      setMensaje(mensajeExito);
+      setSyncWarning(warning);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo reasignar el número.");
     } finally {
