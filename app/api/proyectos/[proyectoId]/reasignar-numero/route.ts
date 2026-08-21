@@ -86,7 +86,7 @@ export async function GET(req: Request, { params }: PageProps) {
       success: true,
       boleta: {
         ...boleta,
-        puede_reasignar: String(boleta.estado || "").toLowerCase() === "disponible",
+        puede_reasignar: true,
       },
     });
   } catch (error: unknown) {
@@ -128,16 +128,6 @@ export async function POST(req: Request, { params }: PageProps) {
       return Response.json(
         { success: false, message: `El número ${numero} no existe en este proyecto.` },
         { status: 404 }
-      );
-    }
-
-    if (String(boleta.estado || "").toLowerCase() !== "disponible") {
-      return Response.json(
-        {
-          success: false,
-          message: `El número ${numero} está en estado ${boleta.estado || "sin estado"}. Solo se pueden reasignar números Disponibles.`,
-        },
-        { status: 409 }
       );
     }
 
@@ -206,7 +196,6 @@ export async function POST(req: Request, { params }: PageProps) {
         .eq("id", boleta.id)
         .eq("empresa_id", empresaId)
         .eq("proyecto_id", proyectoId)
-        .in("estado", ["Disponible", "disponible"])
         .select("id,numero,estado,canal,vendedor_nombre,vendedor_user_id,nombre_cliente,telefono_cliente")
         .maybeSingle();
 
@@ -221,7 +210,7 @@ export async function POST(req: Request, { params }: PageProps) {
         return Response.json(
           {
             success: false,
-            message: "El número cambió de estado mientras se procesaba la solicitud. Vuelve a consultarlo antes de reasignarlo.",
+            message: "No se pudo actualizar el número. Vuelve a consultarlo e intenta de nuevo.",
           },
           { status: 409 }
         );
@@ -254,16 +243,21 @@ export async function POST(req: Request, { params }: PageProps) {
       }
     }
 
-    const sync = await sincronizarDisponibilidadGoogleSheet(
-      numero,
-      destino === "oficina" ? "Disponible" : "No disponible"
-    );
+    const estadoActual = String(boletaActualizada.estado || boleta.estado || "")
+      .trim()
+      .toLowerCase();
+    const estadoSheet =
+      destino === "oficina" && estadoActual === "disponible"
+        ? "Disponible"
+        : "No disponible";
+
+    const sync = await sincronizarDisponibilidadGoogleSheet(numero, estadoSheet);
 
     return Response.json({
       success: true,
       message: sinCambios
         ? `El número ${numero} ya estaba asignado a ${destino === "oficina" ? "Oficina" : nuevaAsignacion.vendedor_nombre}.`
-        : `El número ${numero} fue ${destino === "oficina" ? "liberado a Oficina" : `reasignado a ${nuevaAsignacion.vendedor_nombre}`} correctamente.`,
+        : `El número ${numero} fue ${destino === "oficina" ? "asignado a Oficina" : `reasignado a ${nuevaAsignacion.vendedor_nombre}`} correctamente. Su estado ${boletaActualizada.estado || "actual"} se conservó sin cambios.`,
       updated: !sinCambios,
       anterior,
       boleta: boletaActualizada,
