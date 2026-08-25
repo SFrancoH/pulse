@@ -1,5 +1,4 @@
 import { getCurrentAdminSession } from "@/lib/admin-auth";
-import { crearUrlPublicaDeProyecto } from "@/lib/project-sales-links";
 import { crearUrlPublicaDeVendedor, getOrCreateSellerSalesLink } from "@/lib/seller-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -127,7 +126,7 @@ export async function GET() {
           ventas_url:
             session.rol === "vendedor"
               ? sellerUrls.get(proyecto.id) || ""
-              : crearUrlPublicaDeProyecto(proyecto.sales_token),
+              : `${BASE_URL}/admin/proyectos/${proyecto.id}/ventas`,
           base_datos_url: `${BASE_URL}/admin/proyectos/${proyecto.id}/base-datos`,
           asignar_vendedor_url:
             session.rol === "vendedor"
