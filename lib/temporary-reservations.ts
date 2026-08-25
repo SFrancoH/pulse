@@ -37,6 +37,11 @@ function canalAlLiberar(vendedorUserId: string | null | undefined) {
   return vendedorUserId ? "Vendedores" : "Oficina";
 }
 
+async function sincronizarOficina(scope: ReservationScope, numeros: string[], estado: string) {
+  if (scope.vendedorUserId || !numeros.length) return;
+  await sincronizarDisponibilidadesGoogleSheet(numeros.map((numero) => ({ numero, estado })));
+}
+
 export async function liberarReservasTemporalesExpiradas(scope: ReservationScope) {
   const cutoff = new Date(Date.now() - TEMPORARY_RESERVATION_MS).toISOString();
   const liberadas: string[] = [];
@@ -80,10 +85,7 @@ export async function liberarReservasTemporalesExpiradas(scope: ReservationScope
     if (released?.numero) liberadas.push(released.numero);
   }
 
-  if (liberadas.length) {
-    await sincronizarDisponibilidadesGoogleSheet(liberadas.map((numero) => ({ numero, estado: "Disponible" })));
-  }
-
+  await sincronizarOficina(scope, liberadas, "Disponible");
   return liberadas;
 }
 
@@ -125,10 +127,7 @@ export async function retenerBoletasTemporales(
     else noDisponibles.push(numero);
   }
 
-  if (reservadas.length) {
-    await sincronizarDisponibilidadesGoogleSheet(reservadas.map((numero) => ({ numero, estado: "No disponible" })));
-  }
-
+  await sincronizarOficina(scope, reservadas, "No disponible");
   return { holdToken, expiresAt, reservadas, noDisponibles };
 }
 
@@ -167,10 +166,7 @@ export async function cancelarReservaTemporal(
     if (data?.numero) liberadas.push(data.numero);
   }
 
-  if (liberadas.length) {
-    await sincronizarDisponibilidadesGoogleSheet(liberadas.map((numero) => ({ numero, estado: "Disponible" })));
-  }
-
+  await sincronizarOficina(scope, liberadas, "Disponible");
   return liberadas;
 }
 
@@ -215,9 +211,6 @@ export async function confirmarReservaTemporal(
     if (data?.numero) confirmadas.push(data.numero);
   }
 
-  if (confirmadas.length) {
-    await sincronizarDisponibilidadesGoogleSheet(confirmadas.map((numero) => ({ numero, estado: "Debe" })));
-  }
-
+  await sincronizarOficina(scope, confirmadas, "Debe");
   return { expired: false, confirmadas, liberadas: [] as string[] };
 }
