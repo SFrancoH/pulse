@@ -8,7 +8,7 @@ type Reserva = {
   nombre_cliente: string | null;
   vendedor_nombre: string | null;
   canal: string | null;
-  reservado_en: string;
+  updated_at: string;
 };
 
 type MonitorResponse = {
@@ -45,15 +45,15 @@ export default function AdminSalesReservationMonitor({ proyectoId, baseline }: P
 
         if (!activo || !res.ok || !data.success) return;
 
-        const nuevas = (data.reservas || []).filter((item) => item.reservado_en);
+        const nuevas = (data.reservas || []).filter((item) => item.updated_at);
         if (nuevas.length === 0) return;
 
-        cursorRef.current = nuevas[nuevas.length - 1].reservado_en;
+        cursorRef.current = nuevas[nuevas.length - 1].updated_at;
         setReservas((actuales) => {
-          const existentes = new Set(actuales.map((item) => `${item.numero}-${item.reservado_en}`));
+          const existentes = new Set(actuales.map((item) => `${item.numero}-${item.updated_at}`));
           return [
             ...actuales,
-            ...nuevas.filter((item) => !existentes.has(`${item.numero}-${item.reservado_en}`)),
+            ...nuevas.filter((item) => !existentes.has(`${item.numero}-${item.updated_at}`)),
           ];
         });
       } catch {
