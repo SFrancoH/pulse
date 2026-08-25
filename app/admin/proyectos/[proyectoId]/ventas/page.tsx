@@ -1,7 +1,7 @@
 import AdminSalesReservationMonitor from "@/components/AdminSalesReservationMonitor";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
-import ProyectoVentaClient from "@/components/ProyectoVentaClient";
+import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
 import { requireProjectManagerAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -74,14 +74,19 @@ export default async function AdminProjectSalesPage({ params }: Props) {
         showOctoberPromo={esSorteoOctubre}
       />
 
-      <ProyectoVentaClient
+      <ProyectoVentaReservaClient
         empresaNombre={empresa.nombre || ""}
         proyectoNombre={proyecto.nombre || ""}
         precioBoleta={Number(proyecto.precio_boleta || 0)}
         formularioCompraUrl={proyecto.formulario_compra_url || ""}
         boletas={boletas || []}
         boletasEndpoint={`/api/public/project-sales/${proyecto.sales_token}/boletas`}
-        formTrackingParams={{ ref: proyecto.sales_token, sales_rep: "Oficina" }}
+        reservationEndpoint={`/api/admin/proyectos/${proyectoId}/reserva-temporal`}
+        formTrackingParams={{
+          ref: proyecto.sales_token,
+          sales_rep: "Creacion Manual",
+          vendedor_nombre: "Creacion Manual",
+        }}
       />
 
       {esSorteoOctubre && <PreviousWinners />}
