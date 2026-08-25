@@ -34,11 +34,12 @@ export async function GET(req: Request, { params }: PageProps) {
 
     const { data, error: queryError } = await supabaseAdmin
       .from("boletas")
-      .select("numero,estado,nombre_cliente,vendedor_nombre,canal,reservado_en")
+      .select("numero,estado,nombre_cliente,vendedor_nombre,canal,updated_at")
       .eq("empresa_id", proyecto.empresa_id)
       .eq("proyecto_id", proyectoId)
-      .gt("reservado_en", since)
-      .order("reservado_en", { ascending: true })
+      .eq("estado", "Debe")
+      .gt("updated_at", since)
+      .order("updated_at", { ascending: true })
       .limit(50);
 
     if (queryError) throw queryError;
