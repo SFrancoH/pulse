@@ -7,16 +7,16 @@ type PageProps = {
   }>;
 };
 
-type ReservaPayload = {
-  empresa_id?: string;
-  numero?: string;
-  nombre_cliente?: string;
-  telefono_cliente?: string;
-  email_cliente?: string;
-  vendedor_nombre?: string;
-  canal?: string;
-  valor_pagado?: number | string;
-};
+type Payload = Record<string, unknown>;
+
+function texto(payload: Payload, keys: string[]) {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return "";
+}
 
 function normalizarNumero(value: unknown) {
   const limpio = String(value || "").replace(/\D/g, "");
@@ -25,8 +25,8 @@ function normalizarNumero(value: unknown) {
 }
 
 function limpiarTexto(value: unknown) {
-  const texto = String(value || "").trim();
-  return texto || null;
+  const textoLimpio = String(value || "").trim();
+  return textoLimpio || null;
 }
 
 function normalizarValor(value: unknown) {
@@ -36,19 +36,94 @@ function normalizarValor(value: unknown) {
   return Number.isFinite(numero) ? numero : undefined;
 }
 
+function flattenPayload(value: unknown, prefix = "", output: Payload = {}) {
+  if (!value || typeof value !== "object") return output;
+
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    const nextKey = prefix ? `${prefix}.${key}` : key;
+
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      flattenPayload(item, nextKey, output);
+    } else {
+      output[nextKey] = item;
+      output[key] = item;
+    }
+  }
+
+  return output;
+}
+
+async function leerPayload(req: Request): Promise<Payload> {
+  const contentType = req.headers.get("content-type") || "";
+  const raw = await req.text();
+
+  if (!raw) return {};
+
+  try {
+    const json = JSON.parse(raw) as Payload;
+    return flattenPayload(json);
+  } catch {
+    // Continúa con otros formatos.
+  }
+
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    const params = new URLSearchParams(raw);
+    const payload: Payload = {};
+
+    for (const [key, value] of params.entries()) {
+      payload[key] = value;
+    }
+
+    return flattenPayload(payload);
+  }
+
+  const payload: Payload = {};
+
+  raw.split("&").forEach((pair) => {
+    const [key, value] = pair.split("=");
+    if (!key) return;
+    payload[decodeURIComponent(key)] = decodeURIComponent(value || "");
+  });
+
+  return flattenPayload(payload);
+}
+
 export async function POST(req: Request, { params }: PageProps) {
   try {
     const { proyectoId } = await params;
-    const body = (await req.json()) as ReservaPayload;
+    const payload = await leerPayload(req);
 
-    const empresaId = String(body.empresa_id || "").trim();
-    const numero = normalizarNumero(body.numero);
+    const empresaId = texto(payload, [
+      "empresa_id",
+      "empresaId",
+      "customData.empresa_id",
+      "custom_data.empresa_id",
+      "custom_fields.empresa_id",
+    ]);
+
+    const numero = normalizarNumero(
+      texto(payload, [
+        "numero",
+        "Numero",
+        "número",
+        "boleta",
+        "Boleta",
+        "consecutivo",
+        "consecutivo_1",
+        "Consecutivo_1",
+        "contact.consecutivo_1",
+        "customData.numero",
+        "custom_data.numero",
+        "custom_fields.numero",
+      ])
+    );
 
     if (!empresaId || !numero) {
       return Response.json(
         {
           success: false,
           message: "empresa_id y numero son obligatorios.",
+          received_keys: Object.keys(payload),
         },
         { status: 400 }
       );
@@ -59,12 +134,65 @@ export async function POST(req: Request, { params }: PageProps) {
       updated_at: new Date().toISOString(),
     };
 
-    const nombreCliente = limpiarTexto(body.nombre_cliente);
-    const telefonoCliente = limpiarTexto(body.telefono_cliente);
-    const emailCliente = limpiarTexto(body.email_cliente);
-    const vendedorNombre = limpiarTexto(body.vendedor_nombre);
-    const canal = limpiarTexto(body.canal);
-    const valorPagado = normalizarValor(body.valor_pagado);
+    const nombreCliente = limpiarTexto(
+      texto(payload, [
+        "nombre_cliente",
+        "nombre",
+        "name",
+        "contact_name",
+        "full_name",
+        "first_name",
+        "customData.nombre_cliente",
+        "custom_data.nombre_cliente",
+      ])
+    );
+    const telefonoCliente = limpiarTexto(
+      texto(payload, [
+        "telefono_cliente",
+        "telefono",
+        "phone",
+        "contact_phone",
+        "customData.telefono_cliente",
+        "custom_data.telefono_cliente",
+      ])
+    );
+    const emailCliente = limpiarTexto(
+      texto(payload, [
+        "email_cliente",
+        "email",
+        "contact_email",
+        "customData.email_cliente",
+        "custom_data.email_cliente",
+      ])
+    );
+    const vendedorNombre = limpiarTexto(
+      texto(payload, [
+        "vendedor_nombre",
+        "vendedor",
+        "seller_name",
+        "customData.vendedor_nombre",
+        "custom_data.vendedor_nombre",
+      ])
+    );
+    const canal = limpiarTexto(
+      texto(payload, [
+        "canal",
+        "channel",
+        "origen",
+        "customData.canal",
+        "custom_data.canal",
+      ])
+    );
+    const valorPagado = normalizarValor(
+      texto(payload, [
+        "valor_pagado",
+        "valor",
+        "amount",
+        "valor_a_pagar",
+        "customData.valor_pagado",
+        "custom_data.valor_pagado",
+      ])
+    );
 
     if (nombreCliente) updateData.nombre_cliente = nombreCliente;
     if (telefonoCliente) updateData.telefono_cliente = telefonoCliente;
