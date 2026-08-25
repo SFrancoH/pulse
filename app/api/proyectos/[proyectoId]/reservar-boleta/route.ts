@@ -129,9 +129,11 @@ export async function POST(req: Request, { params }: PageProps) {
       );
     }
 
+    const ahora = new Date().toISOString();
     const updateData: Record<string, unknown> = {
       estado: "Debe",
-      updated_at: new Date().toISOString(),
+      reservado_en: ahora,
+      updated_at: ahora,
     };
 
     const nombreCliente = limpiarTexto(
@@ -208,7 +210,7 @@ export async function POST(req: Request, { params }: PageProps) {
       .eq("proyecto_id", proyectoId)
       .eq("numero", numero)
       .eq("estado", "Disponible")
-      .select("id,empresa_id,proyecto_id,numero,estado,nombre_cliente,telefono_cliente,email_cliente,vendedor_nombre,canal,valor_pagado,updated_at")
+      .select("id,empresa_id,proyecto_id,numero,estado,nombre_cliente,telefono_cliente,email_cliente,vendedor_nombre,canal,valor_pagado,reservado_en,updated_at")
       .maybeSingle();
 
     if (error) throw error;
