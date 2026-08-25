@@ -1,6 +1,6 @@
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
-import ProyectoVentaClient from "@/components/ProyectoVentaClient";
+import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
 import { getActiveProjectSalesLink } from "@/lib/project-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -45,13 +45,14 @@ export default async function OfficePublicSalesPage({ params }: Props) {
         showOctoberPromo={esSorteoOctubre}
       />
 
-      <ProyectoVentaClient
+      <ProyectoVentaReservaClient
         empresaNombre={empresa.nombre || ""}
         proyectoNombre={proyecto.nombre || ""}
         precioBoleta={Number(proyecto.precio_boleta || 0)}
         formularioCompraUrl={proyecto.formulario_compra_url || ""}
         boletas={boletas || []}
         boletasEndpoint={`/api/public/project-sales/${token}/boletas`}
+        reservationEndpoint={`/api/public/project-sales/${token}/reserva-temporal`}
         formTrackingParams={{ ref: token, sales_rep: "Oficina" }}
       />
 
