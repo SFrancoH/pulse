@@ -23,14 +23,28 @@ type Props = {
 };
 
 const POLL_MS = 3000;
+const MANUAL_ALERT_DELAY_MS = 20_000;
 
 export default function AdminSalesReservationMonitor({ proyectoId, baseline }: Props) {
   const cursorRef = useRef(baseline);
   const consultandoRef = useRef(false);
+  const timersRef = useRef<number[]>([]);
   const [reservas, setReservas] = useState<Reserva[]>([]);
 
   useEffect(() => {
     let activo = true;
+
+    function agregarReservas(nuevas: Reserva[]) {
+      if (!activo || nuevas.length === 0) return;
+
+      setReservas((actuales) => {
+        const existentes = new Set(actuales.map((item) => `${item.numero}-${item.updated_at}`));
+        return [
+          ...actuales,
+          ...nuevas.filter((item) => !existentes.has(`${item.numero}-${item.updated_at}`)),
+        ];
+      });
+    }
 
     async function consultar() {
       if (!activo || consultandoRef.current) return;
@@ -49,13 +63,19 @@ export default function AdminSalesReservationMonitor({ proyectoId, baseline }: P
         if (nuevas.length === 0) return;
 
         cursorRef.current = nuevas[nuevas.length - 1].updated_at;
-        setReservas((actuales) => {
-          const existentes = new Set(actuales.map((item) => `${item.numero}-${item.updated_at}`));
-          return [
-            ...actuales,
-            ...nuevas.filter((item) => !existentes.has(`${item.numero}-${item.updated_at}`)),
-          ];
-        });
+
+        const inmediatas = nuevas.filter((item) => item.canal !== "Creacion Manual");
+        const manuales = nuevas.filter((item) => item.canal === "Creacion Manual");
+
+        agregarReservas(inmediatas);
+
+        if (manuales.length > 0) {
+          const timer = window.setTimeout(() => {
+            agregarReservas(manuales);
+            timersRef.current = timersRef.current.filter((id) => id !== timer);
+          }, MANUAL_ALERT_DELAY_MS);
+          timersRef.current.push(timer);
+        }
       } catch {
         // El siguiente ciclo vuelve a intentar sin interrumpir la venta.
       } finally {
@@ -69,6 +89,8 @@ export default function AdminSalesReservationMonitor({ proyectoId, baseline }: P
     return () => {
       activo = false;
       window.clearInterval(timer);
+      timersRef.current.forEach((id) => window.clearTimeout(id));
+      timersRef.current = [];
     };
   }, [proyectoId]);
 
