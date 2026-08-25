@@ -1,5 +1,6 @@
 import { getActiveSellerSalesLink } from "@/lib/seller-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { liberarReservasTemporalesExpiradas } from "@/lib/temporary-reservations";
 
 type Props = { params: Promise<{ token: string }> };
 
@@ -29,6 +30,12 @@ export async function GET(req: Request, { params }: Props) {
       return Response.json({ success: false, message: "Enlace no disponible." }, { status: 404 });
     }
 
+    await liberarReservasTemporalesExpiradas({
+      empresaId: link.empresa_id,
+      proyectoId: link.proyecto_id,
+      vendedorUserId: link.vendedor_user_id,
+    });
+
     const searchParams = new URL(req.url).searchParams;
     const numero = normalizarNumero(searchParams.get("numero"));
     const contiene = normalizarContiene(searchParams.get("contiene"));
@@ -47,10 +54,7 @@ export async function GET(req: Request, { params }: Props) {
     if (numero) {
       const { data, error } = await baseQuery().eq("numero", numero);
       if (error) throw error;
-
-      if (data?.length) {
-        return Response.json({ success: true, mode: "search", boletas: data, search_status: "allowed" });
-      }
+      if (data?.length) return Response.json({ success: true, mode: "search", boletas: data, search_status: "allowed" });
 
       const { data: externa, error: externaError } = await supabaseAdmin
         .from("boletas")
@@ -59,7 +63,6 @@ export async function GET(req: Request, { params }: Props) {
         .eq("proyecto_id", link.proyecto_id)
         .eq("numero", numero)
         .maybeSingle();
-
       if (externaError) throw externaError;
 
       const esOficina = Boolean(
@@ -69,29 +72,17 @@ export async function GET(req: Request, { params }: Props) {
           !externa.vendedor_user_id
       );
 
-      return Response.json({
-        success: true,
-        mode: "search",
-        boletas: [],
-        search_status: esOficina ? "office" : "not_found",
-      });
+      return Response.json({ success: true, mode: "search", boletas: [], search_status: esOficina ? "office" : "not_found" });
     }
 
     if (contiene) {
       const { data, error } = await baseQuery().ilike("numero", `%${contiene}%`).range(0, PAGE_SIZE - 1);
       if (error) throw error;
-
-      return Response.json({
-        success: true,
-        mode: "contains",
-        boletas: data || [],
-        search_status: data?.length ? "allowed" : "not_found",
-      });
+      return Response.json({ success: true, mode: "contains", boletas: data || [], search_status: data?.length ? "allowed" : "not_found" });
     }
 
     const inicio = pagina * PAGE_SIZE;
     const fin = inicio + PAGE_SIZE - 1;
-
     const { data, error, count } = await supabaseAdmin
       .from("boletas")
       .select("id,numero", { count: "exact" })
@@ -103,7 +94,6 @@ export async function GET(req: Request, { params }: Props) {
       .range(inicio, fin);
 
     if (error) throw error;
-
     const total = count || 0;
 
     return Response.json({

@@ -76,6 +76,7 @@ export default function AdminSalesReservationMonitor({ proyectoId, baseline }: P
 
   const numeros = reservas.map((item) => item.numero);
   const ultima = reservas[reservas.length - 1];
+  const origen = ultima.canal === "Creacion Manual" ? "Creacion Manual" : ultima.vendedor_nombre || ultima.canal;
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/75 p-4">
@@ -100,9 +101,7 @@ export default function AdminSalesReservationMonitor({ proyectoId, baseline }: P
           {reservas.length === 1 && (
             <div className="mt-4 space-y-1 text-sm text-red-900">
               {ultima.nombre_cliente && <p>Cliente: {ultima.nombre_cliente}</p>}
-              {(ultima.vendedor_nombre || ultima.canal) && (
-                <p>Origen: {ultima.vendedor_nombre || ultima.canal}</p>
-              )}
+              {origen && <p>Origen: {origen}</p>}
             </div>
           )}
         </div>
