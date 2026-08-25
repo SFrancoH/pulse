@@ -36,20 +36,6 @@ function canalAlLiberar(vendedorUserId: string | null | undefined) {
   return vendedorUserId ? "Vendedores" : "Oficina";
 }
 
-function aplicarScope<T>(query: T, scope: ReservationScope): T {
-  let scoped = (query as any)
-    .eq("empresa_id", scope.empresaId)
-    .eq("proyecto_id", scope.proyectoId);
-
-  if (scope.vendedorUserId) {
-    scoped = scoped.eq("vendedor_user_id", scope.vendedorUserId);
-  } else {
-    scoped = scoped.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
-  }
-
-  return scoped as T;
-}
-
 export async function liberarReservasTemporalesExpiradas(scope: ReservationScope) {
   const cutoff = new Date(Date.now() - TEMPORARY_RESERVATION_MS).toISOString();
 
@@ -63,9 +49,8 @@ export async function liberarReservasTemporalesExpiradas(scope: ReservationScope
     .lt("updated_at", cutoff)
     .limit(100);
 
-  if (scope.vendedorUserId) {
-    query = query.eq("vendedor_user_id", scope.vendedorUserId);
-  }
+  if (scope.vendedorUserId) query = query.eq("vendedor_user_id", scope.vendedorUserId);
+  else query = query.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -114,13 +99,15 @@ export async function retenerBoletasTemporales(
         telefono_cliente: client.phone || null,
         updated_at: holdToken,
       })
+      .eq("empresa_id", scope.empresaId)
+      .eq("proyecto_id", scope.proyectoId)
       .eq("numero", numero)
-      .eq("estado", "Disponible")
-      .select("numero")
-      .maybeSingle();
+      .eq("estado", "Disponible");
 
-    query = aplicarScope(query, scope) as typeof query;
-    const { data, error } = await query;
+    if (scope.vendedorUserId) query = query.eq("vendedor_user_id", scope.vendedorUserId);
+    else query = query.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
+
+    const { data, error } = await query.select("numero").maybeSingle();
     if (error) throw error;
 
     if (data?.numero) reservadas.push(data.numero);
@@ -150,15 +137,17 @@ export async function cancelarReservaTemporal(
         valor_pagado: 0,
         updated_at: new Date().toISOString(),
       })
+      .eq("empresa_id", scope.empresaId)
+      .eq("proyecto_id", scope.proyectoId)
       .eq("numero", numero)
       .eq("estado", "No disponible")
       .eq("canal", TEMPORARY_RESERVATION_CHANNEL)
-      .eq("updated_at", holdToken)
-      .select("numero")
-      .maybeSingle();
+      .eq("updated_at", holdToken);
 
-    query = aplicarScope(query, scope) as typeof query;
-    const { data, error } = await query;
+    if (scope.vendedorUserId) query = query.eq("vendedor_user_id", scope.vendedorUserId);
+    else query = query.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
+
+    const { data, error } = await query.select("numero").maybeSingle();
     if (error) throw error;
     if (data?.numero) liberadas.push(data.numero);
   }
@@ -192,15 +181,17 @@ export async function confirmarReservaTemporal(
         canal: finalCanal,
         updated_at: ahora,
       })
+      .eq("empresa_id", scope.empresaId)
+      .eq("proyecto_id", scope.proyectoId)
       .eq("numero", numero)
       .eq("estado", "No disponible")
       .eq("canal", TEMPORARY_RESERVATION_CHANNEL)
-      .eq("updated_at", holdToken)
-      .select("numero")
-      .maybeSingle();
+      .eq("updated_at", holdToken);
 
-    query = aplicarScope(query, scope) as typeof query;
-    const { data, error } = await query;
+    if (scope.vendedorUserId) query = query.eq("vendedor_user_id", scope.vendedorUserId);
+    else query = query.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);
+
+    const { data, error } = await query.select("numero").maybeSingle();
     if (error) throw error;
     if (data?.numero) confirmadas.push(data.numero);
   }
