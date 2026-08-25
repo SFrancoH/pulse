@@ -1,5 +1,6 @@
 import "server-only";
 
+import { sincronizarDisponibilidadesGoogleSheet } from "@/lib/google-sheets-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const TEMPORARY_RESERVATION_MS = 60_000;
@@ -38,10 +39,11 @@ function canalAlLiberar(vendedorUserId: string | null | undefined) {
 
 export async function liberarReservasTemporalesExpiradas(scope: ReservationScope) {
   const cutoff = new Date(Date.now() - TEMPORARY_RESERVATION_MS).toISOString();
+  const liberadas: string[] = [];
 
   let query = supabaseAdmin
     .from("boletas")
-    .select("id,updated_at,vendedor_user_id")
+    .select("id,numero,updated_at,vendedor_user_id")
     .eq("empresa_id", scope.empresaId)
     .eq("proyecto_id", scope.proyectoId)
     .eq("estado", "No disponible")
@@ -56,7 +58,7 @@ export async function liberarReservasTemporalesExpiradas(scope: ReservationScope
   if (error) throw error;
 
   for (const item of data || []) {
-    const { error: releaseError } = await supabaseAdmin
+    const { data: released, error: releaseError } = await supabaseAdmin
       .from("boletas")
       .update({
         estado: "Disponible",
@@ -70,10 +72,19 @@ export async function liberarReservasTemporalesExpiradas(scope: ReservationScope
       .eq("id", item.id)
       .eq("estado", "No disponible")
       .eq("canal", TEMPORARY_RESERVATION_CHANNEL)
-      .eq("updated_at", item.updated_at);
+      .eq("updated_at", item.updated_at)
+      .select("numero")
+      .maybeSingle();
 
     if (releaseError) throw releaseError;
+    if (released?.numero) liberadas.push(released.numero);
   }
+
+  if (liberadas.length) {
+    await sincronizarDisponibilidadesGoogleSheet(liberadas.map((numero) => ({ numero, estado: "Disponible" })));
+  }
+
+  return liberadas;
 }
 
 export async function retenerBoletasTemporales(
@@ -114,6 +125,10 @@ export async function retenerBoletasTemporales(
     else noDisponibles.push(numero);
   }
 
+  if (reservadas.length) {
+    await sincronizarDisponibilidadesGoogleSheet(reservadas.map((numero) => ({ numero, estado: "No disponible" })));
+  }
+
   return { holdToken, expiresAt, reservadas, noDisponibles };
 }
 
@@ -150,6 +165,10 @@ export async function cancelarReservaTemporal(
     const { data, error } = await query.select("numero").maybeSingle();
     if (error) throw error;
     if (data?.numero) liberadas.push(data.numero);
+  }
+
+  if (liberadas.length) {
+    await sincronizarDisponibilidadesGoogleSheet(liberadas.map((numero) => ({ numero, estado: "Disponible" })));
   }
 
   return liberadas;
@@ -194,6 +213,10 @@ export async function confirmarReservaTemporal(
     const { data, error } = await query.select("numero").maybeSingle();
     if (error) throw error;
     if (data?.numero) confirmadas.push(data.numero);
+  }
+
+  if (confirmadas.length) {
+    await sincronizarDisponibilidadesGoogleSheet(confirmadas.map((numero) => ({ numero, estado: "Debe" })));
   }
 
   return { expired: false, confirmadas, liberadas: [] as string[] };
