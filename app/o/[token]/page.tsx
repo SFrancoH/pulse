@@ -1,6 +1,7 @@
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
+import { getPreviousWinners } from "@/lib/previous-winners";
 import { getActiveProjectSalesLink } from "@/lib/project-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -17,7 +18,7 @@ export default async function OfficePublicSalesPage({ params }: Props) {
     return <main className="min-h-screen bg-[#F2EDE4] p-10 text-center text-[#1A1A1A]">Enlace de venta no disponible.</main>;
   }
 
-  const [{ data: empresa }, { data: boletas, error: boletasError }] = await Promise.all([
+  const [{ data: empresa }, { data: boletas, error: boletasError }, ganadores] = await Promise.all([
     supabaseAdmin.from("empresas").select("nombre").eq("id", proyecto.empresa_id).maybeSingle(),
     supabaseAdmin
       .from("boletas")
@@ -29,6 +30,7 @@ export default async function OfficePublicSalesPage({ params }: Props) {
       .in("estado", ESTADOS_DISPONIBLES)
       .order("numero", { ascending: true })
       .range(0, 999),
+    getPreviousWinners(proyecto.empresa_id),
   ]);
 
   if (!empresa || boletasError) {
@@ -56,7 +58,7 @@ export default async function OfficePublicSalesPage({ params }: Props) {
         formTrackingParams={{ ref: token, sales_rep: "Oficina" }}
       />
 
-      {esSorteoOctubre && <PreviousWinners />}
+      <PreviousWinners winners={ganadores} />
     </>
   );
 }
