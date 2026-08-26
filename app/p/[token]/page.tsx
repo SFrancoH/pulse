@@ -1,6 +1,7 @@
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
+import { getPreviousWinners } from "@/lib/previous-winners";
 import { getActiveSellerSalesLink } from "@/lib/seller-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -15,7 +16,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
 
   if (!link) return <main className="min-h-screen bg-[#F2EDE4] p-10 text-center text-[#1A1A1A]">Enlace de venta no disponible.</main>;
 
-  const [{ data: empresa }, { data: proyecto }, { data: vendedor }, { data: boletas, error: boletasError }] = await Promise.all([
+  const [{ data: empresa }, { data: proyecto }, { data: vendedor }, { data: boletas, error: boletasError }, ganadores] = await Promise.all([
     supabaseAdmin.from("empresas").select("nombre").eq("id", link.empresa_id).maybeSingle(),
     supabaseAdmin
       .from("proyectos")
@@ -26,6 +27,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
       .maybeSingle(),
     supabaseAdmin.from("admin_users").select("nombre,email,telefono").eq("id", link.vendedor_user_id).eq("estado", "activo").maybeSingle(),
     supabaseAdmin.from("boletas").select("id,numero").eq("empresa_id", link.empresa_id).eq("proyecto_id", link.proyecto_id).eq("vendedor_user_id", link.vendedor_user_id).in("estado", ESTADOS_DISPONIBLES).order("numero", { ascending: true }).range(0, 999),
+    getPreviousWinners(link.empresa_id),
   ]);
 
   if (!empresa || !proyecto || !vendedor || boletasError) {
@@ -62,7 +64,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
         officeWhatsappUrl="https://wa.me/573147903518"
       />
 
-      {esSorteoOctubre && <PreviousWinners />}
+      <PreviousWinners winners={ganadores} />
     </>
   );
 }
