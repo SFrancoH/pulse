@@ -23,12 +23,26 @@ type Props = {
 };
 
 const POLL_MS = 3000;
-const MANUAL_ALERT_DELAY_MS = 20_000;
+
+function hayFlujoDeReservaActivo() {
+  if (typeof document === "undefined") return false;
+
+  const root = document.getElementById("pulse-venta-root");
+  if (!root) return false;
+
+  return Array.from(root.querySelectorAll("div")).some(
+    (elemento) => elemento.classList.contains("fixed") && elemento.classList.contains("z-[500]")
+  );
+}
+
+function claveReserva(item: Reserva) {
+  return `${item.numero}-${item.updated_at}`;
+}
 
 export default function AdminSalesReservationMonitor({ proyectoId, baseline }: Props) {
   const cursorRef = useRef(baseline);
   const consultandoRef = useRef(false);
-  const timersRef = useRef<number[]>([]);
+  const pendientesRef = useRef<Reserva[]>([]);
   const [reservas, setReservas] = useState<Reserva[]>([]);
 
   useEffect(() => {
@@ -38,12 +52,30 @@ export default function AdminSalesReservationMonitor({ proyectoId, baseline }: P
       if (!activo || nuevas.length === 0) return;
 
       setReservas((actuales) => {
-        const existentes = new Set(actuales.map((item) => `${item.numero}-${item.updated_at}`));
+        const existentes = new Set(actuales.map(claveReserva));
         return [
           ...actuales,
-          ...nuevas.filter((item) => !existentes.has(`${item.numero}-${item.updated_at}`)),
+          ...nuevas.filter((item) => !existentes.has(claveReserva(item))),
         ];
       });
+    }
+
+    function guardarPendientes(nuevas: Reserva[]) {
+      if (nuevas.length === 0) return;
+
+      const existentes = new Set(pendientesRef.current.map(claveReserva));
+      pendientesRef.current = [
+        ...pendientesRef.current,
+        ...nuevas.filter((item) => !existentes.has(claveReserva(item))),
+      ];
+    }
+
+    function mostrarPendientesSiCorresponde() {
+      if (hayFlujoDeReservaActivo() || pendientesRef.current.length === 0) return;
+
+      const pendientes = pendientesRef.current;
+      pendientesRef.current = [];
+      agregarReservas(pendientes);
     }
 
     async function consultar() {
@@ -60,22 +92,18 @@ export default function AdminSalesReservationMonitor({ proyectoId, baseline }: P
         if (!activo || !res.ok || !data.success) return;
 
         const nuevas = (data.reservas || []).filter((item) => item.updated_at);
-        if (nuevas.length === 0) return;
 
-        cursorRef.current = nuevas[nuevas.length - 1].updated_at;
+        if (nuevas.length > 0) {
+          cursorRef.current = nuevas[nuevas.length - 1].updated_at;
 
-        const inmediatas = nuevas.filter((item) => item.canal !== "Creacion Manual");
-        const manuales = nuevas.filter((item) => item.canal === "Creacion Manual");
-
-        agregarReservas(inmediatas);
-
-        if (manuales.length > 0) {
-          const timer = window.setTimeout(() => {
-            agregarReservas(manuales);
-            timersRef.current = timersRef.current.filter((id) => id !== timer);
-          }, MANUAL_ALERT_DELAY_MS);
-          timersRef.current.push(timer);
+          if (hayFlujoDeReservaActivo()) {
+            guardarPendientes(nuevas);
+          } else {
+            agregarReservas(nuevas);
+          }
         }
+
+        mostrarPendientesSiCorresponde();
       } catch {
         // El siguiente ciclo vuelve a intentar sin interrumpir la venta.
       } finally {
@@ -89,8 +117,7 @@ export default function AdminSalesReservationMonitor({ proyectoId, baseline }: P
     return () => {
       activo = false;
       window.clearInterval(timer);
-      timersRef.current.forEach((id) => window.clearTimeout(id));
-      timersRef.current = [];
+      pendientesRef.current = [];
     };
   }, [proyectoId]);
 
