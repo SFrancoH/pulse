@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ColombiaCitySelector from "@/components/ColombiaCitySelector";
 
 const MAX_SELECCION = 10;
 const PAGE_SIZE = 1000;
@@ -149,6 +150,7 @@ export default function ProyectoVentaReservaClient({
   const boletasVisibles = resultados ?? boletasPagina;
   const numerosFormulario = pasoModal === "ghl" ? reservadasTemporales : seleccionados;
   const totalPagarFormulario = numerosFormulario.length * precioBoleta;
+  const datosCompletos = Boolean(firstName.trim() && phone.trim() && city.trim());
 
   const textoResultado = useMemo(() => {
     if (tipoResultado === "suerte" && resultados?.[0]) return `Tu número de la suerte es ${resultados[0].numero}`;
@@ -297,7 +299,7 @@ export default function ProyectoVentaReservaClient({
 
   async function crearRetencion(e: React.FormEvent) {
     e.preventDefault();
-    if (!firstName.trim() || !phone.trim() || !city.trim()) return mostrarToast("Completa nombre, teléfono y ciudad.");
+    if (!datosCompletos) return mostrarToast("Completa nombre, teléfono y ciudad.");
     try {
       setProcesando(true);
       const res = await fetch(reservationEndpoint!, {
@@ -433,15 +435,15 @@ export default function ProyectoVentaReservaClient({
       </div>
 
       {modalAbierto && <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-4 max-[932px]:items-end max-[932px]:p-0">
-        <div className="relative max-h-[90vh] w-full max-w-[520px] overflow-hidden rounded-2xl bg-white max-[932px]:max-h-[94dvh] max-[932px]:max-w-none max-[932px]:rounded-t-3xl max-[932px]:rounded-b-none">
-          <div className="flex h-[60px] items-center justify-between bg-[#1A1A1A] px-5 text-lg font-semibold text-white"><span>{pasoModal === "ghl" ? "Finalizar reserva" : "Confirmar reserva"}</span><button type="button" onClick={() => void cerrarModal()} disabled={procesando} className="text-3xl leading-none text-white disabled:opacity-40">×</button></div>
+        <div className="relative max-h-[90vh] w-full max-w-[520px] overflow-visible rounded-2xl bg-white max-[932px]:max-h-[94dvh] max-[932px]:max-w-none max-[932px]:rounded-t-3xl max-[932px]:rounded-b-none">
+          <div className="flex h-[60px] items-center justify-between rounded-t-2xl bg-[#1A1A1A] px-5 text-lg font-semibold text-white"><span>{pasoModal === "ghl" ? "Finalizar reserva" : "Confirmar reserva"}</span><button type="button" onClick={() => void cerrarModal()} disabled={procesando} className="text-3xl leading-none text-white disabled:opacity-40">×</button></div>
 
           {pasoModal === "datos" && <form onSubmit={crearRetencion} className="space-y-5 p-6">
             <div><h2 className="text-2xl font-bold">Tus datos</h2><p className="mt-2 text-sm text-[#6F665C]">Primero validaremos y apartaremos tus números durante 1 minuto.</p></div>
-            <label className="block text-sm font-semibold">Nombre<input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="mt-2 w-full rounded-xl border border-[#D8CFC3] px-4 py-3 text-base" placeholder="Nombre" /></label>
-            <label className="block text-sm font-semibold">Teléfono<input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" className="mt-2 w-full rounded-xl border border-[#D8CFC3] px-4 py-3 text-base" placeholder="Ej: 3162426712" /></label>
-            <label className="block text-sm font-semibold">Ciudad<input value={city} onChange={(e) => setCity(e.target.value)} className="mt-2 w-full rounded-xl border border-[#D8CFC3] px-4 py-3 text-base" placeholder="Ciudad" /></label>
-            <button type="submit" disabled={procesando} className="w-full rounded-2xl bg-[#E8620A] px-6 py-4 text-lg font-bold text-white disabled:opacity-50">{procesando ? "Validando..." : "Continuar"}</button>
+            <label className="block text-sm font-semibold">Nombre<input value={firstName} onChange={(e) => setFirstName(e.target.value)} required disabled={procesando} className="mt-2 w-full rounded-xl border border-[#D8CFC3] px-4 py-3 text-base disabled:opacity-50" placeholder="Nombre" /></label>
+            <label className="block text-sm font-semibold">Teléfono<input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" required disabled={procesando} className="mt-2 w-full rounded-xl border border-[#D8CFC3] px-4 py-3 text-base disabled:opacity-50" placeholder="Ej: 3162426712" /></label>
+            <ColombiaCitySelector value={city} onChange={setCity} disabled={procesando} />
+            <button type="submit" disabled={procesando || !datosCompletos} className="w-full rounded-2xl bg-[#E8620A] px-6 py-4 text-lg font-bold text-white disabled:opacity-50">{procesando ? "Validando..." : "Continuar"}</button>
           </form>}
 
           {pasoModal === "confirmacion" && <div className="space-y-5 p-6">
