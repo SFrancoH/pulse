@@ -2,6 +2,7 @@ import AdminSalesReservationMonitor from "@/components/AdminSalesReservationMoni
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
+import { getPreviousWinners } from "@/lib/previous-winners";
 import { requireProjectManagerAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -27,7 +28,7 @@ export default async function AdminProjectSalesPage({ params }: Props) {
     );
   }
 
-  const [{ data: proyecto, error: proyectoError }, { data: empresa }, { data: boletas, error: boletasError }] =
+  const [{ data: proyecto, error: proyectoError }, { data: empresa }, { data: boletas, error: boletasError }, ganadores] =
     await Promise.all([
       supabaseAdmin
         .from("proyectos")
@@ -50,6 +51,7 @@ export default async function AdminProjectSalesPage({ params }: Props) {
         .in("estado", ESTADOS_DISPONIBLES)
         .order("numero", { ascending: true })
         .range(0, 999),
+      getPreviousWinners(proyectoAutorizado.empresa_id),
     ]);
 
   if (!proyecto || proyectoError || !empresa || boletasError) {
@@ -89,7 +91,7 @@ export default async function AdminProjectSalesPage({ params }: Props) {
         }}
       />
 
-      {esSorteoOctubre && <PreviousWinners />}
+      <PreviousWinners winners={ganadores} />
 
       <AdminSalesReservationMonitor proyectoId={proyectoId} baseline={baselineReservas} />
     </>
