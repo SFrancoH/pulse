@@ -175,7 +175,8 @@ export async function confirmarReservaTemporal(
   scope: ReservationScope,
   numerosInput: unknown[],
   holdToken: string,
-  finalCanal: string
+  finalCanal: string,
+  trackGhlOpportunity = false
 ) {
   const holdDate = new Date(holdToken);
   const vencida = Number.isNaN(holdDate.getTime()) || Date.now() - holdDate.getTime() >= TEMPORARY_RESERVATION_MS;
@@ -188,7 +189,7 @@ export async function confirmarReservaTemporal(
   const numeros = numerosUnicos(numerosInput);
   const confirmadas: string[] = [];
   const ahora = new Date().toISOString();
-  const reservaGrupo = randomUUID();
+  const reservaGrupo = trackGhlOpportunity ? randomUUID() : null;
 
   for (const numero of numeros) {
     let query = supabaseAdmin
@@ -196,8 +197,12 @@ export async function confirmarReservaTemporal(
       .update({
         estado: "Debe",
         canal: finalCanal,
-        oportunidad_creada: false,
-        reserva_grupo: reservaGrupo,
+        ...(trackGhlOpportunity
+          ? {
+              oportunidad_creada: false,
+              reserva_grupo: reservaGrupo,
+            }
+          : {}),
         updated_at: ahora,
       })
       .eq("empresa_id", scope.empresaId)

@@ -41,7 +41,13 @@ export async function POST(req: Request, { params }: Props) {
     }
 
     if (body.action === "confirm") {
-      const result = await confirmarReservaTemporal(scope, body.numeros || [], String(body.hold_token || ""), "Creacion Manual");
+      const result = await confirmarReservaTemporal(
+        scope,
+        body.numeros || [],
+        String(body.hold_token || ""),
+        "Creacion Manual",
+        true
+      );
       return Response.json({ success: !result.expired, code: result.expired ? "RESERVA_EXPIRADA" : undefined, ...result });
     }
 
