@@ -1,4 +1,5 @@
 import AdminSalesReservationMonitor from "@/components/AdminSalesReservationMonitor";
+import OpportunityErrorRecovery from "@/components/OpportunityErrorRecovery";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
@@ -69,6 +70,8 @@ export default async function AdminProjectSalesPage({ params }: Props) {
       <div className="sticky top-0 z-[800] border-b border-[#D8CFC3] bg-[#1A1A1A] px-4 py-2 text-center text-sm font-semibold text-white">
         Modo administrativo · Las nuevas reservas bloquearán esta pantalla hasta actualizar los números.
       </div>
+
+      <OpportunityErrorRecovery proyectoId={proyectoId} proyectoNombre={proyecto.nombre || ""} />
 
       <ProyectoSalesHero
         proyectoNombre={proyecto.nombre || ""}
