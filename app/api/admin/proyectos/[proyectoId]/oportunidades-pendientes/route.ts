@@ -13,6 +13,7 @@ type PendingRow = {
   nombre_cliente: string | null;
   telefono_cliente: string | null;
   email_cliente: string | null;
+  ciudad_cliente: string | null;
   canal: string | null;
   updated_at: string;
   oportunidad_error_at: string | null;
@@ -23,6 +24,7 @@ type PendingGroup = {
   nombre_cliente: string | null;
   telefono_cliente: string | null;
   email_cliente: string | null;
+  ciudad_cliente: string | null;
   canal: string | null;
   numeros: string[];
   detectado_at: string;
@@ -49,7 +51,7 @@ export async function GET(_req: Request, { params }: PageProps) {
     const { data, error: queryError } = await supabaseAdmin
       .from("boletas")
       .select(
-        "numero,reserva_grupo,nombre_cliente,telefono_cliente,email_cliente,canal,updated_at,oportunidad_error_at"
+        "numero,reserva_grupo,nombre_cliente,telefono_cliente,email_cliente,ciudad_cliente,canal,updated_at,oportunidad_error_at"
       )
       .eq("empresa_id", proyecto.empresa_id)
       .eq("proyecto_id", proyectoId)
@@ -80,6 +82,7 @@ export async function GET(_req: Request, { params }: PageProps) {
           nombre_cliente: item.nombre_cliente,
           telefono_cliente: item.telefono_cliente,
           email_cliente: item.email_cliente,
+          ciudad_cliente: item.ciudad_cliente,
           canal: item.canal,
           numeros: [item.numero],
           detectado_at: detectadoAt,
@@ -90,6 +93,8 @@ export async function GET(_req: Request, { params }: PageProps) {
 
       if (!existente.numeros.includes(item.numero)) existente.numeros.push(item.numero);
       existente.error_explicito = existente.error_explicito || Boolean(item.oportunidad_error_at);
+
+      if (!existente.ciudad_cliente && item.ciudad_cliente) existente.ciudad_cliente = item.ciudad_cliente;
 
       if (fechaMs(detectadoAt) < fechaMs(existente.detectado_at)) {
         existente.detectado_at = detectadoAt;
