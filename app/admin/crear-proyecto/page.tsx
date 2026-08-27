@@ -195,8 +195,8 @@ export default function CrearProyectoAdminPage() {
               <p className="text-sm uppercase tracking-[3px] text-[#9A9187]">Proyecto creado</p>
 
               <div className="mt-4 rounded-2xl border border-[#E0D9CE] bg-white p-4">
-                <p className="text-sm font-semibold">Configuración GHL</p>
-                <p className="mt-1 text-sm text-[#6F665C]">Actualiza estas cuatro variables en GHL para conectar las automatizaciones con el nuevo proyecto.</p>
+                <p className="text-sm font-semibold">Variables de integración</p>
+                <p className="mt-1 text-sm text-[#6F665C]">Agrega estas variables al CRM by Sebastian Franco para conectar las automatizaciones con el nuevo proyecto.</p>
 
                 <div className="mt-4 space-y-4">
                   {configuracionGhl.map((item) => (
