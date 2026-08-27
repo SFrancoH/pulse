@@ -79,6 +79,8 @@ function aliasesConsecutivo(index: number) {
   return [
     `consecutivo_${index}`,
     `Consecutivo_${index}`,
+    `consecutivo ${index}`,
+    `Consecutivo ${index}`,
     `contact.consecutivo_${index}`,
     `customData.consecutivo_${index}`,
     `custom_data.consecutivo_${index}`,
