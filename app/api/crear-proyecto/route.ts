@@ -87,6 +87,10 @@ export async function POST(req: Request) {
       if (error) throw error;
     }
 
+    const actualizarBoletaUrl = `${BASE_URL}/api/proyectos/${proyectoId}/actualizar-boleta`;
+    const reservarBoletaUrl = `${BASE_URL}/api/proyectos/${proyectoId}/reservar-boleta`;
+    const oportunidadesGhlUrl = `${BASE_URL}/api/proyectos/${proyectoId}/oportunidades-ghl`;
+
     return Response.json({
       success: true,
       empresa_id: empresaId,
@@ -95,7 +99,10 @@ export async function POST(req: Request) {
       sales_token: salesToken,
       url: crearUrlPublicaDeProyecto(salesToken),
       pulse_url: `${BASE_URL}/o/${salesToken}`,
-      webhook_url: `${BASE_URL}/api/proyectos/${proyectoId}/actualizar-boleta`,
+      webhook_url: actualizarBoletaUrl,
+      actualizar_boleta_url: actualizarBoletaUrl,
+      reservar_boleta_url: reservarBoletaUrl,
+      oportunidades_ghl_url: oportunidadesGhlUrl,
       asignar_vendedor_url: `${BASE_URL}/admin/proyectos/${proyectoId}/asignar-vendedor`,
       total_boletas: boletas.length,
     });

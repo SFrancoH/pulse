@@ -14,6 +14,9 @@ type CrearProyectoResponse = {
   message?: string;
   url?: string;
   webhook_url?: string;
+  actualizar_boleta_url?: string;
+  reservar_boleta_url?: string;
+  oportunidades_ghl_url?: string;
   asignar_vendedor_url?: string;
   proyecto_id?: string;
   proyecto_slug?: string;
@@ -52,14 +55,10 @@ export default function CrearProyectoAdminPage() {
         const res = await fetch("/api/empresas", { cache: "no-store" });
         const data = await res.json();
 
-        if (!data.success) {
-          throw new Error(data.message || "No se pudieron cargar las empresas.");
-        }
+        if (!data.success) throw new Error(data.message || "No se pudieron cargar las empresas.");
 
         setEmpresas(data.empresas || []);
-        if (data.empresas?.[0]?.id) {
-          setEmpresaId(data.empresas[0].id);
-        }
+        if (data.empresas?.[0]?.id) setEmpresaId(data.empresas[0].id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
       } finally {
@@ -83,9 +82,7 @@ export default function CrearProyectoAdminPage() {
     try {
       const res = await fetch("/api/crear-proyecto", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           empresa_id: empresaId,
           nombre,
@@ -96,11 +93,7 @@ export default function CrearProyectoAdminPage() {
       });
 
       const data = (await res.json()) as CrearProyectoResponse;
-
-      if (!data.success) {
-        throw new Error(data.message || "No se pudo crear el proyecto.");
-      }
-
+      if (!data.success) throw new Error(data.message || "No se pudo crear el proyecto.");
       setResultado(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -144,6 +137,15 @@ export default function CrearProyectoAdminPage() {
     descargarLote("barcodes", 0, 999);
   }
 
+  const configuracionGhl = resultado
+    ? [
+        { label: "Proyecto_id", value: resultado.proyecto_id, key: "proyecto" },
+        { label: "Reservar Boleta", value: resultado.reservar_boleta_url, key: "reservar" },
+        { label: "oportunidades-ghl", value: resultado.oportunidades_ghl_url, key: "oportunidades" },
+        { label: "actualizar boleta", value: resultado.actualizar_boleta_url || resultado.webhook_url, key: "actualizar" },
+      ]
+    : [];
+
   return (
     <main className="min-h-screen bg-[#F2EDE4] px-4 py-10 text-[#1A1A1A]">
       <section className="mx-auto max-w-2xl overflow-hidden rounded-3xl bg-white shadow-sm">
@@ -153,81 +155,37 @@ export default function CrearProyectoAdminPage() {
         </div>
 
         <div className="p-6">
-          {error && (
-            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
+          {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
           <form onSubmit={crearProyecto} className="space-y-5">
             <div>
               <label className="mb-2 block text-sm font-medium">Empresa</label>
-              <select
-                value={empresaId}
-                onChange={(e) => setEmpresaId(e.target.value)}
-                disabled={cargandoEmpresas}
-                className="w-full rounded-xl border border-[#E0D9CE] bg-white px-4 py-3 outline-none"
-                required
-              >
-                {empresas.map((empresa) => (
-                  <option key={empresa.id} value={empresa.id}>
-                    {empresa.nombre}
-                  </option>
-                ))}
+              <select value={empresaId} onChange={(e) => setEmpresaId(e.target.value)} disabled={cargandoEmpresas} className="w-full rounded-xl border border-[#E0D9CE] bg-white px-4 py-3 outline-none" required>
+                {empresas.map((empresa) => <option key={empresa.id} value={empresa.id}>{empresa.nombre}</option>)}
               </select>
             </div>
 
             <div>
               <label className="mb-2 block text-sm font-medium">Nombre del proyecto</label>
-              <input
-                type="text"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej: Promo Abril"
-                className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none"
-                required
-              />
+              <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: Promo Abril" className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" required />
             </div>
 
             <div>
               <label className="mb-2 block text-sm font-medium">Precio por boleta</label>
-              <input
-                type="number"
-                value={precio}
-                onChange={(e) => setPrecio(e.target.value)}
-                placeholder="60000"
-                className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none"
-                required
-              />
+              <input type="number" value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder="60000" className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" required />
             </div>
 
             <div>
               <label className="mb-2 block text-sm font-medium">Formulario de compra</label>
-              <input
-                type="url"
-                value={formularioCompraUrl}
-                onChange={(e) => setFormularioCompraUrl(e.target.value)}
-                placeholder="https://forms.example.com/..."
-                className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none"
-              />
+              <input type="url" value={formularioCompraUrl} onChange={(e) => setFormularioCompraUrl(e.target.value)} placeholder="https://forms.example.com/..." className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" />
             </div>
 
             <div>
               <label className="mb-2 block text-sm font-medium">URL imagen / flyer</label>
-              <input
-                type="url"
-                value={flyerUrl}
-                onChange={(e) => setFlyerUrl(e.target.value)}
-                placeholder="https://ejemplo.com/flyer.jpg"
-                className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none"
-              />
+              <input type="url" value={flyerUrl} onChange={(e) => setFlyerUrl(e.target.value)} placeholder="https://ejemplo.com/flyer.jpg" className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" />
             </div>
 
-            <button
-              type="submit"
-              disabled={creando || cargandoEmpresas}
-              className="w-full rounded-2xl bg-[#E8620A] px-6 py-4 text-lg font-semibold text-white disabled:opacity-60"
-            >
+            <button type="submit" disabled={creando || cargandoEmpresas} className="w-full rounded-2xl bg-[#E8620A] px-6 py-4 text-lg font-semibold text-white disabled:opacity-60">
               {creando ? "Creando proyecto y boletas..." : "Crear proyecto"}
             </button>
           </form>
@@ -235,20 +193,31 @@ export default function CrearProyectoAdminPage() {
           {resultado?.url && (
             <div className="mt-8 rounded-2xl border border-[#E0D9CE] bg-[#F9F6F1] p-5">
               <p className="text-sm uppercase tracking-[3px] text-[#9A9187]">Proyecto creado</p>
-              <p className="mt-3 text-sm text-[#6F665C]">ID proyecto:</p>
-              <p className="break-all font-mono text-sm font-semibold">{resultado.proyecto_id}</p>
+
+              <div className="mt-4 rounded-2xl border border-[#E0D9CE] bg-white p-4">
+                <p className="text-sm font-semibold">Configuración GHL</p>
+                <p className="mt-1 text-sm text-[#6F665C]">Actualiza estas cuatro variables en GHL para conectar las automatizaciones con el nuevo proyecto.</p>
+
+                <div className="mt-4 space-y-4">
+                  {configuracionGhl.map((item) => (
+                    <div key={item.key}>
+                      <p className="text-sm font-medium text-[#6F665C]">{item.label}</p>
+                      <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+                        <p className="min-w-0 flex-1 break-all rounded-xl bg-[#F9F6F1] p-3 font-mono text-sm">{item.value}</p>
+                        <button type="button" onClick={() => copiar(item.value, item.key)} className="rounded-xl bg-[#1A1A1A] px-4 py-3 text-sm font-semibold text-white">
+                          {copiado === item.key ? "Copiado" : "Copiar"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <div className="mt-4 space-y-4">
                 <div>
                   <p className="text-sm text-[#6F665C]">URL pública de venta:</p>
                   <p className="break-all rounded-xl bg-white p-3 font-mono text-sm">{resultado.url}</p>
                 </div>
-
-                <div>
-                  <p className="text-sm text-[#6F665C]">URL pública webhook para actualizar boletas:</p>
-                  <p className="break-all rounded-xl bg-white p-3 font-mono text-sm">{resultado.webhook_url}</p>
-                </div>
-
                 <div>
                   <p className="text-sm text-[#6F665C]">URL asignar vendedor:</p>
                   <p className="break-all rounded-xl bg-white p-3 font-mono text-sm">{resultado.asignar_vendedor_url}</p>
@@ -256,18 +225,9 @@ export default function CrearProyectoAdminPage() {
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <button type="button" onClick={() => copiar(resultado.url, "landing")} className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white">
-                  {copiado === "landing" ? "Landing copiada" : "Copiar landing"}
-                </button>
-                <button type="button" onClick={() => copiar(resultado.webhook_url, "webhook")} className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white">
-                  {copiado === "webhook" ? "Webhook copiado" : "Copiar webhook"}
-                </button>
-                <button type="button" onClick={() => copiar(resultado.asignar_vendedor_url, "vendedor")} className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white">
-                  {copiado === "vendedor" ? "URL copiada" : "Copiar asignar vendedor"}
-                </button>
-                <a href={resultado.asignar_vendedor_url} target="_blank" rel="noreferrer" className="rounded-xl border border-[#1A1A1A] px-5 py-3 text-center font-semibold">
-                  Abrir asignación
-                </a>
+                <button type="button" onClick={() => copiar(resultado.url, "landing")} className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white">{copiado === "landing" ? "Landing copiada" : "Copiar landing"}</button>
+                <button type="button" onClick={() => copiar(resultado.asignar_vendedor_url, "vendedor")} className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white">{copiado === "vendedor" ? "URL copiada" : "Copiar asignar vendedor"}</button>
+                <a href={resultado.asignar_vendedor_url} target="_blank" rel="noreferrer" className="rounded-xl border border-[#1A1A1A] px-5 py-3 text-center font-semibold">Abrir asignación</a>
               </div>
 
               <div className="mt-6 rounded-2xl border border-[#E0D9CE] bg-white p-4">
@@ -277,36 +237,24 @@ export default function CrearProyectoAdminPage() {
                 {codigoError && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{codigoError}</div>}
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <button type="button" onClick={iniciarQR} className="rounded-xl bg-[#E8620A] px-5 py-3 font-semibold text-white">
-                    Generar QR inicial
-                  </button>
-                  <button type="button" onClick={iniciarBarcodes} disabled={qrEstado !== "listo"} className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white disabled:opacity-40">
-                    Generar códigos iniciales
-                  </button>
+                  <button type="button" onClick={iniciarQR} className="rounded-xl bg-[#E8620A] px-5 py-3 font-semibold text-white">Generar QR inicial</button>
+                  <button type="button" onClick={iniciarBarcodes} disabled={qrEstado !== "listo"} className="rounded-xl bg-[#1A1A1A] px-5 py-3 font-semibold text-white disabled:opacity-40">Generar códigos iniciales</button>
                 </div>
 
                 {qrEstado === "listo" && (
                   <div className="mt-6 rounded-2xl border border-[#E0D9CE] bg-[#F9F6F1] p-4">
                     <p className="text-sm font-semibold">Descargar todos los QR</p>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {RANGOS.map((rango) => (
-                        <button key={`qr-${rango.desde}`} type="button" onClick={() => descargarLote("qr", rango.desde, rango.hasta)} className="rounded-xl border border-[#1A1A1A] bg-white px-4 py-3 text-sm font-semibold">
-                          QR {fmtNumero(rango.desde)}-{fmtNumero(rango.hasta)}
-                        </button>
-                      ))}
+                      {RANGOS.map((rango) => <button key={`qr-${rango.desde}`} type="button" onClick={() => descargarLote("qr", rango.desde, rango.hasta)} className="rounded-xl border border-[#1A1A1A] bg-white px-4 py-3 text-sm font-semibold">QR {fmtNumero(rango.desde)}-{fmtNumero(rango.hasta)}</button>)}
                     </div>
                   </div>
                 )}
 
-                {qrEstado === "listo" && (
+                {barcodeEstado === "listo" && (
                   <div className="mt-6 rounded-2xl border border-[#E0D9CE] bg-[#F9F6F1] p-4">
                     <p className="text-sm font-semibold">Descargar todos los códigos de barras</p>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {RANGOS.map((rango) => (
-                        <button key={`bar-${rango.desde}`} type="button" onClick={() => descargarLote("barcodes", rango.desde, rango.hasta)} className="rounded-xl border border-[#1A1A1A] bg-white px-4 py-3 text-sm font-semibold">
-                          Barras {fmtNumero(rango.desde)}-{fmtNumero(rango.hasta)}
-                        </button>
-                      ))}
+                      {RANGOS.map((rango) => <button key={`bar-${rango.desde}`} type="button" onClick={() => descargarLote("barcodes", rango.desde, rango.hasta)} className="rounded-xl border border-[#1A1A1A] bg-white px-4 py-3 text-sm font-semibold">Barras {fmtNumero(rango.desde)}-{fmtNumero(rango.hasta)}</button>)}
                     </div>
                   </div>
                 )}
