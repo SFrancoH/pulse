@@ -7,6 +7,7 @@ type PendingGroup = {
   nombre_cliente: string | null;
   telefono_cliente: string | null;
   email_cliente: string | null;
+  ciudad_cliente: string | null;
   canal: string | null;
   numeros: string[];
   detectado_at: string;
@@ -66,7 +67,7 @@ export default function OpportunityErrorRecovery({ proyectoId, proyectoNombre }:
     params.set("nombre_proyecto", proyectoNombre);
     params.set("first_name", grupoAbierto.nombre_cliente || "");
     params.set("phone", grupoAbierto.telefono_cliente || "");
-    params.set("city", "");
+    params.set("city", grupoAbierto.ciudad_cliente || "");
     params.set("email", grupoAbierto.email_cliente || "");
 
     for (let index = 0; index < MAX_CONSECUTIVOS; index += 1) {
@@ -117,7 +118,7 @@ export default function OpportunityErrorRecovery({ proyectoId, proyectoNombre }:
                   Números pendientes: {grupoAbierto.numeros.join(" · ")}
                 </p>
                 <p className="mt-1 text-xs text-[#8A8178]">
-                  Revisa los datos, completa la ciudad si hace falta y envía el formulario.
+                  Revisa los datos y envía el formulario para completar la corrección.
                 </p>
               </div>
 
