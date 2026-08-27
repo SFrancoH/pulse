@@ -16,6 +16,7 @@ type ReservationScope = {
 type ClientData = {
   firstName: string;
   phone: string;
+  city: string;
 };
 
 type HoldResult = {
@@ -72,6 +73,7 @@ export async function liberarReservasTemporalesExpiradas(scope: ReservationScope
         nombre_cliente: null,
         telefono_cliente: null,
         email_cliente: null,
+        ciudad_cliente: null,
         valor_pagado: 0,
         updated_at: new Date().toISOString(),
       })
@@ -111,6 +113,7 @@ export async function retenerBoletasTemporales(
         canal: TEMPORARY_RESERVATION_CHANNEL,
         nombre_cliente: client.firstName || null,
         telefono_cliente: client.phone || null,
+        ciudad_cliente: client.city || null,
         updated_at: holdToken,
       })
       .eq("empresa_id", scope.empresaId)
@@ -149,6 +152,7 @@ export async function cancelarReservaTemporal(
         nombre_cliente: null,
         telefono_cliente: null,
         email_cliente: null,
+        ciudad_cliente: null,
         valor_pagado: 0,
         updated_at: new Date().toISOString(),
       })
