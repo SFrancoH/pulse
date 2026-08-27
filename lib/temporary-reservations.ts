@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomUUID } from "crypto";
 import { sincronizarDisponibilidadesGoogleSheet } from "@/lib/google-sheets-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -187,6 +188,7 @@ export async function confirmarReservaTemporal(
   const numeros = numerosUnicos(numerosInput);
   const confirmadas: string[] = [];
   const ahora = new Date().toISOString();
+  const reservaGrupo = randomUUID();
 
   for (const numero of numeros) {
     let query = supabaseAdmin
@@ -194,6 +196,8 @@ export async function confirmarReservaTemporal(
       .update({
         estado: "Debe",
         canal: finalCanal,
+        oportunidad_creada: false,
+        reserva_grupo: reservaGrupo,
         updated_at: ahora,
       })
       .eq("empresa_id", scope.empresaId)
