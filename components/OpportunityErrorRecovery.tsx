@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type PendingGroup = {
   reserva_grupo: string;
@@ -32,13 +32,13 @@ const MAX_CONSECUTIVOS = 10;
 export default function OpportunityErrorRecovery({ proyectoId, proyectoNombre }: Props) {
   const [grupos, setGrupos] = useState<PendingGroup[]>([]);
   const [grupoAbierto, setGrupoAbierto] = useState<PendingGroup | null>(null);
-  const [consultando, setConsultando] = useState(false);
+  const consultandoRef = useRef(false);
 
   const consultar = useCallback(async () => {
-    if (consultando) return;
+    if (consultandoRef.current) return;
+    consultandoRef.current = true;
 
     try {
-      setConsultando(true);
       const res = await fetch(
         `/api/admin/proyectos/${encodeURIComponent(proyectoId)}/oportunidades-pendientes`,
         { cache: "no-store" }
@@ -49,9 +49,9 @@ export default function OpportunityErrorRecovery({ proyectoId, proyectoNombre }:
     } catch {
       // La siguiente consulta vuelve a intentar sin interrumpir la venta.
     } finally {
-      setConsultando(false);
+      consultandoRef.current = false;
     }
-  }, [consultando, proyectoId]);
+  }, [proyectoId]);
 
   useEffect(() => {
     void consultar();
