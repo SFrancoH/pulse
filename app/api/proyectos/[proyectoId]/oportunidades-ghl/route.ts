@@ -8,6 +8,14 @@ type PageProps = {
 
 type Payload = Record<string, unknown>;
 
+type PendingOpportunity = {
+  numero: string;
+  reserva_grupo: string;
+  nombre_cliente: string | null;
+  telefono_cliente: string | null;
+  updated_at: string;
+};
+
 function texto(payload: Payload, keys: string[]) {
   for (const key of keys) {
     const value = payload[key];
@@ -21,6 +29,22 @@ function normalizarNumero(value: unknown) {
   const limpio = String(value || "").replace(/\D/g, "");
   if (!limpio) return "";
   return limpio.padStart(4, "0").slice(-4);
+}
+
+function normalizarTelefono(value: unknown) {
+  const limpio = String(value || "").replace(/\D/g, "");
+  if (!limpio) return "";
+  if (limpio.length === 10) return `57${limpio}`;
+  return limpio;
+}
+
+function normalizarNombre(value: unknown) {
+  return String(value || "")
+    .trim()
+    .toLocaleLowerCase("es")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
 }
 
 function flattenPayload(value: unknown, prefix = "", output: Payload = {}) {
@@ -64,14 +88,9 @@ async function leerPayload(req: Request): Promise<Payload> {
     return flattenPayload(payload);
   }
 
+  const params = new URLSearchParams(raw);
   const payload: Payload = {};
-
-  raw.split("&").forEach((pair) => {
-    const [key, value] = pair.split("=");
-    if (!key) return;
-    payload[decodeURIComponent(key)] = decodeURIComponent(value || "");
-  });
-
+  for (const [key, value] of params.entries()) payload[key] = value;
   return flattenPayload(payload);
 }
 
@@ -99,6 +118,72 @@ function extraerConsecutivos(payload: Payload) {
   return Array.from(new Set(numeros));
 }
 
+async function registrarFallo(proyectoId: string, payload: Payload) {
+  const phone = normalizarTelefono(
+    texto(payload, ["phone", "customData.phone", "contact.phone", "custom_data.phone"])
+  );
+  const firstName = normalizarNombre(
+    texto(payload, ["first_name", "customData.first_name", "contact.first_name", "firstName"])
+  );
+
+  if (!phone && !firstName) {
+    return {
+      registered: false,
+      code: "CONTACTO_NO_IDENTIFICADO",
+      pendingNumbers: [] as string[],
+    };
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("boletas")
+    .select("numero,reserva_grupo,nombre_cliente,telefono_cliente,updated_at")
+    .eq("proyecto_id", proyectoId)
+    .eq("oportunidad_creada", false)
+    .in("canal", ["Oficina", "Creacion Manual"])
+    .not("reserva_grupo", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  if (error) throw error;
+
+  const pendientes = (data || []) as PendingOpportunity[];
+  const coincidenciasTelefono = phone
+    ? pendientes.filter((item) => normalizarTelefono(item.telefono_cliente) === phone)
+    : [];
+
+  let candidata = coincidenciasTelefono[0];
+
+  if (!candidata && firstName) {
+    candidata = pendientes.find((item) => normalizarNombre(item.nombre_cliente) === firstName);
+  }
+
+  if (!candidata?.reserva_grupo) {
+    return {
+      registered: false,
+      code: "RESERVA_PENDIENTE_NO_ENCONTRADA",
+      pendingNumbers: [] as string[],
+    };
+  }
+
+  const errorAt = new Date().toISOString();
+  const { data: marcadas, error: markError } = await supabaseAdmin
+    .from("boletas")
+    .update({ oportunidad_error_at: errorAt })
+    .eq("proyecto_id", proyectoId)
+    .eq("reserva_grupo", candidata.reserva_grupo)
+    .eq("oportunidad_creada", false)
+    .in("canal", ["Oficina", "Creacion Manual"])
+    .select("numero");
+
+  if (markError) throw markError;
+
+  return {
+    registered: true,
+    code: "OPORTUNIDAD_ERROR_REGISTRADO",
+    pendingNumbers: (marcadas || []).map((item) => item.numero),
+  };
+}
+
 export async function POST(req: Request, { params }: PageProps) {
   try {
     const { proyectoId } = await params;
@@ -106,19 +191,24 @@ export async function POST(req: Request, { params }: PageProps) {
     const numeros = extraerConsecutivos(payload);
 
     if (!numeros.length) {
+      const fallo = await registrarFallo(proyectoId, payload);
+
       return Response.json({
         success: true,
-        code: "CONSECUTIVOS_VACIOS",
-        message: "Webhook recibido, pero los 10 consecutivos llegaron vacíos.",
+        code: fallo.code,
+        message: fallo.registered
+          ? "Webhook recibido sin consecutivos. El fallo de oportunidades fue registrado."
+          : "Webhook recibido sin consecutivos, pero no se encontró una reserva pendiente para registrar el fallo.",
         consecutivos_recibidos: 0,
         oportunidades_actualizadas: 0,
-        received_keys: Object.keys(payload),
+        fallo_registrado: fallo.registered,
+        numeros_pendientes: fallo.pendingNumbers,
       });
     }
 
     const { data, error } = await supabaseAdmin
       .from("boletas")
-      .update({ oportunidad_creada: true })
+      .update({ oportunidad_creada: true, oportunidad_error_at: null })
       .eq("proyecto_id", proyectoId)
       .in("numero", numeros)
       .in("canal", ["Oficina", "Creacion Manual"])
