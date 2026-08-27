@@ -151,7 +151,7 @@ async function registrarFallo(proyectoId: string, payload: Payload) {
     ? pendientes.filter((item) => normalizarTelefono(item.telefono_cliente) === phone)
     : [];
 
-  let candidata = coincidenciasTelefono[0];
+  let candidata: PendingOpportunity | undefined = coincidenciasTelefono[0];
 
   if (!candidata && firstName) {
     candidata = pendientes.find((item) => normalizarNombre(item.nombre_cliente) === firstName);
