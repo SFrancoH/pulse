@@ -13,6 +13,7 @@ type Payload = {
   hold_token?: string;
   first_name?: string;
   phone?: string;
+  city?: string;
 };
 
 export async function POST(req: Request, { params }: Props) {
@@ -35,6 +36,7 @@ export async function POST(req: Request, { params }: Props) {
       const result = await retenerBoletasTemporales(scope, body.numeros || [], {
         firstName: String(body.first_name || "").trim(),
         phone: String(body.phone || "").trim(),
+        city: String(body.city || "").trim(),
       });
       return Response.json({ success: true, ...result });
     }
