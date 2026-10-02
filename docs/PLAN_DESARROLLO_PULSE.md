@@ -15,7 +15,7 @@
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | 2026-10-02, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-02 17:40 America/Bogota; P00 cerrado; preparación P01-01/02 verificada local, activación de las rutas pendiente de configuración manual |
+| Último checkpoint de ejecución | 2026-10-02 17:44 America/Bogota; preparación P01-01/02 integrada en main y build Vercel success; activación de las rutas pendiente de configuración manual |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -27,7 +27,7 @@
 | Estado de integración de GitHub | `merged=true`; SHA y árbol de main comprobados después del merge |
 | Build histórico de la rama/Preview descartado | **Vercel: failure** por URL Supabase ausente; no corresponde al nuevo build de main |
 | Build del merge funcional | **Vercel: success**, SHA `726f99f5251940fe7b6e38e46bc428eda11c40cd`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HK2CZgTuz6Lg8xuLKCLXMYu2ipJk) |
-| Último deployment de main comprobado | **Vercel: success**, SHA `570cf77acd8d3de461b1c632963a1b91e946c7db`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/8nbKoxLYQqHLiifcrSMERks1rYKv) |
+| Último deployment de main comprobado | **Vercel: success**, SHA `fcbfd1590e19702a14780ef04db52af59d11c37b`; [deployment de preparación completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/9cTFQYj6qfX555BtEddwjK3SJNjc). Los checkpoints posteriores sólo documentales se consultan en Git |
 | Check `Vercel Preview Comments` | Success: sólo confirma que no hay comentarios pendientes; no confirma un build correcto |
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
@@ -38,7 +38,7 @@
 | Bloqueo actual | P00 sin bloqueo. La activación de P01 necesita configurar Vercel/GHL y recibir confirmación manual del usuario |
 | Regresión local del parche | 7/7 pruebas con fixtures; fuentes probadas verificadas por hash contra `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no acredita build, DB real ni producción |
 | Confirmación manual del usuario | P00 confirmado con «listo»; evidencia declarada por el usuario, no una prueba independiente automatizada. No se solicitan de nuevo Preview ni otro Supabase |
-| Preparación de P01 | Guard compartido, validación de payload, harness y runbook listos; 26/26 pruebas, TypeScript y lint de archivos nuevos correctos. Las rutas todavía no consumen el guard |
+| Preparación de P01 | Integrada en main, commit `fcbfd1590e19702a14780ef04db52af59d11c37b`; 26/26 pruebas, TypeScript y lint de archivos nuevos correctos; Vercel success. Las rutas todavía no consumen el guard |
 | Cambios de aplicación realizados al crear este plan | Ninguno; se creó la documentación y la regla de mantenimiento de la memoria |
 
 **Conclusión y evidencia:** la corrección `b3a00c764c1d4a8011574ac71b2fac16e06fa749` se integró por PR #34 en `726f99f5251940fe7b6e38e46bc428eda11c40cd`, y la memoria por PR #35 en `e4165c58751ebb928930323f37da9b42c2d098a2`. Vercel completó también el build documental `570cf77acd8d3de461b1c632963a1b91e946c7db`. La respuesta «listo» del usuario confirma el procedimiento solicitado de Production/alias y disponibilidad; P00 se cierra con esa evidencia manual. No se inventan dominio, boletas concretas, capturas, prueba de compra completa ni pruebas independientes de DB/navegador.
@@ -213,7 +213,7 @@ El build exitoso, la integración y la verificación del dominio deben estar acr
 
 **Hallazgos:** F01, F02, F03, F04, F06 y parte de F12. **Dependencia:** P00 verificado.
 
-**Estado P01-01/02:** preparación verificada local; guard y contrato descritos en [P01_WEBHOOKS.md](P01_WEBHOOKS.md). La conexión del guard a los handlers y la remediación efectiva siguen pendientes. Configurar `PULSE_PROJECT_WEBHOOK_KEYS` en Vercel Production y Bearer en los workflows legítimos, confirmar por chat y luego activar por main. No declarar F01/F02 cerrados por tener helpers sin uso.
+**Estado P01-01/02:** preparación verificada local, integrada en main `fcbfd1590e19702a14780ef04db52af59d11c37b` y build Vercel success; guard y contrato descritos en [P01_WEBHOOKS.md](P01_WEBHOOKS.md). La conexión del guard a los handlers y la remediación efectiva siguen pendientes. Configurar `PULSE_PROJECT_WEBHOOK_KEYS` en Vercel Production y Bearer en los workflows legítimos, confirmar por chat y luego activar por main. No declarar F01/F02 cerrados por tener helpers sin uso.
 
 - [ ] **P01-01 — F01: proteger `actualizar-boleta`.** Inventariar quién la llama: panel o integración. Para panel, exigir sesión, rol y acceso al proyecto mediante `lib/require-admin.ts`. Para integración, exigir credencial/firma limitada a tenant y proyectos autorizados. Derivar el contexto en servidor; no usar `empresa_id` recibido como permiso. Denegar anónimo, vendedor sin facultad y empresa ajena antes de construir la consulta. Validar transición y monto; quitar eco de payload y errores DB crudos.
 - [ ] **P01-02 — F02: proteger `reservar-boleta`.** Aplicar el mismo contrato de actor/tenant, conservar condición de estado en el UPDATE y exigir ámbito de vendedor o pool Oficina. Comprobar que un secreto de A tampoco puede reservar en B. No reemplazar autenticación por un ID de proyecto conocido. Documentar cómo se actualiza el workflow legítimo antes de retirar un contrato legado.
@@ -547,6 +547,20 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Acción manual:** seguir `docs/P01_WEBHOOKS.md`: inventariar todas las acciones de las dos rutas, ID exacto, clave aleatoria exclusiva, variable privada de Production, Bearer en GHL, mapeo del ID estable de vendedor si aplica y confirmación sin secretos. Fuentes primarias de HighLevel consultadas y enlazadas en el runbook.
 - **Bloqueo/razón:** activar ahora rechazaría workflows legítimos sin header. El usuario exigió explicación y espera ante procesos manuales; sólo se publica la preparación, no se retira el contrato legado todavía.
 - **Siguiente acción concreta:** recibir confirmación de Vercel/GHL y del mapeo de vendedor si aplica; reconciliar HEAD; conectar el guard y filtros tenant/seller a ambos POST, ejecutar negativos sobre handlers completos, actualizar memoria y publicar por main. Después comprobar Vercel y requests controlados; continuar P01-03.
+
+### Registro 2026-10-02 17:44 America/Bogota / M-010 — Preparación P01 integrada en main y build completado
+
+- **Tarea/fase:** preparación P01-01/02; espera de configuración y activación. F01/F02 continúan abiertos.
+- **Commit de implementación real:** `fcbfd1590e19702a14780ef04db52af59d11c37b`; padre `570cf77acd8d3de461b1c632963a1b91e946c7db`.
+- **Árbol probado y publicado:** `7d535482dd0f873ebe4653633780513aa84492a4`; identidad local/remota comprobada antes de publicar. Seis archivos de preparación/memoria; ningún handler ni schema cambió.
+- **Integración:** actualización de main sin force y con comprobación del HEAD esperado; flujo directo autorizado por el usuario, sin push de otra rama ni Preview. Código, pruebas y memoria en una misma unidad de commit; sin PR nuevo ni SHA de merge separado.
+- **Pruebas:** 26/26 del guard/parser; TypeScript y lint acotado exit 0, descritos en M-009. No se repiten por este checkpoint puramente documental. Se comprobaron cercas Markdown y cierre de los diez ítems P00 con límites de evidencia explícitos.
+- **Deployment de esta implementación:** contexto Vercel success, “Deployment has completed”, [9cTFQYj6qfX555BtEddwjK3SJNjc](https://vercel.com/soy-sebastian-franco-s-projects/pulse/9cTFQYj6qfX555BtEddwjK3SJNjc), SHA `fcbfd1590e19702a14780ef04db52af59d11c37b`. El status GitHub no expone el alias/entorno; la confirmación manual P00 correspondía al deployment anterior. No se afirma una prueba productiva de autorización aún inactiva.
+- **Qué sigue pendiente:** configurar la variable privada de Production y headers de GHL; confirmar ID estable de vendedor cuando se reserve su stock; conectar el guard y probar los handlers completos; verificar nuevo deployment y contrato efectivo.
+- **Datos/credenciales externas:** sin modificación ni lectura de registros reales; configuración manual no confirmada. No se necesita redeploy manual para esta preparación ni otro proyecto Supabase.
+- **Memoria:** este checkpoint registra el SHA funcional de preparación ya existente; su propio commit documental se consulta en Git, evitando autorregistro recursivo.
+- **Rollback:** retirar la preparación no cambia datos ni el contrato activo; las rutas todavía conservan el comportamiento anterior. No usar un bypass anónimo cuando se active la protección.
+- **Siguiente acción concreta:** el usuario realiza los pasos de `docs/P01_WEBHOOKS.md` y confirma Vercel/GHL sin compartir claves. Esperar esa respuesta antes de activar las rutas en main; después ejecutar el paso de activación y seguir P01-03.
 
 ### Plantilla para la siguiente unidad
 
