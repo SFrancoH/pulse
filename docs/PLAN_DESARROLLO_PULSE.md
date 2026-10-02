@@ -13,6 +13,7 @@
 | PR documental | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), borrador, pendiente de integración |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | 2026-10-02, zona horaria America/Bogota |
+| Último checkpoint de ejecución | 2026-10-02 15:43 America/Bogota; ejecución iniciada, esperando acción manual en P00-03 |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
 | Último `main` verificado | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -29,7 +30,9 @@
 | Fase activa | `P00` — publicar y verificar la corrección pendiente |
 | Última evidencia recibida | Log de Vercel aportado por el usuario el 2026-10-02 a las 15:23 America/Bogota |
 | Paso siguiente | `P00-03` — corregir las variables de Supabase del entorno que construye la rama y generar un nuevo deployment |
-| Bloqueo actual | En ese build no estaba disponible la URL de Supabase; configuración del entorno de Vercel y nuevo deployment pendientes |
+| Bloqueo actual | En ese build no estaba disponible la URL de Supabase; esperando que el usuario revise/configure Preview y confirme el nuevo deployment |
+| Regresión local del parche | 7/7 pruebas con fixtures; fuentes probadas verificadas por hash contra `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no acredita build, DB real ni producción |
+| Confirmación manual del usuario | Pendiente; no continuar con integración/publicación ni fases posteriores hasta recibirla y verificar el resultado |
 | Cambios de aplicación realizados al crear este plan | Ninguno; se creó la documentación y la regla de mantenimiento de la memoria |
 
 **Conclusión comprobada:** el commit de corrección existe en GitHub, pero todavía no pertenece a `main`; además, el build de su rama falló porque `lib/supabase-admin.ts` no encontró ni `NEXT_PUBLIC_SUPABASE_URL` ni `SUPABASE_URL`. El módulo lanza un error al importarse desde `/api/admin/bootstrap`, durante la recopilación de rutas. La instalación, la compilación y TypeScript habían terminado correctamente. El SHA que atiende producción sigue sin verificarse.
@@ -157,6 +160,24 @@ Las credenciales privadas quedan únicamente en la configuración autorizada del
 - [ ] **P00-08 — Verificar el deployment de producción.** Comprobar proyecto, Production Branch, entorno y SHA en Vercel. Verificar que el alias/dominio que usan compradores apunta al deployment nuevo, y revisar respuesta efectiva sin usar como evidencia sólo la pantalla del PR. Registrar deployment ID, SHA y dominio; si `main` no dispara publicación, revisar integración/branch/configuración y resolver el mecanismo de deployment existente.
 - [ ] **P00-09 — Comprobar el comportamiento en producción.** Revisar mediante lecturas autorizadas que boletas con nombre, teléfono, abono o vendedor no aparecen en Oficina, incluyendo búsqueda y “ver más”. Para una compra/reserva completa, usar proyecto y boletas de prueba controlados; no alterar compradores o pagos reales para probar. Confirmar que la integración vigente conserva sus llamadas legítimas. Registrar evidencia anonimizada, fecha y resultado.
 - [ ] **P00-10 — Cerrar P00 y actualizar esta memoria.** Marcar Verificado en producción; guardar SHAs, pruebas y deployment. Dejar `P01-01` como siguiente acción. Si hay regresión, revertir el código de forma controlada y documentar que un rollback no restaura automáticamente datos modificados durante el intervalo.
+
+### P00-03 — Procedimiento manual y punto de espera
+
+**Responsable de esta acción:** usuario con acceso a Vercel/Supabase. **Estado:** Bloqueado, esperando confirmación. No hay acceso disponible desde esta sesión para editar las variables de ese proyecto. El usuario pidió explícitamente instrucciones y una pausa cuando fuera necesaria una operación manual.
+
+1. Abrir el proyecto [Pulse en Vercel](https://vercel.com/soy-sebastian-franco-s-projects/pulse), entrar en **Settings → Environment Variables** y revisar **Preview**, incluidos valores específicos de la rama `fix/exclude-occupied-tickets`.
+2. En el Supabase destinado a pruebas/preview, copiar la URL desde **Connect** y consultar la llave privada existente en **Settings → API Keys**. URL y llave deben pertenecer al mismo proyecto. Si sólo existe una DB de producción, detenerse aquí e informarlo para preparar el entorno de prueba antes de vincular sus credenciales.
+3. En Vercel, agregar/corregir `NEXT_PUBLIC_SUPABASE_URL`, o conservar `SUPABASE_URL` si es el nombre válido existente. Verificar una llave privada bajo `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SERVICE_KEY` o `SUPABASE_SECRET_KEY`, según el tipo y nombre ya usado. El código prioriza esos aliases en ese orden: no dejar un alias anterior con credencial de otro proyecto. Una llave pública/anon no sustituye la privada.
+4. Aplicar los valores al entorno **Preview** y, para esta entrega, a la rama `fix/exclude-occupied-tickets`. Mantener la configuración de Production independiente. Guardar los cambios; no enviar llaves por chat ni registrarlas en Git.
+5. Antes de probar login, verificar que Preview tiene `ADMIN_SESSION_SECRET` o `ADMIN_SECRET` de al menos 24 caracteres. Conservar el secreto correcto si ya existe; si falta, establecer un secreto aleatorio propio del entorno de pruebas, usando un generador de contraseñas. No rotar el secreto productivo como parte de este paso.
+6. En **Deployments**, abrir el deployment fallido de la rama `fix/exclude-occupied-tickets` / commit `b3a00c7`, ejecutar **Redeploy** y esperar su resultado. Este paso es un nuevo build de Preview; no un merge ni una promoción a Production. Registrar URL del nuevo deployment, entorno, commit y estado.
+7. Confirmar por chat que se guardaron las variables y se ejecutó el redeploy. Enviar sólo URL del deployment y estado **Ready** o **Error**; si falla, adjuntar el primer error nuevo con secretos ocultos.
+
+**Condición para reanudar:** confirmación explícita del usuario más revisión del nuevo build. Si el usuario confirma únicamente que guardó variables, el build sigue pendiente. No asumir el cierre de P00-03/P00-06 por una confirmación sin evidencia.
+
+**Trabajo independiente ya realizado:** `node --test tests/availability.test.mjs` pasó 7/7. Las cinco fuentes que ejecuta esa suite y los manifests se compararon por SHA de blob con el commit del PR. El entorno existente de pruebas usa Node 24.19.0, TypeScript 5.9.3 y Supabase JS 2.117.2; no se presentó como instalación limpia del lockfile. P00-04, las pruebas de DB/navegador y P00-06 siguen pendientes.
+
+Referencias: [configuración de variables](https://vercel.com/docs/environment-variables/managing-environment-variables), [alcance por entorno y rama](https://vercel.com/docs/environment-variables), [llaves de Supabase](https://supabase.com/docs/guides/getting-started/api-keys).
 
 ### Archivos del parche ya preparado
 
@@ -403,6 +424,25 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Aplicación/DB/Vercel:** sin cambios ejecutados en esta unidad; sin pruebas de runtime ni publicación de la corrección.
 - **Cambio documental posterior:** esta entrada y enlaces del panel registran el commit inicial y el PR ya existentes; su commit propio se obtiene del historial del archivo.
 - **Siguiente acción concreta:** P00-03, corregir configuración del entorno de Vercel y generar un nuevo deployment; después continuar P00-04–10 antes de P01.
+
+### Registro 2026-10-02 15:43 America/Bogota / M-004 — Inicio de ejecución y espera de configuración manual
+
+- **Tarea/fase:** P00-03; comprobación independiente de P00-05.
+- **Estado antes → después:** bloqueo diagnosticado → ejecución iniciada y Bloqueado esperando acción/confirmación manual del usuario.
+- **Instrucción del usuario:** ejecutar el plan; explicar cualquier proceso manual y esperar su confirmación antes de continuar con el trabajo dependiente.
+- **Memoria de entrada:** archivo adjunto leído desde la copia local; contenido idéntico al plan remoto del commit documental `d1a36deec2bfe612b747894fb238b5aea7aad4c7`.
+- **Estado remoto verificado:** `main=23dfededd0bbb19bd9372e53cc04d594f50811ce`; PR #34 abierto, HEAD `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; status Vercel failure y mismo deployment fallido. PR #35 sigue en borrador.
+- **Pruebas ejecutadas:** `node --test tests/availability.test.mjs` → 7 pruebas, 7 pass, 0 fail. Comprueba listado/búsqueda Oficina, stock de vendedor y rechazo de hold para boletas ocupadas con fixtures.
+- **Integridad de las fuentes:** SHA de blob local/remoto coincidente para test, filtro, reservas temporales, dos rutas públicas, `package.json` y `package-lock.json`. No se supone que el checkout completo o sus dependencias sean una instalación limpia.
+- **Entorno de la prueba:** Node 24.19.0; TypeScript 5.9.3; Supabase JS 2.117.2. DB/red simuladas; no se modificaron compradores ni pagos.
+- **Cambio de esta unidad:** checkpoint, resultado y alcance de las pruebas, instrucciones manuales, responsable, condición de pausa y siguiente acción.
+- **Archivos modificados:** `docs/PLAN_DESARROLLO_PULSE.md`. No se modificó código de aplicación.
+- **Rama/commit base de documentación:** `docs/plan-desarrollo-pulse` / `d1a36deec2bfe612b747894fb238b5aea7aad4c7`; PR #35. El commit de este checkpoint se obtiene del historial del archivo.
+- **SHA funcional que continúa pendiente:** `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no hay nueva implementación funcional.
+- **Migración/configuración externa/deployment:** ninguno ejecutado en esta sesión. Variables, nuevo build, merge y producción pendientes.
+- **Bloqueo:** configuración de Preview de Vercel requiere acción manual; confirmación del usuario no recibida.
+- **Rollback:** no requerido para runtime/DB; esta unidad sólo añade documentación y ejecuta fixtures.
+- **Siguiente acción concreta:** usuario realiza el procedimiento P00-03 y confirma URL/resultado; después revisar el build del commit exacto y completar P00-04/05/06 antes de integrar.
 
 ### Plantilla para la siguiente unidad
 
