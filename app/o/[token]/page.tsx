@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
@@ -28,6 +29,7 @@ export default async function OfficePublicSalesPage({ params }: Props) {
       .eq("vendedor_nombre", "Oficina")
       .is("vendedor_user_id", null)
       .in("estado", ESTADOS_DISPONIBLES)
+      .or(BOLETA_LIBRE_FILTER)
       .order("numero", { ascending: true })
       .range(0, 999),
     getPreviousWinners(proyecto.empresa_id),

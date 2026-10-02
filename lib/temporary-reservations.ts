@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import "server-only";
 
 import { randomUUID } from "crypto";
@@ -119,7 +120,8 @@ export async function retenerBoletasTemporales(
       .eq("empresa_id", scope.empresaId)
       .eq("proyecto_id", scope.proyectoId)
       .eq("numero", numero)
-      .eq("estado", "Disponible");
+      .eq("estado", "Disponible")
+      .or(BOLETA_LIBRE_FILTER);
 
     if (scope.vendedorUserId) query = query.eq("vendedor_user_id", scope.vendedorUserId);
     else query = query.eq("vendedor_nombre", "Oficina").is("vendedor_user_id", null);

@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentAdminSession } from "@/lib/admin-auth";
 import { requireProjectAccess } from "@/lib/require-admin";
@@ -42,6 +43,7 @@ async function cargarTodasLasDisponibles(proyectoId: string, vendedorUserId?: st
       .select("id,numero")
       .eq("proyecto_id", proyectoId)
       .in("estado", ESTADOS_DISPONIBLES)
+      .or(BOLETA_LIBRE_FILTER)
       .order("numero", { ascending: true })
       .range(desde, desde + PAGE_SIZE - 1);
 
@@ -94,7 +96,8 @@ export async function GET(req: Request, { params }: PageProps) {
         .from("boletas")
         .select("id", { count: "exact", head: true })
         .eq("proyecto_id", proyectoId)
-        .in("estado", ESTADOS_DISPONIBLES);
+        .in("estado", ESTADOS_DISPONIBLES)
+        .or(BOLETA_LIBRE_FILTER);
 
       if (vendedorUserId) {
         countQuery = countQuery.eq("vendedor_user_id", vendedorUserId);
@@ -116,6 +119,7 @@ export async function GET(req: Request, { params }: PageProps) {
         .select("id,numero")
         .eq("proyecto_id", proyectoId)
         .in("estado", ESTADOS_DISPONIBLES)
+        .or(BOLETA_LIBRE_FILTER)
         .order("numero", { ascending: true })
         .range(offset, offset);
 
@@ -146,6 +150,7 @@ export async function GET(req: Request, { params }: PageProps) {
         .eq("proyecto_id", proyectoId)
         .like("numero", `%${contiene}%`)
         .in("estado", ESTADOS_DISPONIBLES)
+        .or(BOLETA_LIBRE_FILTER)
         .order("numero", { ascending: true })
         .limit(CONTAINS_LIMIT);
 
@@ -168,6 +173,7 @@ export async function GET(req: Request, { params }: PageProps) {
         .eq("proyecto_id", proyectoId)
         .eq("numero", numero)
         .in("estado", ESTADOS_DISPONIBLES)
+        .or(BOLETA_LIBRE_FILTER)
         .order("numero", { ascending: true });
 
       if (vendedorUserId) {
@@ -195,6 +201,7 @@ export async function GET(req: Request, { params }: PageProps) {
       .gte("numero", desdeTexto)
       .lte("numero", hastaTexto)
       .in("estado", ESTADOS_DISPONIBLES)
+      .or(BOLETA_LIBRE_FILTER)
       .order("numero", { ascending: true });
 
     if (vendedorUserId) {

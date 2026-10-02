@@ -190,6 +190,58 @@ export default function ProyectoVentaClient({
   const enModoBusqueda = resultados !== null;
   const boletasVisibles = resultados ?? boletasPagina;
 
+  const consultaActual = tipoResultado === "exacto"
+    ? `numero=${encodeURIComponent(normalizarNumero(busqueda))}`
+    : tipoResultado === "contiene"
+      ? `contiene=${encodeURIComponent(normalizarContiene(busquedaContiene))}`
+      : tipoResultado === "suerte" && resultados?.[0]
+        ? `numero=${encodeURIComponent(resultados[0].numero)}`
+        : `page=${pagina}`;
+  const refrescarBusqueda = resultados !== null;
+
+  useEffect(() => {
+    if (!endpoint || modalAbierto || cargandoPagina) return;
+    let activo = true;
+    let consultando = false;
+    async function actualizar() {
+      if (document.visibilityState === "hidden" || consultando) return;
+      consultando = true;
+      try {
+        const response = await fetch(`${endpoint}?${consultaActual}`, { cache: "no-store" });
+        const data = (await response.json()) as BoletasResponse;
+        if (!activo || !data.success) return;
+        const disponibles = data.boletas || [];
+        if (refrescarBusqueda) {
+          setResultados(disponibles);
+          setAvisoOficina(data.search_status === "office");
+        } else {
+          // Remove occupied numbers immediately, retaining the order of surviving tickets.
+          setBoletasPagina((anteriores) => {
+            const ids = new Set(disponibles.map((boleta) => boleta.id));
+            const existentes = anteriores.filter((boleta) => ids.has(boleta.id));
+            const previos = new Set(existentes.map((boleta) => boleta.id));
+            return [...existentes, ...disponibles.filter((boleta) => !previos.has(boleta.id))];
+          });
+          setTotalDisponibles(Number(data.total ?? disponibles.length));
+        }
+      } catch {
+        // A failed refresh does not replace the last successful result.
+      } finally {
+        consultando = false;
+      }
+    }
+    const timer = window.setInterval(() => void actualizar(), 15000);
+    window.addEventListener("focus", actualizar);
+    document.addEventListener("visibilitychange", actualizar);
+    return () => {
+      activo = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", actualizar);
+      document.removeEventListener("visibilitychange", actualizar);
+    };
+  }, [endpoint, consultaActual, refrescarBusqueda, modalAbierto, cargandoPagina]);
+
+
   const textoResultado = useMemo(() => {
     if (tipoResultado === "suerte" && resultados?.[0]) {
       return `Tu número de la suerte es ${resultados[0].numero}`;

@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import { sincronizarDisponibilidadesGoogleSheet } from "@/lib/google-sheets-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -108,6 +109,7 @@ export async function POST(req: Request) {
       .eq("proyecto_id", proyecto_id)
       .in("numero", numerosUnicos)
       .in("estado", ["Disponible", "disponible"])
+      .or(BOLETA_LIBRE_FILTER)
       .select("id, numero");
 
     if (errorUpdate) throw errorUpdate;

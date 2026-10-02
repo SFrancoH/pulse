@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -68,6 +69,7 @@ export async function GET(req: Request, { params }: PageProps) {
       .select("numero")
       .eq("proyecto_id", proyectoId)
       .eq("estado", ESTADO_DISPONIBLE)
+      .or(BOLETA_LIBRE_FILTER)
       .eq("vendedor_nombre", "Oficina")
       .is("vendedor_user_id", null)
       .order("numero", { ascending: true })

@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
@@ -26,7 +27,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
       .eq("estado", "activo")
       .maybeSingle(),
     supabaseAdmin.from("admin_users").select("nombre,email,telefono").eq("id", link.vendedor_user_id).eq("estado", "activo").maybeSingle(),
-    supabaseAdmin.from("boletas").select("id,numero").eq("empresa_id", link.empresa_id).eq("proyecto_id", link.proyecto_id).eq("vendedor_user_id", link.vendedor_user_id).in("estado", ESTADOS_DISPONIBLES).order("numero", { ascending: true }).range(0, 999),
+    supabaseAdmin.from("boletas").select("id,numero").eq("empresa_id", link.empresa_id).eq("proyecto_id", link.proyecto_id).eq("vendedor_user_id", link.vendedor_user_id).in("estado", ESTADOS_DISPONIBLES).or(BOLETA_LIBRE_FILTER).order("numero", { ascending: true }).range(0, 999),
     getPreviousWinners(link.empresa_id),
   ]);
 

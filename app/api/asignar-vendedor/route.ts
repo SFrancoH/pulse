@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import { requireCompanyManagerSession, requireProjectManagerAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -155,6 +156,7 @@ export async function POST(req: Request) {
         .eq("proyecto_id", boletaInicial.proyecto_id)
         .in("id", idsDisponibles)
         .in("estado", ["Disponible", "disponible"])
+        .or(BOLETA_LIBRE_FILTER)
         .eq("vendedor_nombre", "Oficina")
         .is("vendedor_user_id", null)
         .select("id,numero");
