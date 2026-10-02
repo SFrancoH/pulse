@@ -9,6 +9,9 @@
 | Campo | Estado registrado |
 | --- | --- |
 | Repositorio | [SFrancoH/pulse](https://github.com/SFrancoH/pulse) |
+| Rama de esta memoria | `docs/plan-desarrollo-pulse` |
+| PR documental | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), borrador, pendiente de integración |
+| Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | 2026-10-02, zona horaria America/Bogota |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -389,6 +392,17 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Pruebas:** análisis del log y lectura del módulo exacto; no se ejecutó un nuevo build ni se verificó el dominio productivo.
 - **Riesgo residual/bloqueo:** acceso y configuración del entorno de Vercel; posibilidad de una siguiente variable obligatoria ausente después de corregir la URL.
 - **Siguiente acción concreta:** P00-03, revisar y configurar URL/credencial privada por entorno y rama, y generar un nuevo deployment del HEAD comprobado.
+
+### Registro 2026-10-02 15:34 America/Bogota / M-003 — Memoria versionada y verificada
+
+- **Tipo/estado:** documentación publicada en rama GitHub; PR #35 en borrador, pendiente de integración. P00 continúa Bloqueado en P00-03.
+- **Commit inicial:** `3b966483ffa103c9fa914af3e6e36a4b0228540c`; rama `docs/plan-desarrollo-pulse`; [PR #35](https://github.com/SFrancoH/pulse/pull/35).
+- **Archivos versionados:** `docs/PLAN_DESARROLLO_PULSE.md` y `AGENTS.md`.
+- **Validación documental:** 18 secciones, 71 tareas con IDs únicos y secuenciales, 22 hallazgos cubiertos, cercas Markdown balanceadas y reglas Next originales preservadas. Contenido remoto del commit inicial comprobado contra los archivos locales.
+- **Estado refrescado:** `main` permanece en `23dfededd0bbb19bd9372e53cc04d594f50811ce`; PR #34 abierto, no integrado, HEAD `b3a00c764c1d4a8011574ac71b2fac16e06fa749`.
+- **Aplicación/DB/Vercel:** sin cambios ejecutados en esta unidad; sin pruebas de runtime ni publicación de la corrección.
+- **Cambio documental posterior:** esta entrada y enlaces del panel registran el commit inicial y el PR ya existentes; su commit propio se obtiene del historial del archivo.
+- **Siguiente acción concreta:** P00-03, corregir configuración del entorno de Vercel y generar un nuevo deployment; después continuar P00-04–10 antes de P01.
 
 ### Plantilla para la siguiente unidad
 
