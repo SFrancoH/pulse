@@ -12,10 +12,10 @@
 | --- | --- |
 | Repositorio | [SFrancoH/pulse](https://github.com/SFrancoH/pulse) |
 | Rama vigente de esta memoria | `main`; historial documental original en `docs/plan-desarrollo-pulse` |
-| PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35); contenido e historial se incorporan a main en este checkpoint sin publicar otra rama de Preview |
+| PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | 2026-10-02, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-02 16:11 America/Bogota; PR #34 integrado, build del commit de main en curso |
+| Último checkpoint de ejecución | 2026-10-02 16:18 America/Bogota; Vercel success para el main con código y memoria; pendiente confirmación visual de ventas |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -26,20 +26,21 @@
 | Estado del PR #34 | **Integrado** el 2026-10-02; commit de merge `726f99f5251940fe7b6e38e46bc428eda11c40cd` |
 | Estado de integración de GitHub | `merged=true`; SHA y árbol de main comprobados después del merge |
 | Build histórico de la rama/Preview descartado | **Vercel: failure** por URL Supabase ausente; no corresponde al nuevo build de main |
-| Build del main integrado | **Vercel: pending**; [deployment iniciado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HK2CZgTuz6Lg8xuLKCLXMYu2ipJk), resultado y entorno/alias por verificar |
+| Build del merge funcional | **Vercel: success**, SHA `726f99f5251940fe7b6e38e46bc428eda11c40cd`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HK2CZgTuz6Lg8xuLKCLXMYu2ipJk) |
+| Último deployment de main comprobado | **Vercel: success**, SHA `e4165c58751ebb928930323f37da9b42c2d098a2`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/8KG3wtidCZrZ9S4ADkjoMy2rSmsi). Checkpoint posterior sólo documental se identifica en Git |
 | Check `Vercel Preview Comments` | Success: sólo confirma que no hay comentarios pendientes; no confirma un build correcto |
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
 | SHA y dominio efectivo de producción | **Pendientes de verificación en Vercel y en el dominio servido** |
 | Fase activa | `P00` — publicar y verificar la corrección pendiente |
 | Última evidencia recibida | Log de Vercel aportado por el usuario el 2026-10-02 a las 15:23 America/Bogota |
-| Paso siguiente | `P00-08` — comprobar el build del main integrado y el deployment/dominio de Production |
-| Bloqueo actual | Se retira el bloqueo de Preview por instrucción del usuario. Configuración/deployment de Production se verificarán con el nuevo SHA |
+| Paso siguiente | `P00-08/09` — usuario confirma entorno Production/alias y exclusión de boletas ocupadas en la página de ventas |
+| Bloqueo actual | Build completado; falta la comprobación del dominio/página de ventas habitual. Se espera confirmación del usuario antes de P01 |
 | Regresión local del parche | 7/7 pruebas con fixtures; fuentes probadas verificadas por hash contra `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no acredita build, DB real ni producción |
-| Confirmación manual del usuario | Espera anterior de Preview cancelada por la instrucción de publicar directamente por main; pedir confirmación sólo si aparece una operación manual real |
+| Confirmación manual del usuario | Espera de Preview cancelada. Ahora pendiente confirmación de Production/alias y lectura de ventas; no se pide crear otro Supabase ni configurar Preview |
 | Cambios de aplicación realizados al crear este plan | Ninguno; se creó la documentación y la regla de mantenimiento de la memoria |
 
-**Conclusión comprobada:** el PR #34 y su corrección `b3a00c764c1d4a8011574ac71b2fac16e06fa749` ya se integraron a main mediante `726f99f5251940fe7b6e38e46bc428eda11c40cd`. Vercel inició un build para ese main. El fallo anterior de la rama fue por URL de Supabase ausente durante importación de `lib/supabase-admin.ts`; el usuario descartó Preview. El nuevo resultado y el SHA/dominio que atienden Production siguen pendientes de verificación.
+**Conclusión comprobada:** la corrección `b3a00c764c1d4a8011574ac71b2fac16e06fa749` se integró por PR #34 en `726f99f5251940fe7b6e38e46bc428eda11c40cd`, y la memoria por PR #35 en `e4165c58751ebb928930323f37da9b42c2d098a2`. Vercel reporta success / “Deployment has completed” para ambos. El fallo previo de la rama no se reprodujo en estos builds de main. El entorno/alias servido y el comportamiento sobre boletas reales todavía requieren la comprobación del usuario; P00 no se declara Verificado en producción por el build solamente.
 
 **Separar los problemas:** la desalineación de `package.json`/`package-lock.json` encontrada en la auditoría continúa como tarea de reproducibilidad en P02; no explica el error fatal de este log. Los avisos de install scripts de `sharp@0.34.5` y `unrs-resolver@1.11.1` tampoco detuvieron este build. No se ha demostrado que falten variables en producción: se debe verificar el alcance de variables del deployment concreto, normalmente Preview para esta rama.
 
@@ -95,6 +96,8 @@ Una tarea funcional que exige publicación sólo se marca `[x]` cuando alcanza *
 ### 2.3 Ubicación y continuidad
 
 Este archivo, `docs/PLAN_DESARROLLO_PULSE.md`, es la memoria operativa versionada. `AGENTS.md` debe indicar su lectura y actualización obligatorias. Cada PR funcional debe tocar esta memoria o justificar en su revisión por qué no cambia el estado del plan.
+
+Las referencias posteriores a staging/DB aislada se ejecutan como entorno local o efímero con PostgreSQL real y datos de prueba, sin crear un proyecto Supabase adicional. No convertir las pruebas de migración, restore o carga en ensayos destructivos sobre la DB productiva. La equivalencia con Vercel/Supabase cloud debe medirse y sus límites documentarse.
 
 Un archivo por sí solo no observa cambios externos ni se actualiza automáticamente: el desarrollador/agente que realiza el cambio es responsable de actualizarlo. En `P02` se añadirá un gate de CI para detectar PRs de implementación sin actualización del plan. Si otra persona trabaja fuera de ese flujo, reconciliar primero Git/DB/Vercel y registrar la diferencia; no reutilizar un estado obsoleto.
 
@@ -358,7 +361,7 @@ El build exitoso, la integración y la verificación del dominio deben estar acr
 | F02 Reserva sin autorización/scope vendedor | P01-02, P05-04/07 | Abierto |
 | F03 PII en API pública | P01-04, P08-03, P09-06 | Abierto |
 | F04 Oportunidades GHL sin firma | P01-03, P06-02/06 | Abierto |
-| F05 Disponibilidad sólo por estado | P00, P05-01/02/07 | Corrección parcial integrada por PR34; build/verificación en producción pendientes |
+| F05 Disponibilidad sólo por estado | P00, P05-01/02/07 | Corrección parcial integrada, Vercel success; comprobación de ventas pendiente |
 | F06 Exports anónimos y CPU/memoria | P01-05, P08-01/04 | Abierto |
 | F07 Operaciones compuestas sin transacción | P05-04/05/07, P06-02 | Abierto |
 | F08 Sheets sin namespace tenant | P06-01/04/06 | Abierto; efecto remoto no probado |
@@ -492,6 +495,22 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Estado P00-07:** integrado; el checkbox final queda abierto conforme al criterio de verificación en producción de la sección 2.1.
 - **Rollback de aplicación:** revertir el merge del parche sobre el main vigente si hay una regresión; verificar el build/alias después. No deshace automáticamente cambios de datos concurrentes.
 - **Siguiente acción concreta:** esperar/comprobar status del main vigente; si falla por variables, explicar el proceso manual de Production y esperar confirmación; si termina, verificar entorno/alias y listado/búsqueda de ventas antes de P01.
+
+### Registro 2026-10-02 16:18 America/Bogota / M-007 — Builds de main completados; espera de comprobación visual
+
+- **Tarea/fase:** P00-06/08/09.
+- **Estado:** Integrado en main y deployment completado según Vercel; Verificado en producción sigue pendiente.
+- **Implementación/merge:** `b3a00c764c1d4a8011574ac71b2fac16e06fa749` / `726f99f5251940fe7b6e38e46bc428eda11c40cd`, PR #34 merged.
+- **Main con memoria:** `e4165c58751ebb928930323f37da9b42c2d098a2`; PR #35 cerrado con merged=true al incorporar su historial. Plan/AGENTS remotos verificados byte a byte contra los archivos locales.
+- **Build funcional:** contexto Vercel success, “Deployment has completed”; [HK2CZgTuz6Lg8xuLKCLXMYu2ipJk](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HK2CZgTuz6Lg8xuLKCLXMYu2ipJk).
+- **Build con memoria:** contexto Vercel success, “Deployment has completed”; [8KG3wtidCZrZ9S4ADkjoMy2rSmsi](https://vercel.com/soy-sebastian-franco-s-projects/pulse/8KG3wtidCZrZ9S4ADkjoMy2rSmsi).
+- **Resultado del cambio de flujo:** no fue necesario configurar Preview ni crear un proyecto Supabase. No se atribuye al build de Production la ausencia de URL de la rama anterior.
+- **Limitación:** el status GitHub no expone entorno Production ni alias efectivo, y no se dispone de sesión/datos para comprobar visualmente la venta habitual. No se usaron credenciales de compradores ni se alteraron sus registros.
+- **Cambio de esta unidad:** registrar builds success y cerrar el bloqueo de compilación; abrir la espera manual concreta de entorno/alias y disponibilidad.
+- **Archivo modificado:** `docs/PLAN_DESARROLLO_PULSE.md`; el commit de este checkpoint es sólo documental y se obtiene del historial Git. Puede generar otro build del mismo código funcional; verificar su status sin repetir pruebas de aplicación sin causa.
+- **Procedimiento manual:** usuario abre el deployment vigente de main en Vercel y confirma Environment=Production / Ready y dominio habitual; luego recarga ventas y comprueba que una boleta con nombre/teléfono/abono o vendedor asignado no aparece como disponible en Oficina ni en búsqueda, y que una libre sí aparece. En enlaces de vendedor se conserva sólo su stock libre según el contrato comercial.
+- **Confirmación requerida:** pendiente; compartir resultado y, si hay fallo, número de prueba y mensaje sin datos personales. No ejecutar cambios de código/DB de P01 mientras esta comprobación de P00 esté pendiente.
+- **Siguiente acción concreta:** esperar confirmación del usuario, registrar dominio/escenarios/resultado, cerrar P00-08/09/10 si corresponde y comenzar P01-01.
 
 ### Plantilla para la siguiente unidad
 
