@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import { requireProjectManagerAccess } from "@/lib/require-admin";
 import { crearUrlPublicaDeVendedor, getOrCreateSellerSalesLink } from "@/lib/seller-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -195,6 +196,7 @@ export async function POST(req: Request, { params }: PageProps) {
         .eq("proyecto_id", proyectoId)
         .in("id", idsAsignables)
         .in("estado", ["Disponible", "disponible"])
+        .or(BOLETA_LIBRE_FILTER)
         .eq("vendedor_nombre", "Oficina")
         .is("vendedor_user_id", null)
         .select("id,numero");

@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import AdminSalesReservationMonitor from "@/components/AdminSalesReservationMonitor";
 import OpportunityErrorRecovery from "@/components/OpportunityErrorRecovery";
 import PreviousWinners from "@/components/PreviousWinners";
@@ -50,6 +51,7 @@ export default async function AdminProjectSalesPage({ params }: Props) {
         .eq("vendedor_nombre", "Oficina")
         .is("vendedor_user_id", null)
         .in("estado", ESTADOS_DISPONIBLES)
+        .or(BOLETA_LIBRE_FILTER)
         .order("numero", { ascending: true })
         .range(0, 999),
       getPreviousWinners(proyectoAutorizado.empresa_id),

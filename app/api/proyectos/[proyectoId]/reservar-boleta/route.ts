@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import { sincronizarDisponibilidadGoogleSheet } from "@/lib/google-sheets-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -208,6 +209,7 @@ export async function POST(req: Request, { params }: PageProps) {
       .eq("proyecto_id", proyectoId)
       .eq("numero", numero)
       .eq("estado", "Disponible")
+      .or(BOLETA_LIBRE_FILTER)
       .select("id,empresa_id,proyecto_id,numero,estado,nombre_cliente,telefono_cliente,email_cliente,vendedor_nombre,canal,valor_pagado,updated_at")
       .maybeSingle();
 

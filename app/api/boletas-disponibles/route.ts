@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
@@ -32,6 +33,7 @@ export async function GET(req: Request) {
       .eq("empresa_id", empresa_id)
       .eq("proyecto_id", proyecto_id)
       .in("estado", ["Disponible", "disponible"])
+      .or(BOLETA_LIBRE_FILTER)
       .eq("vendedor_nombre", "Oficina")
       .is("vendedor_user_id", null)
       .order("numero", { ascending: true });

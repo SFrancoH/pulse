@@ -1,3 +1,4 @@
+import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import { getActiveSellerSalesLink } from "@/lib/seller-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { liberarReservasTemporalesExpiradas } from "@/lib/temporary-reservations";
@@ -49,6 +50,7 @@ export async function GET(req: Request, { params }: Props) {
         .eq("proyecto_id", link.proyecto_id)
         .eq("vendedor_user_id", link.vendedor_user_id)
         .in("estado", ESTADOS_DISPONIBLES)
+        .or(BOLETA_LIBRE_FILTER)
         .order("numero", { ascending: true });
 
     if (numero) {
@@ -59,6 +61,7 @@ export async function GET(req: Request, { params }: Props) {
       const { data: externa, error: externaError } = await supabaseAdmin
         .from("boletas")
         .select("id,estado,vendedor_nombre,vendedor_user_id")
+        .or(BOLETA_LIBRE_FILTER)
         .eq("empresa_id", link.empresa_id)
         .eq("proyecto_id", link.proyecto_id)
         .eq("numero", numero)
@@ -90,6 +93,7 @@ export async function GET(req: Request, { params }: Props) {
       .eq("proyecto_id", link.proyecto_id)
       .eq("vendedor_user_id", link.vendedor_user_id)
       .in("estado", ESTADOS_DISPONIBLES)
+      .or(BOLETA_LIBRE_FILTER)
       .order("numero", { ascending: true })
       .range(inicio, fin);
 
