@@ -17,7 +17,7 @@
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-03, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-03 09:44 America/Bogota; reversión de la preparación P01, conservación del contrato de formularios/webhooks y aplazamiento por instrucción del usuario |
+| Último checkpoint de ejecución | 2026-10-03 09:52 America/Bogota; reversión integrada en main `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c` y Vercel success; autenticación aplazada |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -29,18 +29,19 @@
 | Estado de integración de GitHub | `merged=true`; SHA y árbol de main comprobados después del merge |
 | Build histórico de la rama/Preview descartado | **Vercel: failure** por URL Supabase ausente; no corresponde al nuevo build de main |
 | Build del merge funcional | **Vercel: success**, SHA `726f99f5251940fe7b6e38e46bc428eda11c40cd`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HK2CZgTuz6Lg8xuLKCLXMYu2ipJk) |
-| Último deployment de main comprobado | **Vercel: success**, SHA `fcbfd1590e19702a14780ef04db52af59d11c37b`; [deployment de preparación completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/9cTFQYj6qfX555BtEddwjK3SJNjc). Los checkpoints posteriores sólo documentales se consultan en Git |
+| Último deployment de main comprobado | **Vercel: success**, reversión `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/vu492kMPFasaRTh2fhw2rEyUjrg6). Los checkpoints posteriores sólo documentales se consultan en Git |
 | Check `Vercel Preview Comments` | Success: sólo confirma que no hay comentarios pendientes; no confirma un build correcto |
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
-| SHA y dominio efectivo de producción | Comprobación manual confirmada por el usuario; SHA del último build observado `570cf77acd8d3de461b1c632963a1b91e946c7db`. No se proporcionó el dominio exacto ni una captura del SHA servido |
-| Fase activa | `R01` — retirar la preparación P01 y preservar el funcionamiento actual; cambios de integración de P01 aplazados |
+| SHA y dominio efectivo de producción | P00 confirmado manualmente el 2026-10-02. Reversión `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`: Vercel success; alias y recorrido GHL posteriores no comprobados desde esta sesión |
+| Fase activa | `R01` — reversión integrada y build completado; P01-01/02/03 y cambios de integración aplazados por el usuario |
 | Última evidencia recibida | Usuario reporta fallo tras el último cambio y ordena revertirlo; aclara Pulse → formularios simples GHL y GHL → webhook Pulse por costos, 2026-10-03 09:40 America/Bogota |
-| Paso siguiente | Publicar y comprobar la reversión en main; conservar el flujo vigente y dejar P01-01/02/03 aplazados. No pedir nuevas variables/headers/productos GHL |
-| Bloqueo actual | Activación de autenticación cancelada, no pendiente de configuración. Build de la reversión y comprobación operativa posterior pendientes al escribir este registro |
+| Paso siguiente | Conservar el flujo vigente y comprobar la operación habitual tras la reversión; si se reporta fallo, investigar su error concreto sin alterar el contrato GHL. P01-01/02/03 aplazados |
+| Bloqueo actual | Ningún bloqueo de build/publicación. La activación de autenticación está cancelada, no pendiente de configuración. Sin verificación independiente del recorrido GHL/DB en producción |
 | Regresión local del parche | 7/7 pruebas con fixtures; fuentes probadas verificadas por hash contra `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no acredita build, DB real ni producción |
 | Confirmación manual del usuario | P00 confirmado con «listo»; evidencia declarada por el usuario, no una prueba independiente automatizada. No se solicitan de nuevo Preview ni otro Supabase |
-| Preparación de P01 | Retirada en la unidad R01: módulos, tests y runbook de `fcbfd1590e19702a14780ef04db52af59d11c37b`. Historial conservado; P01 aplazado. Nunca se conectó ese guard a los handlers |
+| Preparación de P01 | Revertida por `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`: módulos, tests y runbook de `fcbfd1590e19702a14780ef04db52af59d11c37b` retirados. Historial conservado; P01 aplazado. Nunca se conectó ese guard a los handlers |
+| Verificación de reversión | 7/7 pruebas de disponibilidad y TypeScript exit 0; árbol de toda la aplicación igual a `570cf77acd8d3de461b1c632963a1b91e946c7db`, salvo AGENTS/memoria; root de reversión `68e9f4bb0387777e45a17876983a907db47c13dc` |
 | Base de esta reversión | Main `6e6ade4ee05052fee7f05ace029ffccad3bb0fd5`, árbol `3e9bd6b089c2903566b903aecb41efa608e2b2bc`; referencia anterior a la preparación `570cf77acd8d3de461b1c632963a1b91e946c7db` |
 | Contrato obligatorio | Pulse → formularios simples de GHL; GHL → webhooks existentes de Pulse. Mantener payloads/URLs y costos actuales; pasos de configuración de ayer cancelados |
 | Cambios de aplicación realizados al crear este plan | Ninguno; se creó la documentación y la regla de mantenimiento de la memoria |
@@ -590,6 +591,21 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Estado al registrar:** Verificado local; publicación/build y verificación operativa pendientes. P01-01/02/03 aplazados, no Bloqueados esperando que el usuario compre/configure GHL.
 - **Configuración manual anterior:** cancelada; no se necesita la nueva variable ni headers Bearer para el flujo conservado. Si el usuario ya alteró acciones en GHL siguiendo aquella guía, la recuperación externa exige identificar esos cambios y volver a su acción/mapeo anterior; no se ha recibido confirmación de que lo haya hecho, ni existe acceso a esa configuración desde este repositorio.
 - **Siguiente acción concreta:** validar y publicar la reversión conservando disponibilidad; registrar SHA/deployment y dejar los cambios futuros de autenticación aplazados. Comprobar el formulario habitual y recepción actual sin escribir datos ficticios en boletas de compradores.
+
+### Registro 2026-10-03 09:52 America/Bogota / M-012 — Reversión publicada y build completado
+
+- **Tarea/fase:** R01; preparación revertida y cambios de integración/auth P01-01/02/03 aplazados. El usuario no tiene que ejecutar el procedimiento de ayer.
+- **Commit de reversión real:** `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`; padre `6e6ade4ee05052fee7f05ace029ffccad3bb0fd5`. Retira la preparación de `fcbfd1590e19702a14780ef04db52af59d11c37b` y cancela sus instrucciones. No se reescribe el historial.
+- **Árbol de reversión:** `68e9f4bb0387777e45a17876983a907db47c13dc`; igualdad del árbol remoto con el candidato local comprobada antes/después de integrar. Contra la versión previa a preparación `570cf77acd8d3de461b1c632963a1b91e946c7db`, sólo difieren AGENTS/memoria: toda la aplicación/contratos tienen los mismos blobs.
+- **Diff de GitHub contra el main anterior:** cinco archivos de preparación removed; AGENTS y plan modified. Sin cambios de formularios, endpoints, dependencias ni schema. Preservada la corrección de disponibilidad de PR #34.
+- **Integración:** main directo autorizado, update ref sin force, padre/HEAD esperado comprobados; sin Preview ni otro Supabase, sin PR nuevo.
+- **Pruebas relevantes:** 7/7 disponibilidad con fixtures y TypeScript exit 0; validación de igualdad de árbol, ausencia de imports/variable nueva en aplicación y Markdown. Dependencias existentes; no se atribuye un test de auth retirado ni una prueba productiva a esta reversión.
+- **Deployment observado:** contexto Vercel success, “Deployment has completed”, [vu492kMPFasaRTh2fhw2rEyUjrg6](https://vercel.com/soy-sebastian-franco-s-projects/pulse/vu492kMPFasaRTh2fhw2rEyUjrg6), SHA `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`. Estado del main y árbol comprobados después de publicar. El status no demuestra por sí solo el alias/recorrido del formulario habitual.
+- **Estado externo:** no se alteraron workflows, formularios ni variables de Vercel/GHL/Supabase desde esta sesión. No se recibió confirmación de ejecución de los pasos manuales previos; no se supone que el usuario ya los aplicó. La nueva variable/headers no son necesarios y aquella guía queda cancelada.
+- **Memoria y reglas:** contrato vigente Pulse → formulario simple GHL y GHL → webhook Pulse registrado en el panel y AGENTS. Los cambios futuros no se reactivan siguiendo automáticamente la fase P01 del roadmap.
+- **Alcance del resultado:** preparación retirada y build correcto; recorrido productivo y causa exacta del fallo reportado no comprobados con datos/sesión reales. Si persiste un fallo, conservar su error/URL/acción sin PII y auditar el flujo actual; no imponer otra arquitectura como solución.
+- **Siguiente acción concreta:** mantener la comunicación existente. Verificar el uso habitual en su entorno; si se cambiaron acciones externas por la guía de ayer, recuperar únicamente su configuración anterior tras identificar esos cambios. Cambios de autenticación aplazados para el futuro por instrucción explícita del usuario.
+- **Checkpoint documental posterior:** registra este SHA de reversión ya existente; su propio hash se consulta en Git. No se repiten pruebas de aplicación por cambios sólo documentales.
 
 ### Plantilla para la siguiente unidad
 
