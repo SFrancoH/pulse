@@ -6,6 +6,8 @@
 >
 > **Flujo autorizado desde 2026-10-02 15:58 America/Bogota:** validación local → `main` → build de **Production** en Vercel → verificación en producción. El usuario no utiliza Preview ni autoriza crear otro proyecto Supabase para esta publicación. Esta decisión sustituye el requisito anterior de configurar/verificar Preview.
 
+> **Restricción vigente desde 2026-10-03:** mantener Pulse → GHL mediante formularios simples y GHL → Pulse mediante los webhooks existentes, por costos. La preparación de autenticación y los pasos de Custom Webhook/Bearer se retiran; esas modificaciones quedan aplazadas para el futuro. Esta decisión sustituye las instrucciones de activación/configuración de M-008–M-010. No modificar el contrato operativo al retomar el orden histórico del plan.
+
 ## 1. Estado actual: empezar a leer aquí
 
 | Campo | Estado registrado |
@@ -14,8 +16,8 @@
 | Rama vigente de esta memoria | `main`; historial documental original en `docs/plan-desarrollo-pulse` |
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
-| Creación y última revisión de esta versión | 2026-10-02, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-02 17:44 America/Bogota; preparación P01-01/02 integrada en main y build Vercel success; activación de las rutas pendiente de configuración manual |
+| Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-03, zona horaria America/Bogota |
+| Último checkpoint de ejecución | 2026-10-03 09:44 America/Bogota; reversión de la preparación P01, conservación del contrato de formularios/webhooks y aplazamiento por instrucción del usuario |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -32,16 +34,20 @@
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
 | SHA y dominio efectivo de producción | Comprobación manual confirmada por el usuario; SHA del último build observado `570cf77acd8d3de461b1c632963a1b91e946c7db`. No se proporcionó el dominio exacto ni una captura del SHA servido |
-| Fase activa | `P01` — autorización de mutaciones y protección de datos públicos |
-| Última evidencia recibida | «listo que seria lo siguiente ?», 2026-10-02 17:23 America/Bogota, respuesta al procedimiento de Production/ventas |
-| Paso siguiente | `P01-01/02` — preparar autorización de actualizar/reservar y configurar credenciales de workflows antes de activarla |
-| Bloqueo actual | P00 sin bloqueo. La activación de P01 necesita configurar Vercel/GHL y recibir confirmación manual del usuario |
+| Fase activa | `R01` — retirar la preparación P01 y preservar el funcionamiento actual; cambios de integración de P01 aplazados |
+| Última evidencia recibida | Usuario reporta fallo tras el último cambio y ordena revertirlo; aclara Pulse → formularios simples GHL y GHL → webhook Pulse por costos, 2026-10-03 09:40 America/Bogota |
+| Paso siguiente | Publicar y comprobar la reversión en main; conservar el flujo vigente y dejar P01-01/02/03 aplazados. No pedir nuevas variables/headers/productos GHL |
+| Bloqueo actual | Activación de autenticación cancelada, no pendiente de configuración. Build de la reversión y comprobación operativa posterior pendientes al escribir este registro |
 | Regresión local del parche | 7/7 pruebas con fixtures; fuentes probadas verificadas por hash contra `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no acredita build, DB real ni producción |
 | Confirmación manual del usuario | P00 confirmado con «listo»; evidencia declarada por el usuario, no una prueba independiente automatizada. No se solicitan de nuevo Preview ni otro Supabase |
-| Preparación de P01 | Integrada en main, commit `fcbfd1590e19702a14780ef04db52af59d11c37b`; 26/26 pruebas, TypeScript y lint de archivos nuevos correctos; Vercel success. Las rutas todavía no consumen el guard |
+| Preparación de P01 | Retirada en la unidad R01: módulos, tests y runbook de `fcbfd1590e19702a14780ef04db52af59d11c37b`. Historial conservado; P01 aplazado. Nunca se conectó ese guard a los handlers |
+| Base de esta reversión | Main `6e6ade4ee05052fee7f05ace029ffccad3bb0fd5`, árbol `3e9bd6b089c2903566b903aecb41efa608e2b2bc`; referencia anterior a la preparación `570cf77acd8d3de461b1c632963a1b91e946c7db` |
+| Contrato obligatorio | Pulse → formularios simples de GHL; GHL → webhooks existentes de Pulse. Mantener payloads/URLs y costos actuales; pasos de configuración de ayer cancelados |
 | Cambios de aplicación realizados al crear este plan | Ninguno; se creó la documentación y la regla de mantenimiento de la memoria |
 
 **Conclusión y evidencia:** la corrección `b3a00c764c1d4a8011574ac71b2fac16e06fa749` se integró por PR #34 en `726f99f5251940fe7b6e38e46bc428eda11c40cd`, y la memoria por PR #35 en `e4165c58751ebb928930323f37da9b42c2d098a2`. Vercel completó también el build documental `570cf77acd8d3de461b1c632963a1b91e946c7db`. La respuesta «listo» del usuario confirma el procedimiento solicitado de Production/alias y disponibilidad; P00 se cierra con esa evidencia manual. No se inventan dominio, boletas concretas, capturas, prueba de compra completa ni pruebas independientes de DB/navegador.
+
+**Incidente y alcance actual:** el usuario reportó interrupción el 2026-10-03. Se retira por su instrucción la preparación de autenticación. La comparación de árboles acredita que aquella unidad no modificó ni importó el guard en formularios/handlers: no demuestra una causa de fallo de ejecución ni una reparación completa de una configuración externa. La reversión debe comprobarse por su build y el comportamiento habitual; no sustituir el reporte del usuario por una afirmación de que todo funciona.
 
 **Separar los problemas:** la desalineación de `package.json`/`package-lock.json` encontrada en la auditoría continúa como tarea de reproducibilidad en P02; no explica el error fatal de este log. Los avisos de install scripts de `sharp@0.34.5` y `unrs-resolver@1.11.1` tampoco detuvieron este build. No se ha demostrado que falten variables en producción: se debe verificar el alcance de variables del deployment concreto, normalmente Preview para esta rama.
 
@@ -103,6 +109,8 @@ Las referencias posteriores a staging/DB aislada se ejecutan como entorno local 
 Un archivo por sí solo no observa cambios externos ni se actualiza automáticamente: el desarrollador/agente que realiza el cambio es responsable de actualizarlo. En `P02` se añadirá un gate de CI para detectar PRs de implementación sin actualización del plan. Si otra persona trabaja fuera de ese flujo, reconciliar primero Git/DB/Vercel y registrar la diferencia; no reutilizar un estado obsoleto.
 
 ## 3. Orden de ejecución
+
+**Excepción vigente (2026-10-03):** la prioridad inmediata es R01, revertir la preparación y preservar el contrato de integración actual. P01-01/02/03 y cualquier cambio que exija otro producto/credencial/payload quedan aplazados para el futuro por instrucción del usuario. La tabla siguiente conserva el roadmap técnico original; no autoriza activar esas tareas ni exigir configurar GHL ahora. El resto del plan se retomará con alcance compatible con formularios simples y los webhooks ya utilizados.
 
 | Orden | Fase | Resultado exigido antes de continuar |
 | --- | --- | --- |
@@ -213,7 +221,7 @@ El build exitoso, la integración y la verificación del dominio deben estar acr
 
 **Hallazgos:** F01, F02, F03, F04, F06 y parte de F12. **Dependencia:** P00 verificado.
 
-**Estado P01-01/02:** preparación verificada local, integrada en main `fcbfd1590e19702a14780ef04db52af59d11c37b` y build Vercel success; guard y contrato descritos en [P01_WEBHOOKS.md](P01_WEBHOOKS.md). La conexión del guard a los handlers y la remediación efectiva siguen pendientes. Configurar `PULSE_PROJECT_WEBHOOK_KEYS` en Vercel Production y Bearer en los workflows legítimos, confirmar por chat y luego activar por main. No declarar F01/F02 cerrados por tener helpers sin uso.
+**Estado P01-01/02/03:** aplazados para el futuro por instrucción del usuario el 2026-10-03. La preparación de `fcbfd1590e19702a14780ef04db52af59d11c37b` y `docs/P01_WEBHOOKS.md` se retiran. Cancelados los pasos de `PULSE_PROJECT_WEBHOOK_KEYS`, Bearer, Custom Webhook y cambios de workflows. Mantener los formularios simples salientes y los webhooks entrantes existentes. Los hallazgos de auditoría se conservan como trabajo futuro; no se declaran corregidos ni se activan al retomar automáticamente el plan.
 
 - [ ] **P01-01 — F01: proteger `actualizar-boleta`.** Inventariar quién la llama: panel o integración. Para panel, exigir sesión, rol y acceso al proyecto mediante `lib/require-admin.ts`. Para integración, exigir credencial/firma limitada a tenant y proyectos autorizados. Derivar el contexto en servidor; no usar `empresa_id` recibido como permiso. Denegar anónimo, vendedor sin facultad y empresa ajena antes de construir la consulta. Validar transición y monto; quitar eco de payload y errores DB crudos.
 - [ ] **P01-02 — F02: proteger `reservar-boleta`.** Aplicar el mismo contrato de actor/tenant, conservar condición de estado en el UPDATE y exigir ámbito de vendedor o pool Oficina. Comprobar que un secreto de A tampoco puede reservar en B. No reemplazar autenticación por un ID de proyecto conocido. Documentar cómo se actualiza el workflow legítimo antes de retirar un contrato legado.
@@ -533,6 +541,8 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 
 ### Registro 2026-10-02 17:40 America/Bogota / M-009 — Preparación probada de autorización; espera de configuración GHL
 
+> Registro histórico: sus instrucciones de configuración/activación están canceladas por M-011 y no deben ejecutarse.
+
 - **Tarea/fase y hallazgos:** preparación P01-01/02, F01/F02; pruebas iniciales de P01-07. Las tres tareas siguen abiertas hasta conectar/verificar los handlers.
 - **Base:** main `570cf77acd8d3de461b1c632963a1b91e946c7db`, árbol `c02272e7e5892c3bdb5ecb6cd25eb701d3657b06`.
 - **Estado antes → después:** inventario de callers completado → preparación Verificada local, activación Bloqueada esperando configuración/confirmación manual. Publicación de la preparación en main pendiente al escribir esta entrada; no equivale a activar la protección.
@@ -550,6 +560,8 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 
 ### Registro 2026-10-02 17:44 America/Bogota / M-010 — Preparación P01 integrada en main y build completado
 
+> Registro histórico: la preparación aquí descrita se retira en M-011; las instrucciones pendientes quedaron canceladas.
+
 - **Tarea/fase:** preparación P01-01/02; espera de configuración y activación. F01/F02 continúan abiertos.
 - **Commit de implementación real:** `fcbfd1590e19702a14780ef04db52af59d11c37b`; padre `570cf77acd8d3de461b1c632963a1b91e946c7db`.
 - **Árbol probado y publicado:** `7d535482dd0f873ebe4653633780513aa84492a4`; identidad local/remota comprobada antes de publicar. Seis archivos de preparación/memoria; ningún handler ni schema cambió.
@@ -561,6 +573,23 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Memoria:** este checkpoint registra el SHA funcional de preparación ya existente; su propio commit documental se consulta en Git, evitando autorregistro recursivo.
 - **Rollback:** retirar la preparación no cambia datos ni el contrato activo; las rutas todavía conservan el comportamiento anterior. No usar un bypass anónimo cuando se active la protección.
 - **Siguiente acción concreta:** el usuario realiza los pasos de `docs/P01_WEBHOOKS.md` y confirma Vercel/GHL sin compartir claves. Esperar esa respuesta antes de activar las rutas en main; después ejecutar el paso de activación y seguir P01-03.
+
+### Registro 2026-10-03 09:44 America/Bogota / M-011 — Reversión de preparación y contrato GHL corregido
+
+- **Tarea/fase:** R01; retirar preparación P01-01/02 y aplazar los cambios de integración.
+- **Instrucción del usuario:** corregir el último cambio, conservar la estructura actual y aplazar estos cambios al futuro. Aclaración explícita: Pulse envía a GHL mediante formularios simples; GHL responde a Pulse mediante webhook. Decisión motivada por costos. No sustituir esa comunicación por Custom Webhook/API ni exigir Bearer/credenciales nuevas.
+- **Error de implementación/proceso reconocido:** se preparó un contrato de autenticación y se exigió configurar acciones de GHL sin haber comprobado el mecanismo disponible/costos de esta cuenta. Se cancela el procedimiento manual anterior y se preserva la integración existente.
+- **Base remota comprobada:** main `6e6ade4ee05052fee7f05ace029ffccad3bb0fd5`, árbol `3e9bd6b089c2903566b903aecb41efa608e2b2bc`; no hay commits posteriores. Archivo de memoria/AGENTS remotos contrastados con fuentes locales por blob/árbol.
+- **Cambio retirado:** implementación de preparación `fcbfd1590e19702a14780ef04db52af59d11c37b`, árbol `7d535482dd0f873ebe4653633780513aa84492a4`, más sus instrucciones documentales de `6e6ade4ee05052fee7f05ace029ffccad3bb0fd5`. La bitácora histórica se conserva y se marca como cancelada; no se hace reset/force del historial Git.
+- **Archivos eliminados:** `lib/project-webhook-auth.ts`, `lib/boleta-webhook-payload.ts`, `tests/project-webhook-auth.test.mjs`, `tests/helpers/webhook-harness.mjs`, `docs/P01_WEBHOOKS.md`.
+- **Archivos actualizados:** `AGENTS.md`, `docs/PLAN_DESARROLLO_PULSE.md`. Reglas y dashboard fijan la comunicación bidireccional vigente, el aplazamiento y la cancelación de los pasos manuales.
+- **Fuente funcional conservada:** `570cf77acd8d3de461b1c632963a1b91e946c7db`, árbol anterior a preparación `c02272e7e5892c3bdb5ecb6cd25eb701d3657b06`, con la corrección de disponibilidad PR #34/merge `726f99f5251940fe7b6e38e46bc428eda11c40cd` incluida. La reversión no retira `lib/boleta-availability.ts` ni sus predicados en ventas/reservas.
+- **Evidencia de alcance:** las seis diferencias desde ese main anterior son cinco archivos nuevos y la memoria. Ningún archivo app/components/schema/dependencias cambió en la preparación. `rg` confirma que el guard/parser sólo eran referenciados por sus propios tests; ningún handler estaba conectado a ellos. Esta evidencia delimita la reversión, no acredita una causa del incidente reportado en producción.
+- **Contratos conservados:** formularios y query keys en `ProyectoVentaClient`/`ProyectoVentaReservaClient`, URLs de `formulario_compra_url`, payloads y comportamiento actual de `/actualizar-boleta`, `/reservar-boleta`, `/oportunidades-ghl` y `/api/ghl-reserva`, autenticación preexistente de otras rutas y sincronización Google Sheets. No se modifican variables externas, credenciales actuales, DB ni workflows.
+- **Verificación local completada:** comparación de todo el árbol frente a `c02272e7e5892c3bdb5ecb6cd25eb701d3657b06`: diferencias limitadas a AGENTS/memoria; formularios, APIs, lib, schema, dependencias y disponibilidad idénticos. `node --test tests/availability.test.mjs`: 7 pass, 0 fail. `tsc --noEmit`: exit 0. Sin referencias activas a los módulos/variable retirados; cercas Markdown correctas. Pruebas con fixtures/SDK de Supabase y dependencias existentes; sin instalación limpia ni petición real de GHL/DB productiva. Snapshot local antes de añadir estos resultados: `9875afec9211ca15cc5575134883e97922cc2f70`; el cambio posterior sólo añade documentación.
+- **Estado al registrar:** Verificado local; publicación/build y verificación operativa pendientes. P01-01/02/03 aplazados, no Bloqueados esperando que el usuario compre/configure GHL.
+- **Configuración manual anterior:** cancelada; no se necesita la nueva variable ni headers Bearer para el flujo conservado. Si el usuario ya alteró acciones en GHL siguiendo aquella guía, la recuperación externa exige identificar esos cambios y volver a su acción/mapeo anterior; no se ha recibido confirmación de que lo haya hecho, ni existe acceso a esa configuración desde este repositorio.
+- **Siguiente acción concreta:** validar y publicar la reversión conservando disponibilidad; registrar SHA/deployment y dejar los cambios futuros de autenticación aplazados. Comprobar el formulario habitual y recepción actual sin escribir datos ficticios en boletas de compradores.
 
 ### Plantilla para la siguiente unidad
 
