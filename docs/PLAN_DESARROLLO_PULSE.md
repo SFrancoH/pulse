@@ -17,7 +17,7 @@
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-03, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-03 18:21 America/Bogota; instalador DEL-01 v2 adaptado al DDL recibido y 31/31 pruebas locales correctas; instalación manual pendiente antes de activar |
+| Último checkpoint de ejecución | 2026-10-03 18:25 America/Bogota; SQL DEL-01 v2 integrado en `eaaa1582202fefe4a2084c0341867bd424fb8abd`, Vercel success; espera de instalación manual antes de activar |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -29,7 +29,7 @@
 | Estado de integración de GitHub | `merged=true`; SHA y árbol de main comprobados después del merge |
 | Build histórico de la rama/Preview descartado | **Vercel: failure** por URL Supabase ausente; no corresponde al nuevo build de main |
 | Build del merge funcional | **Vercel: success**, SHA `726f99f5251940fe7b6e38e46bc428eda11c40cd`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HK2CZgTuz6Lg8xuLKCLXMYu2ipJk) |
-| Último deployment de main comprobado | **Vercel success**, checkpoint documental `3bb960c7af1d7ade3b52fe550c695aabbf180c8b`; [deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/Ecira5rX81JvfWmxMU2XJguDNVdX). Runtime conserva fac967; UI DEL-01 no activada |
+| Último deployment de main comprobado | **Vercel success**, instalador/tests/documentación v2 `eaaa1582202fefe4a2084c0341867bd424fb8abd`; [deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/A6ftjEGFYpTmRYUAFFZwc2dRGvFK). Aplicación conserva blobs de fac967; UI DEL-01 no activada |
 | Check `Vercel Preview Comments` | Success: sólo confirma que no hay comentarios pendientes; no confirma un build correcto |
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
@@ -742,6 +742,17 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Manual concreto:** en la DB actual de Pulse, SQL Editor → New query → pegar la versión actualizada completa del instalador 01 → Run → compartir última fila. Esperado instalada=true, servidor_permitido=true, anon_permitido=false, authenticated_permitido=false, movimientos=no_existe o por_boleta_id, dependencias_adicionales=0 y triggers_por_revisar=0. No llamar a la función para verificar instalación. Si hay error/conteo pendiente, diagnóstico 00 antes de activar.
 - **Estado productivo:** DDL recibido es evidencia del esquema que declara el operador, no un acceso directo al catálogo. Versión 2 preparada/probada local, sin confirmación de instalación en Supabase. Ningún proyecto real borrado. La ausencia de movimientos no se infiere de su omisión en el mensaje.
 - **Próximo paso:** publicar esta unidad y registrar su SHA real, entregar instalador actualizado y esperar respuesta manual. Tras confirmación, integrar sólo app/components/lib y tests API/UI del candidato fdc1cceb sobre main vigente. **No sobrescribir SQL/tests SQL/guía/memoria nuevos con los del candidato antiguo.** Mantener contrato RPC; no force, Preview ni elección/borrado de un proyecto real por el agente.
+
+### Registro 2026-10-03 18:25 America/Bogota / M-023 — Instalador v2 publicado; espera de confirmación
+
+- **Implementación real:** `eaaa1582202fefe4a2084c0341867bd424fb8abd`, padre `3bb960c7af1d7ade3b52fe550c695aabbf180c8b`, árbol `56440348c9fd3384d42cd773c205c8678e82a5c2`.
+- **Alcance main verificado:** compare_commits acredita exactamente los siete archivos de M-022. Ningún blob de app/components/lib ni dependencia/lockfile cambió; sólo SQL/fixture/tests/docs. Sin force, rama/Preview adicional ni cambio de integración GHL. El candidato de interfaz sigue sin activar.
+- **Build observado:** Vercel success, [A6ftjEGFYpTmRYUAFFZwc2dRGvFK](https://vercel.com/soy-sebastian-franco-s-projects/pulse/A6ftjEGFYpTmRYUAFFZwc2dRGvFK), SHA `eaaa1582202fefe4a2084c0341867bd424fb8abd`. El build no instala esta función en la DB ni acredita sus permisos reales.
+- **Validación local final:** 31/31 pruebas SQL/diagnóstico reales, cero fail/skip; lint tres suites exit 0 y git diff --check correcto. Esquema aportado con tipos/índices/constraints, historial NULL, aislamiento, ausencia/presencia de movimientos, errores/rollback y privilegios. API/UI/TS del candidato conservados sin cambios; no se repiten en esta unidad SQL.
+- **Manual entregado:** abrir la versión actualizada de `supabase/production/20261003_01_project_deletion.sql`, Supabase de Pulse → SQL Editor → New query → pegar archivo completo → Run. Comprobar instalada=true, servidor_permitido=true, anon_permitido=false, authenticated_permitido=false, movimientos=no_existe o por_boleta_id, dependencias_adicionales=0 y triggers_por_revisar=0. Instalar no invoca los DELETE ni altera tablas existentes.
+- **Espera vigente:** recibir resultado/confirmación del usuario antes de integrar interfaz/endpoints dependientes. Si existe movimientos con relación desconocida o cualquier dependencia/trigger pendiente, revisar salida del diagnóstico 00/DDL de esa relación y ajustar de forma acotada; no ignorar registros ni modificar tablas/workflows para hacer pasar el instalador.
+- **Retomar activación:** refrescar main; incorporar sólo app/components/lib y tests API/UI del candidato `fdc1cceb9e10ff99199fedc693fe2c34f7b8f75e`, preservar instalador y pruebas SQL v2/fixture/guía/memoria vigentes. Registrar evidencia de instalación como declarada por usuario, SHA funcional/deployment y verificación del botón/backup. No seleccionar/borrar un proyecto real por cuenta propia.
+- **Checkpoint documental:** registra SHA existente; su propio commit se consulta en Git sin autorregistro circular. CSV-01 sigue pendiente de confirmación de importación, P01/GHL aplazados.
 
 ### Plantilla para la siguiente unidad
 
