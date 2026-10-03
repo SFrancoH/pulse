@@ -17,7 +17,7 @@
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-03, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-03 16:21 America/Bogota; DEL-01 Verificado local: API, SQL y navegador. Instalación manual Supabase pendiente; UI aún no activada |
+| Último checkpoint de ejecución | 2026-10-03 16:27 America/Bogota; preparación DEL-01 integrada `493fadb42154a09826c6e85f66fc075065a6b20d` y Vercel success; candidato probado guardado, esperando confirmación SQL |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -29,12 +29,12 @@
 | Estado de integración de GitHub | `merged=true`; SHA y árbol de main comprobados después del merge |
 | Build histórico de la rama/Preview descartado | **Vercel: failure** por URL Supabase ausente; no corresponde al nuevo build de main |
 | Build del merge funcional | **Vercel: success**, SHA `726f99f5251940fe7b6e38e46bc428eda11c40cd`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HK2CZgTuz6Lg8xuLKCLXMYu2ipJk) |
-| Último deployment de main comprobado | **Vercel: success**, CSV-01 `3566b8ce40d1e4f289175b8ca9508457bae55103`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/BgphXY9ZXnxhpdxsvKCgsv8Fa2hX). Checkpoints exclusivamente documentales posteriores se consultan en Git |
+| Último deployment de main comprobado | **Vercel success**, preparación SQL/documental `493fadb42154a09826c6e85f66fc075065a6b20d`; [deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/G9fWEyRSgJB6bDu4r8DNPRjSCHiP). Toda la aplicación conserva los blobs de `fac967769e9f75a45cd4c98137b89fdda4a7bcd7`; UI DEL-01 no activada |
 | Check `Vercel Preview Comments` | Success: sólo confirma que no hay comentarios pendientes; no confirma un build correcto |
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
 | SHA y dominio efectivo de producción | CSV-01 `3566b8ce40d1e4f289175b8ca9508457bae55103`: Vercel success desde main; alias/entorno efectivo e importación real no expuestos por ese status. P00 tenía confirmación manual del usuario |
-| Fase activa | `DEL-01` — botón Eliminar proyecto, backup opcional y borrado atómico por proyecto, solicitado por el usuario. CSV-01 pendiente de confirmación productiva; P01/GHL aplazados |
+| Fase activa | `DEL-01` — Verificado local; preparación en main y espera de confirmación manual de SQL. UI/endpoints pendientes de activar. CSV-01 aún sin confirmación de importación; P01/GHL aplazados |
 | Última evidencia recibida | Solicitud DEL-01; 32/32 tests API, 12/12 SQL local PGlite y 10/10 UI Chromium; TypeScript exit 0 |
 | Paso siguiente | Usuario instala `supabase/production/20261003_01_project_deletion.sql` en la DB actual de Pulse y confirma true/true/false/false/0; después integrar código DEL-01 probado en main y comprobar Vercel |
 | Bloqueo actual | Espera de instalación manual de la función SQL atómica. No activar botón antes de la confirmación; no se han eliminado proyectos reales |
@@ -691,6 +691,18 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Retomar después de la confirmación:** refrescar main; recuperar los archivos de aplicación/tests del candidato por SHA y reconciliar la memoria vigente. El candidato y el commit de preparación tienen distinto padre/historial: no forzar main ni hacer reset para integrar. Crear una nueva unidad sobre el main vigente con los mismos blobs funcionales verificados, salvo que aparezca un cambio/fallo que requiera pruebas nuevas.
 - **Acción manual pendiente:** SQL Editor de la DB existente de Pulse, pegar script completo, Run y confirmar true/true/false/false/0. La llamada DELETE definitiva no forma parte de la instalación. No borrar un proyecto del usuario desde esta sesión.
 - **Siguiente acción:** publicar sólo preparación, registrar SHA/deployment y entregar el script con pasos exactos. Esperar la confirmación antes de activar interfaz/endpoints.
+
+### Registro 2026-10-03 16:27 America/Bogota / M-019 — Preparación DEL-01 publicada; espera del usuario
+
+- **Main de preparación real:** `493fadb42154a09826c6e85f66fc075065a6b20d`, padre `fac967769e9f75a45cd4c98137b89fdda4a7bcd7`, árbol `23ed5a083f48cec048160f9c1bfd616ec809d440`.
+- **Alcance integrado comprobado:** exactamente SQL de instalación, `docs/ELIMINAR_PROYECTO.md` y esta memoria. Ningún blob de app/components/lib/tests/runtime cambió en main. La nueva función no se ejecuta por guardar un archivo en Git; instalación productiva sin confirmación, no declarada aplicada. Supabase Preview success no acredita aplicación de este script ni datos reales.
+- **Deploy de preparación:** Vercel success, “Deployment has completed”, [G9fWEyRSgJB6bDu4r8DNPRjSCHiP](https://vercel.com/soy-sebastian-franco-s-projects/pulse/G9fWEyRSgJB6bDu4r8DNPRjSCHiP), SHA `493fadb42154a09826c6e85f66fc075065a6b20d`. No demuestra alias/recorrido ni que exista la RPC productiva.
+- **Código completo conservado para activar:** `fdc1cceb9e10ff99199fedc693fe2c34f7b8f75e`, árbol `a8c01bfb5c1baa7f6cfaca1601c1d328e9bcc103`; sin rama/ref actualizado. 32 API + 12 SQL + 10 UI pass, TypeScript exit 0 y lint acotado registrados en M-017. No se repiten por este checkpoint exclusivamente documental.
+- **Datos/operación:** ningún proyecto elegido o borrado por el agente. Formularios GHL y recepción de webhooks actuales conservados; sin cambio de schema/constraints, variables, credenciales, workflows o dependencias de aplicación. SQL incluye sólo definición/permisos de nueva función y comprobaciones de metadata.
+- **Proceso manual entregado:** descargar/abrir `supabase/production/20261003_01_project_deletion.sql`; en la DB actual de Pulse, SQL Editor → nueva consulta → pegar completo → Run → confirmar true/true/false/false/0 en la última tabla. No llamar a la función DELETE como prueba. Si falla o hay dependencia adicional, resolver el error/catálogo antes de publicar la UI. No se dispone de acceso directo a esa DB desde esta sesión.
+- **Espera obligatoria por instrucción del usuario:** confirmar instalación correcta antes de cualquier activación dependiente. El backup sigue siendo opcional para el uso futuro; no se sustituye por un requisito de descarga ni se compra otro servicio.
+- **Próximo paso concreto:** después de la confirmación, refrescar main y rearmar aplicación/tests usando los blobs del candidato fdc1cceb, conservando los documentos/checkpoints vigentes; integrar por main sin force/Preview, registrar SHA funcional real y Vercel. Actualizar la guía a estado activado. Verificar el botón/descarga con el usuario; no borrar un proyecto real por cuenta propia.
+- **Checkpoint documental:** esta entrada registra SHAs ya existentes; su propio commit sólo documental se consulta en Git, sin autorregistro circular.
 
 ### Plantilla para la siguiente unidad
 
