@@ -17,26 +17,26 @@
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-03, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-03 13:24 America/Bogota; CSV-01 Verificado local, pendiente de integración/build; no se han cargado datos |
+| Último checkpoint de ejecución | 2026-10-03 13:29 America/Bogota; CSV-01 integrado `3566b8ce40d1e4f289175b8ca9508457bae55103` y deployment Vercel success; pendiente de carga/verificación del usuario |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
 | Main de integración funcional verificado | `726f99f5251940fe7b6e38e46bc428eda11c40cd`; commits documentales posteriores se consultan en el historial del archivo |
-| Último commit de corrección conocido | `b3a00c764c1d4a8011574ac71b2fac16e06fa749` |
+| Commit de corrección de disponibilidad | `b3a00c764c1d4a8011574ac71b2fac16e06fa749` |
 | Rama de esa corrección | `fix/exclude-occupied-tickets` |
 | PR de corrección | [#34 — Excluir boletas con cliente o abonos de la disponibilidad](https://github.com/SFrancoH/pulse/pull/34) |
 | Estado del PR #34 | **Integrado** el 2026-10-02; commit de merge `726f99f5251940fe7b6e38e46bc428eda11c40cd` |
 | Estado de integración de GitHub | `merged=true`; SHA y árbol de main comprobados después del merge |
 | Build histórico de la rama/Preview descartado | **Vercel: failure** por URL Supabase ausente; no corresponde al nuevo build de main |
 | Build del merge funcional | **Vercel: success**, SHA `726f99f5251940fe7b6e38e46bc428eda11c40cd`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HK2CZgTuz6Lg8xuLKCLXMYu2ipJk) |
-| Último deployment de main comprobado | **Vercel: success**, reversión `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/vu492kMPFasaRTh2fhw2rEyUjrg6). Los checkpoints posteriores sólo documentales se consultan en Git |
+| Último deployment de main comprobado | **Vercel: success**, CSV-01 `3566b8ce40d1e4f289175b8ca9508457bae55103`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/BgphXY9ZXnxhpdxsvKCgsv8Fa2hX). Checkpoints exclusivamente documentales posteriores se consultan en Git |
 | Check `Vercel Preview Comments` | Success: sólo confirma que no hay comentarios pendientes; no confirma un build correcto |
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
-| SHA y dominio efectivo de producción | P00 confirmado manualmente el 2026-10-02. Reversión `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`: Vercel success; alias y recorrido GHL posteriores no comprobados desde esta sesión |
-| Fase activa | `CSV-01` — compatibilidad de actualización parcial desde Actualizar CSV, solicitada por el usuario; P01-01/02/03 siguen aplazados |
-| Última evidencia recibida | Solicitud del usuario de habilitar CSV parcial de seis columnas; 29/29 pruebas locales y lectura sin escritura de 3.191 filas |
-| Paso siguiente | Publicar CSV-01 por main, registrar SHA real, consultar build Vercel; después el usuario sube el CSV de seis columnas al proyecto correcto y confirma el resumen |
+| SHA y dominio efectivo de producción | CSV-01 `3566b8ce40d1e4f289175b8ca9508457bae55103`: Vercel success desde main; alias/entorno efectivo e importación real no expuestos por ese status. P00 tenía confirmación manual del usuario |
+| Fase activa | `CSV-01` — cambio integrado/build completado; importación real y verificación del usuario pendientes. P01-01/02/03 continúan aplazados |
+| Última evidencia recibida | 29/29 pruebas CSV/permisos, TypeScript exit 0, lectura de 3.191 filas sin escritura y Vercel success de `3566b8ce40d1e4f289175b8ca9508457bae55103` |
+| Paso siguiente | Usuario recarga Pulse, sube el CSV de seis columnas desde Actualizar CSV del proyecto correcto y confirma el resumen; registrar verificación sin iniciar cambios futuros de GHL |
 | Bloqueo actual | Ninguno para publicar. Sin sesión productiva/DB para comprobar una importación real; no ejecutar cargas de compradores como prueba |
 | Regresión local del parche | 7/7 pruebas con fixtures; fuentes probadas verificadas por hash contra `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no acredita build, DB real ni producción |
 | Confirmación manual del usuario | P00 confirmado con «listo»; evidencia declarada por el usuario, no una prueba independiente automatizada. No se solicitan de nuevo Preview ni otro Supabase |
@@ -44,6 +44,7 @@
 | Verificación de reversión | 7/7 pruebas de disponibilidad y TypeScript exit 0; árbol de toda la aplicación igual a `570cf77acd8d3de461b1c632963a1b91e946c7db`, salvo AGENTS/memoria; root de reversión `68e9f4bb0387777e45a17876983a907db47c13dc` |
 | Base de esta reversión | Main `6e6ade4ee05052fee7f05ace029ffccad3bb0fd5`, árbol `3e9bd6b089c2903566b903aecb41efa608e2b2bc`; referencia anterior a la preparación `570cf77acd8d3de461b1c632963a1b91e946c7db` |
 | Contrato obligatorio | Pulse → formularios simples de GHL; GHL → webhooks existentes de Pulse. Mantener payloads/URLs y costos actuales; pasos de configuración de ayer cancelados |
+| Implementación CSV-01 | `3566b8ce40d1e4f289175b8ca9508457bae55103`; árbol `b76b7edae803b8eda77fc02a1042930816f4809c`, main directo, sin PR/merge nuevo |
 | Cambios de aplicación realizados al crear este plan | Ninguno; se creó la documentación y la regla de mantenimiento de la memoria |
 
 **Conclusión y evidencia:** la corrección `b3a00c764c1d4a8011574ac71b2fac16e06fa749` se integró por PR #34 en `726f99f5251940fe7b6e38e46bc428eda11c40cd`, y la memoria por PR #35 en `e4165c58751ebb928930323f37da9b42c2d098a2`. Vercel completó también el build documental `570cf77acd8d3de461b1c632963a1b91e946c7db`. La respuesta «listo» del usuario confirma el procedimiento solicitado de Production/alias y disponibilidad; P00 se cierra con esa evidencia manual. No se inventan dominio, boletas concretas, capturas, prueba de compra completa ni pruebas independientes de DB/navegador.
@@ -636,6 +637,18 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Commit/deployment:** pendientes al escribir este registro; se añadirán los SHAs reales después de publicar. Base `bcf8a889bffed975235307023a2955420c1a70f7` / árbol `fce27e04d7bb1a2bb23a20f9c6cbc49752ce23d7`.
 - **Reversión:** revertir únicamente la implementación CSV si fuera necesario; no revierte datos que el usuario importe. No se ha ejecutado una importación desde esta sesión.
 - **Siguiente acción:** integrar por main y consultar el status de Vercel. El usuario conserva sólo `id,empresa_id,proyecto_id,numero,estado,valor_pagado` si desea cambiar exclusivamente esos dos valores, pulsa Actualizar CSV en el proyecto correcto, espera el resumen y confirma actualizadas/omitidas/no encontradas/errores. Cargar el archivo completo también actualizaría los otros campos reconocidos que incluya.
+
+### Registro 2026-10-03 13:27 America/Bogota / M-015 — CSV-01 integrado en main
+
+- **Implementación real:** `3566b8ce40d1e4f289175b8ca9508457bae55103`; padre/base `bcf8a889bffed975235307023a2955420c1a70f7`; árbol `b76b7edae803b8eda77fc02a1042930816f4809c`.
+- **Integración:** main directo autorizado, sin force, HEAD esperado comprobado inmediatamente antes de actualizar. Sin rama publicada/PR/merge adicionales. Árbol remoto igual al candidato local validado; fuente funcional y tests publicados junto a M-013/M-014.
+- **Alcance remoto comprobado:** exactamente siete archivos: tres entradas de carga CSV, el endpoint existente, lector compartido, tests y memoria. Formulario/GHL, auth/login, disponibilidad, esquema y dependencias conservan los blobs de la base. La comparación de GitHub sólo contiene este commit.
+- **Pruebas:** 29/29 CSV/actualización/permisos, TypeScript exit 0 y lint acotado sin errores; dos avisos preexistentes comprobados contra la base. Lectura original/reducida en memoria de 3.191 filas sin errores ni escrituras. Árbol de implementación publicado coincide con las fuentes verificadas; la edición posterior es exclusivamente documental.
+- **Deployment:** Vercel success, “Deployment has completed”, [BgphXY9ZXnxhpdxsvKCgsv8Fa2hX](https://vercel.com/soy-sebastian-franco-s-projects/pulse/BgphXY9ZXnxhpdxsvKCgsv8Fa2hX), SHA de implementación. El check Supabase Preview no acredita publicación/alias ni importación de boletas; ningún archivo de esquema cambió.
+- **DB/importación:** no ejecutada desde esta sesión. No se han modificado pagos/estados reales ni creado un CSV adicional. El CSV íntegro tiene otros campos reconocidos; para sólo estado/pago, conservar las seis columnas solicitadas.
+- **Estado actual:** Integrado en main y deployment completado según Vercel, comprobado 2026-10-03 13:29 America/Bogota. El status no expone entorno/alias efectivo; no se confunde con una prueba de importación productiva. Verificación de la carga pendiente del usuario, no marcada completa.
+- **Acción manual después del build:** recargar Pulse; ir al proyecto del archivo; pulsar Actualizar CSV; seleccionar el archivo con `id,empresa_id,proyecto_id,numero,estado,valor_pagado`; usar montos numéricos sin separadores; esperar todos los lotes y revisar actualizadas/omitidas/no encontradas/errores. Compartir sólo el resumen, sin datos de compradores. Si hay rechazo por IDs, corregir el proyecto/archivo antes de volver a cargar. No configurar Supabase/GHL ni ejecutar SQL para este ajuste.
+- **Siguiente acción:** publicar este checkpoint sólo documental y comprobar su status; el usuario carga el CSV de seis columnas y confirma el resumen antes de otra modificación de datos. P01/GHL siguen aplazados.
 
 ### Plantilla para la siguiente unidad
 
