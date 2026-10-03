@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { parseCsvBoletas } from "@/lib/boletas-csv";
 import { useEffect, useRef, useState } from "react";
 
 type Proyecto = {
@@ -41,111 +42,7 @@ type UpdateResponse = {
   errores?: string[];
 };
 
-type CsvItem = {
-  numero: string;
-  estado?: string;
-  canal?: string;
-  nombre?: string;
-  telefono?: string;
-  email?: string;
-  vendedor?: string;
-  valor_pagado?: string;
-};
-
 const CSV_CHUNK_SIZE = 200;
-
-function normalizarHeader(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
-function normalizarNumero(value: string) {
-  const limpio = String(value || "").replace(/\D/g, "");
-  if (!limpio) return "";
-  return limpio.padStart(4, "0").slice(-4);
-}
-
-function parseCsvLine(line: string) {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const next = line[i + 1];
-
-    if (char === '"' && inQuotes && next === '"') {
-      current += '"';
-      i++;
-      continue;
-    }
-
-    if (char === '"') {
-      inQuotes = !inQuotes;
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-      continue;
-    }
-
-    current += char;
-  }
-
-  result.push(current.trim());
-  return result;
-}
-
-function mapCsvRow(headers: string[], row: string[]): CsvItem | null {
-  const get = (...keys: string[]) => {
-    for (const key of keys) {
-      const index = headers.indexOf(key);
-      if (index >= 0 && row[index] !== undefined) return row[index].trim();
-    }
-    return "";
-  };
-
-  const numero = normalizarNumero(get("numero", "boleta", "consecutivo"));
-  if (!numero) return null;
-
-  return {
-    numero,
-    estado: get("estado"),
-    canal: get("canal"),
-    nombre: get("nombre", "nombre_cliente", "cliente"),
-    telefono: get("telefono", "telefono_cliente", "phone"),
-    email: get("email", "correo"),
-    vendedor: get("nombre_vendedor", "vendedor", "asesor"),
-    valor_pagado: get("valor_pagago", "valor_pagado", "valor", "valor_a_pagar"),
-  };
-}
-
-function parseCsvActualizar(texto: string) {
-  const lineas = texto
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .map((linea) => linea.trim())
-    .filter(Boolean);
-
-  if (lineas.length < 2) return [];
-
-  const headers = parseCsvLine(lineas[0]).map(normalizarHeader);
-  const items: CsvItem[] = [];
-
-  for (const linea of lineas.slice(1)) {
-    const item = mapCsvRow(headers, parseCsvLine(linea));
-    if (item) items.push(item);
-  }
-
-  return items;
-}
 
 export default function AdminDashboardPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -239,7 +136,8 @@ export default function AdminDashboardPage() {
 
     try {
       const texto = await file.text();
-      const items = parseCsvActualizar(texto);
+      const { items, errores: erroresLectura } = parseCsvBoletas(texto);
+      if (erroresLectura.length) throw new Error(erroresLectura.slice(0, 5).join(" "));
 
       if (items.length === 0) {
         throw new Error("El CSV no tiene registros válidos. Debe incluir al menos la columna numero.");
@@ -273,6 +171,7 @@ export default function AdminDashboardPage() {
       }
 
       setSyncMessage(`CSV procesado. Actualizadas: ${actualizadas}. Omitidas: ${omitidas}. No encontradas: ${noEncontradas.length}. Errores: ${errores.length}.`);
+      if (errores.length) setError(errores.slice(0, 5).join(" "));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error actualizando base de datos.");
     } finally {

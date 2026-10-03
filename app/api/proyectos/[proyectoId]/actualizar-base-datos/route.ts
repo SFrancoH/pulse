@@ -1,5 +1,6 @@
 import { requireProjectManagerAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { normalizarNumeroCsv, type CsvBoletaItem } from "@/lib/boletas-csv";
 
 type PageProps = {
   params: Promise<{
@@ -7,32 +8,14 @@ type PageProps = {
   }>;
 };
 
-type CsvItem = {
-  numero?: string;
-  estado?: string;
-  canal?: string;
-  nombre?: string;
-  telefono?: string;
-  email?: string;
-  vendedor?: string;
-  fecha_creacion?: string;
-  valor_pagado?: string | number;
-};
-
 type Payload = {
-  items?: CsvItem[];
+  items?: CsvBoletaItem[];
 };
 
 const ESTADOS_VALIDOS = new Set(["Disponible", "No disponible", "Debe", "Abonado", "Pagado"]);
 
-function normalizarNumero(valor: unknown) {
-  const limpio = String(valor || "").replace(/\D/g, "");
-  if (!limpio) return "";
-  return limpio.padStart(4, "0").slice(-4);
-}
-
 function texto(valor: unknown) {
-  return String(valor || "").trim();
+  return String(valor ?? "").trim();
 }
 
 function normalizarEstado(valor: unknown) {
@@ -52,11 +35,12 @@ function normalizarEstado(valor: unknown) {
 function normalizarValor(valor: unknown) {
   const raw = texto(valor);
   if (!raw) return undefined;
+  if (!/^\$?\s*\d[\d.,\s]*$/.test(raw)) return undefined;
   const numero = Number(raw.replace(/[^0-9.]/g, ""));
-  return Number.isFinite(numero) ? numero : undefined;
+  return Number.isFinite(numero) && numero >= 0 ? numero : undefined;
 }
 
-function crearUpdateData(item: CsvItem) {
+function crearUpdateData(item: CsvBoletaItem) {
   const updateData: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   };
@@ -105,7 +89,7 @@ export async function POST(req: Request, { params }: PageProps) {
     const errores: string[] = [];
 
     for (const item of items) {
-      const numero = normalizarNumero(item.numero);
+      const numero = normalizarNumeroCsv(item?.numero);
 
       if (!numero) {
         omitidas++;
@@ -113,16 +97,43 @@ export async function POST(req: Request, { params }: PageProps) {
         continue;
       }
 
-      const updateData = crearUpdateData(item);
+      if ((item.empresa_id !== undefined && texto(item.empresa_id) !== auth.proyecto.empresa_id)
+        || (item.proyecto_id !== undefined && texto(item.proyecto_id) !== proyectoId)) {
+        omitidas++;
+        errores.push(`${numero}: la empresa o el proyecto del CSV no coincide con el proyecto seleccionado.`);
+        continue;
+      }
 
-      const { data, error } = await supabaseAdmin
+      const id = texto(item.id);
+      if (item.id !== undefined && !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) {
+        omitidas++;
+        errores.push(`${numero}: id de boleta inválido.`);
+        continue;
+      }
+
+      if ((texto(item.estado) && !normalizarEstado(item.estado))
+        || (texto(item.valor_pagado) && normalizarValor(item.valor_pagado) === undefined)) {
+        omitidas++;
+        errores.push(`${numero}: estado o valor pagado inválido.`);
+        continue;
+      }
+
+      const updateData = crearUpdateData(item);
+      if (Object.keys(updateData).length === 1) {
+        omitidas++;
+        errores.push(`${numero}: no contiene valores para actualizar.`);
+        continue;
+      }
+
+      let query = supabaseAdmin
         .from("boletas")
         .update(updateData)
         .eq("empresa_id", auth.proyecto.empresa_id)
         .eq("proyecto_id", proyectoId)
-        .eq("numero", numero)
-        .select("id,numero")
-        .maybeSingle();
+        .eq("numero", numero);
+      if (id) query = query.eq("id", id);
+
+      const { data, error } = await query.select("id,numero").maybeSingle();
 
       if (error) {
         omitidas++;

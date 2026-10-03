@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { parseCsvBoletas } from "@/lib/boletas-csv";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Boleta = {
@@ -20,6 +21,7 @@ type Editable = Omit<Boleta, "id" | "numero">;
 
 const ESTADOS = ["Disponible", "No disponible", "Debe", "Abonado", "Pagado"];
 const CANALES = ["", "Vendedores", "Anuncios", "Oficina"];
+const CSV_CHUNK_SIZE = 200;
 
 export default function BaseDatosProyectoPage({ params }: Props) {
   const { proyectoId } = use(params);
@@ -149,40 +151,33 @@ export default function BaseDatosProyectoPage({ params }: Props) {
 
     try {
       const texto = await file.text();
-      const lineas = texto.replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
-      const headers = lineas[0].split(",").map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
-      const items = lineas
-        .slice(1)
-        .map((linea) => {
-          const columnas = linea.split(",");
-          const get = (...nombres: string[]) => {
-            const index = nombres.map((nombre) => headers.indexOf(nombre)).find((value) => value >= 0);
-            return index === undefined ? "" : (columnas[index] || "").trim();
-          };
-          return {
-            numero: get("numero", "boleta", "consecutivo"),
-            estado: get("estado"),
-            nombre: get("nombre", "nombre_cliente"),
-            telefono: get("telefono", "telefono_cliente"),
-            email: get("email", "correo"),
-            valor_pagado: get("valor_pagado", "valor"),
-            vendedor: get("vendedor", "vendedor_nombre"),
-            canal: get("canal"),
-          };
-        })
-        .filter((item) => item.numero);
+      const { items, errores: erroresLectura } = parseCsvBoletas(texto);
+      if (erroresLectura.length) throw new Error(erroresLectura.slice(0, 5).join(" "));
+      if (!items.length) throw new Error("El CSV no contiene registros válidos para actualizar.");
 
-      const res = await fetch(`/api/proyectos/${proyectoId}/actualizar-base-datos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items }),
-      });
-      const data = await res.json();
+      let actualizadas = 0;
+      let omitidas = 0;
+      let noEncontradas = 0;
+      const errores: string[] = [];
+      for (let inicio = 0; inicio < items.length; inicio += CSV_CHUNK_SIZE) {
+        const chunk = items.slice(inicio, inicio + CSV_CHUNK_SIZE);
+        setMensaje(`Actualizando ${Math.min(inicio + chunk.length, items.length)} de ${items.length} registros...`);
+        const res = await fetch(`/api/proyectos/${proyectoId}/actualizar-base-datos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: chunk }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || "No se pudo cargar el archivo.");
+        actualizadas += data.actualizadas || 0;
+        omitidas += data.omitidas || 0;
+        noEncontradas += data.no_encontradas?.length || 0;
+        if (data.errores?.length) errores.push(...data.errores);
+      }
 
-      if (!res.ok || !data.success) throw new Error(data.message || "No se pudo cargar el archivo.");
-
-      setMensaje(`Carga manual completada. Actualizadas: ${data.actualizadas || 0}. Omitidas: ${data.omitidas || 0}.`);
       await cargar();
+      setMensaje(`Carga manual completada. Actualizadas: ${actualizadas}. Omitidas: ${omitidas}. No encontradas: ${noEncontradas}.`);
+      if (errores.length) setError(errores.slice(0, 5).join(" "));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error cargando CSV.");
     } finally {

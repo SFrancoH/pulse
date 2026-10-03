@@ -1,23 +1,12 @@
 "use client";
 
 import { use, useRef, useState } from "react";
+import { parseCsvBoletas, type CsvBoletaItem } from "@/lib/boletas-csv";
 
 type Props = {
   params: Promise<{
     proyectoId: string;
   }>;
-};
-
-type CsvItem = {
-  numero: string;
-  estado?: string;
-  canal?: string;
-  nombre?: string;
-  telefono?: string;
-  email?: string;
-  vendedor?: string;
-  fecha_creacion?: string;
-  valor_pagado?: string;
 };
 
 type ApiResponse = {
@@ -41,125 +30,6 @@ type Resumen = {
 
 const BATCH_SIZE = 200;
 
-function parseCsvLine(line: string) {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const next = line[i + 1];
-
-    if (char === '"' && inQuotes && next === '"') {
-      current += '"';
-      i++;
-      continue;
-    }
-
-    if (char === '"') {
-      inQuotes = !inQuotes;
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-      continue;
-    }
-
-    current += char;
-  }
-
-  result.push(current.trim());
-  return result;
-}
-
-function normalizarHeader(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
-function normalizarNumero(value: string) {
-  const limpio = String(value || "").replace(/\D/g, "");
-  if (!limpio) return "";
-  return limpio.padStart(4, "0").slice(-4);
-}
-
-function mapearCampo(header: string) {
-  const h = normalizarHeader(header);
-
-  if (["numero", "nro", "boleta", "consecutivo", "numero_boleta", "n_boleta"].includes(h)) return "numero";
-  if (["estado", "status"].includes(h)) return "estado";
-  if (["canal", "origen", "channel"].includes(h)) return "canal";
-  if (["nombre", "cliente", "nombre_cliente", "full_name", "name"].includes(h)) return "nombre";
-  if (["telefono", "telefono_cliente", "phone", "celular", "whatsapp"].includes(h)) return "telefono";
-  if (["email", "correo", "correo_electronico", "email_cliente"].includes(h)) return "email";
-  if (["nombre_vendedor", "vendedor", "asesor", "seller"].includes(h)) return "vendedor";
-  if (["fecha_de_creacion", "fecha_creacion", "fecha", "created_at"].includes(h)) return "fecha_creacion";
-  if (["valor_pagago", "valor_pagado", "valor", "valor_a_pagar", "pago", "amount"].includes(h)) return "valor_pagado";
-
-  return "";
-}
-
-function parseCsvBaseDatos(texto: string) {
-  const errores: string[] = [];
-  const lineas = texto
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .map((linea) => linea.trim())
-    .filter(Boolean);
-
-  if (lineas.length === 0) {
-    return { items: [], filasLeidas: 0, errores: ["El archivo CSV está vacío."] };
-  }
-
-  const primeraFila = parseCsvLine(lineas[0]);
-  const camposHeader = primeraFila.map(mapearCampo);
-  const tieneHeader = camposHeader.includes("numero") || camposHeader.includes("estado") || camposHeader.includes("canal");
-
-  const campos = tieneHeader
-    ? camposHeader
-    : ["proyecto", "numero", "estado", "canal", "nombre", "telefono", "email", "vendedor", "fecha_creacion", "valor_pagado"];
-
-  const dataLineas = tieneHeader ? lineas.slice(1) : lineas;
-  const items: CsvItem[] = [];
-
-  dataLineas.forEach((linea, index) => {
-    const columnas = parseCsvLine(linea);
-    const item: Record<string, string> = {};
-
-    campos.forEach((campo, colIndex) => {
-      if (!campo || campo === "proyecto") return;
-      item[campo] = columnas[colIndex] || "";
-    });
-
-    const numero = normalizarNumero(item.numero || "");
-
-    if (!numero) {
-      errores.push(`Fila ${index + (tieneHeader ? 2 : 1)}: número inválido.`);
-      return;
-    }
-
-    items.push({
-      numero,
-      estado: item.estado || "",
-      canal: item.canal || "",
-      nombre: item.nombre || "",
-      telefono: item.telefono || "",
-      email: item.email || "",
-      vendedor: item.vendedor || "",
-      fecha_creacion: item.fecha_creacion || "",
-      valor_pagado: item.valor_pagado || "",
-    });
-  });
-
-  return { items, filasLeidas: dataLineas.length, errores };
-}
-
 function chunkArray<T>(items: T[], size: number) {
   const chunks: T[][] = [];
   for (let index = 0; index < items.length; index += size) {
@@ -176,7 +46,7 @@ export default function ActualizarBaseDatosPage({ params }: Props) {
   const [resumen, setResumen] = useState<Resumen | null>(null);
   const [progreso, setProgreso] = useState("");
 
-  async function enviarLote(items: CsvItem[]) {
+  async function enviarLote(items: CsvBoletaItem[]) {
     const res = await fetch(`/api/proyectos/${proyectoId}/actualizar-base-datos`, {
       method: "POST",
       headers: {
@@ -202,7 +72,8 @@ export default function ActualizarBaseDatosPage({ params }: Props) {
 
     try {
       const texto = await file.text();
-      const { items, filasLeidas, errores } = parseCsvBaseDatos(texto);
+      const { items, filasLeidas, errores } = parseCsvBoletas(texto, true);
+      if (errores.length) throw new Error(errores.slice(0, 5).join(" "));
 
       if (items.length === 0) {
         throw new Error("El CSV no contiene registros válidos para actualizar.");
@@ -261,10 +132,10 @@ export default function ActualizarBaseDatosPage({ params }: Props) {
           <div className="rounded-2xl border border-[#E0D9CE] bg-[#F9F6F1] p-4">
             <p className="text-sm font-semibold">Subir CSV del Excel</p>
             <p className="mt-1 text-sm text-[#6F665C]">
-              Puedes subir columnas con encabezados: proyecto, numero, estado, canal, nombre, telefono, email, Nombre vendedor, Fecha de creacion y valor pagago.
+              Para actualizar sólo estado y valor pagado, sube: id, empresa_id, proyecto_id, numero, estado, valor_pagado. Los identificadores deben corresponder al proyecto seleccionado. Acepta coma o punto y coma; las columnas ausentes o vacías conservan su valor actual.
             </p>
             <p className="mt-1 text-sm text-[#6F665C]">
-              También acepta el orden fijo del Excel: A proyecto, B numero, C estado, D canal, E nombre, F telefono, G email, H vendedor, I fecha, J valor pagado.
+              También permite actualizar cliente, canal y vendedor si se incluyen esas columnas, y acepta el orden fijo del Excel sin encabezados: A proyecto, B numero, C estado, D canal, E nombre, F telefono, G email, H vendedor, I fecha, J valor pagado.
             </p>
 
             <input

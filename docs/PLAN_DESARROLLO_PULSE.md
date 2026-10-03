@@ -17,7 +17,7 @@
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-03, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-03 09:52 America/Bogota; reversión integrada en main `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c` y Vercel success; autenticación aplazada |
+| Último checkpoint de ejecución | 2026-10-03 13:24 America/Bogota; CSV-01 Verificado local, pendiente de integración/build; no se han cargado datos |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -34,10 +34,10 @@
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
 | SHA y dominio efectivo de producción | P00 confirmado manualmente el 2026-10-02. Reversión `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`: Vercel success; alias y recorrido GHL posteriores no comprobados desde esta sesión |
-| Fase activa | `R01` — reversión integrada y build completado; P01-01/02/03 y cambios de integración aplazados por el usuario |
-| Última evidencia recibida | Usuario reporta fallo tras el último cambio y ordena revertirlo; aclara Pulse → formularios simples GHL y GHL → webhook Pulse por costos, 2026-10-03 09:40 America/Bogota |
-| Paso siguiente | Conservar el flujo vigente y comprobar la operación habitual tras la reversión; si se reporta fallo, investigar su error concreto sin alterar el contrato GHL. P01-01/02/03 aplazados |
-| Bloqueo actual | Ningún bloqueo de build/publicación. La activación de autenticación está cancelada, no pendiente de configuración. Sin verificación independiente del recorrido GHL/DB en producción |
+| Fase activa | `CSV-01` — compatibilidad de actualización parcial desde Actualizar CSV, solicitada por el usuario; P01-01/02/03 siguen aplazados |
+| Última evidencia recibida | Solicitud del usuario de habilitar CSV parcial de seis columnas; 29/29 pruebas locales y lectura sin escritura de 3.191 filas |
+| Paso siguiente | Publicar CSV-01 por main, registrar SHA real, consultar build Vercel; después el usuario sube el CSV de seis columnas al proyecto correcto y confirma el resumen |
+| Bloqueo actual | Ninguno para publicar. Sin sesión productiva/DB para comprobar una importación real; no ejecutar cargas de compradores como prueba |
 | Regresión local del parche | 7/7 pruebas con fixtures; fuentes probadas verificadas por hash contra `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no acredita build, DB real ni producción |
 | Confirmación manual del usuario | P00 confirmado con «listo»; evidencia declarada por el usuario, no una prueba independiente automatizada. No se solicitan de nuevo Preview ni otro Supabase |
 | Preparación de P01 | Revertida por `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`: módulos, tests y runbook de `fcbfd1590e19702a14780ef04db52af59d11c37b` retirados. Historial conservado; P01 aplazado. Nunca se conectó ese guard a los handlers |
@@ -606,6 +606,36 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Alcance del resultado:** preparación retirada y build correcto; recorrido productivo y causa exacta del fallo reportado no comprobados con datos/sesión reales. Si persiste un fallo, conservar su error/URL/acción sin PII y auditar el flujo actual; no imponer otra arquitectura como solución.
 - **Siguiente acción concreta:** mantener la comunicación existente. Verificar el uso habitual en su entorno; si se cambiaron acciones externas por la guía de ayer, recuperar únicamente su configuración anterior tras identificar esos cambios. Cambios de autenticación aplazados para el futuro por instrucción explícita del usuario.
 - **Checkpoint documental posterior:** registra este SHA de reversión ya existente; su propio hash se consulta en Git. No se repiten pruebas de aplicación por cambios sólo documentales.
+
+### Registro 2026-10-03 13:14 America/Bogota / M-013 — Inicio de actualización parcial por CSV
+
+- **Tarea/fase:** CSV-01, excepción puntual al roadmap solicitada por el usuario. P01-01/02/03 continúan aplazados.
+- **Estado:** análisis completado; implementación En curso. No se ha importado ningún archivo a Supabase.
+- **Instrucción:** analizar Actualizar CSV y habilitar, si hace falta, las seis columnas `id,empresa_id,proyecto_id,numero,estado,valor_pagado` para actualizar boletas existentes y sólo los valores incluidos.
+- **Base verificada:** main `bcf8a889bffed975235307023a2955420c1a70f7`, árbol `fce27e04d7bb1a2bb23a20f9c6cbc49752ce23d7`; worktree aislado reconstruido con ese árbol, sin tocar los trabajos previos.
+- **Diagnóstico exacto:** las tres cargas envían `estado`/`valor_pagado` cuando el CSV usa comas, pero descartan los tres identificadores y sólo buscan por número dentro del proyecto seleccionado. Ninguna admite el separador punto y coma del archivo aportado. La variante de Base de datos además divide por coma sin respetar comillas. El API omite un cero numérico por usar `valor || ""`; el cero en texto sí funciona.
+- **Unidad prevista:** lectura CSV compartida sólo para las tres entradas actuales; coma/punto y coma, comillas/BOM, campos presentes y aliases históricos. Identificadores opcionales para compatibilidad; si se aportan, empresa/proyecto deben coincidir con el contexto autorizado y el ID se añade al filtro de la boleta. Conservar permisos vigentes, cargas por número y los demás campos. No alterar el esquema ni integración GHL.
+- **Archivos previstos:** `lib/boletas-csv.ts`, las tres páginas de carga en admin, `app/api/proyectos/[proyectoId]/actualizar-base-datos/route.ts`, `tests/boletas-csv.test.mjs`, esta memoria.
+- **Publicación:** local → main → Vercel, sin Preview. Ninguna acción manual necesaria para implementar; el usuario hará la importación desde el proyecto correcto una vez publicado.
+- **Siguiente acción concreta:** implementar y ejecutar pruebas de lectura/actualización parcial, cero y coincidencia de identificadores; TypeScript y lint acotado; registrar el SHA real y estado de deployment. No cargar datos reales durante las pruebas.
+
+### Registro 2026-10-03 13:24 America/Bogota / M-014 — CSV parcial implementado y probado
+
+- **Tarea/fase:** CSV-01; unidad compatible con la estructura actual. Estado: Verificado local; integración y build pendientes. No reabre autenticación ni el roadmap P01 aplazado.
+- **Respuesta sobre la versión anterior:** sí actualizaba estado/pago con un archivo de seis columnas separado por coma, pero ignoraba los identificadores del archivo; no leía el punto y coma del CSV aportado. Se amplía compatibilidad/cotejo, no se afirma que nunca actualizara esos valores.
+- **Cambios:** lector único en las tres entradas existentes; coma/punto y coma, BOM, comillas escapadas y saltos dentro de campos. Mantiene aliases/orden fijo sin encabezados en la página que ya lo aceptaba. Sólo incluye columnas reconocidas presentes; se rechazan CSV con estructura ambigua, columnas duplicadas o números inválidos antes del envío.
+- **Destino de actualización:** permisos preexistentes mediante `requireProjectManagerAccess`; empresa derivada del proyecto autorizado. Si el CSV aporta empresa/proyecto, deben coincidir; si aporta ID, debe ser UUID válido y se añade a empresa/proyecto/número en el UPDATE. Esos cuatro identificadores se usan como filtros, nunca como valores nuevos. Los archivos antiguos sin ID se conservan por número y contexto autorizado.
+- **Cambios de valores:** con seis columnas sólo se envían `estado`, `valor_pagado` y la marca existente `updated_at`. Campos ausentes o vacíos conservan los datos guardados. Cero numérico/en texto válido; estados/montos inválidos y filas sin cambios se omiten con causa. No se infiere un pago a partir del estado ni se corrigen montos del archivo.
+- **Interfaz:** mantiene botones/pantallas/ruta; causas de rechazo visibles. Base de datos usa lotes de 200 igual que las otras dos entradas, en lugar de enviar todo el archivo en una petición. No se añade servicio, cola, RPC ni librería.
+- **Archivos:** `lib/boletas-csv.ts`; `app/admin/page.tsx`; `app/admin/proyectos/[proyectoId]/actualizar-base-datos/page.tsx`; `app/admin/proyectos/[proyectoId]/base-datos/page.tsx`; `app/api/proyectos/[proyectoId]/actualizar-base-datos/route.ts`; `tests/boletas-csv.test.mjs`; esta memoria.
+- **Regresión automatizada:** `node --test tests/boletas-csv.test.mjs`: 29 pass, 0 fail; lectura de seis columnas con ambos separadores, BOM/CRLF/cero, formato completo/comillas/multilínea, orden fijo histórico, cabeceras y números inválidos, actualización exacta de dos valores sin borrar cliente/vendedor/canal/otros campos, ID ajeno, tenant/proyecto incorrectos, y permisos de sesión/rol/empresa. Una primera prueba detectó que Cliente/Asesor de una fila sin encabezado se confundían con títulos; corregida la detección y repetida la suite completa.
+- **Calidad:** TypeScript `tsc --noEmit` exit 0 sobre las fuentes finales. Lint acotado exit 0, sin errores, con dos avisos anteriores en `app/admin/page.tsx` (dependencia del effect y elemento img). Comprobados también en el blob base; no se modifica ese comportamiento ajeno a CSV.
+- **Lectura del archivo aportado:** 3.191 filas reconocidas con el lector nuevo; reducción sólo en memoria a las seis columnas vuelve a leer 3.191 sin errores ni diferencias en esos campos. Original intacto, sin envío a DB ni inclusión de IDs/teléfonos/nombres reales en Git. Validación estructural no equivale a cotejo con filas productivas ni aprueba los valores comerciales.
+- **Límites:** Node 24/dependencias existentes, TypeScript y SDK Supabase real con transporte/filas ficticias; se ejecuta el guard de rol/proyecto actual, simulando resolución de sesión. No acredita PostgREST/DB real, RLS, UI de navegador, concurrencia, rollback de datos ni instalación limpia. Operaciones siguen siendo por fila/lote, no una transacción global; no se declara cerrada la fase P08 ni se promete duración de importación. Montos sin separadores son el formato recomendado para esta carga.
+- **Contratos preservados:** GHL/formularios/webhooks, login, disponibilidad, schema y dependencias sin cambios. Ninguna variable/workflow/migración configurada.
+- **Commit/deployment:** pendientes al escribir este registro; se añadirán los SHAs reales después de publicar. Base `bcf8a889bffed975235307023a2955420c1a70f7` / árbol `fce27e04d7bb1a2bb23a20f9c6cbc49752ce23d7`.
+- **Reversión:** revertir únicamente la implementación CSV si fuera necesario; no revierte datos que el usuario importe. No se ha ejecutado una importación desde esta sesión.
+- **Siguiente acción:** integrar por main y consultar el status de Vercel. El usuario conserva sólo `id,empresa_id,proyecto_id,numero,estado,valor_pagado` si desea cambiar exclusivamente esos dos valores, pulsa Actualizar CSV en el proyecto correcto, espera el resumen y confirma actualizadas/omitidas/no encontradas/errores. Cargar el archivo completo también actualizaría los otros campos reconocidos que incluya.
 
 ### Plantilla para la siguiente unidad
 
