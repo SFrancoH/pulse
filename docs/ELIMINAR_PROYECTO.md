@@ -4,7 +4,39 @@ La interfaz y las rutas están preparadas. Se activarán en main después de que
 usuario confirme la instalación de la función SQL. El código no requiere otra
 cuenta, proyecto Supabase, Preview ni cambios en GHL.
 
-## Instalación manual necesaria, una sola vez
+## Estado actual: instalación suspendida por diferencia de esquema
+
+El usuario ejecutó el instalador el 2026-10-03 y recibió:
+
+```text
+DEL-01: falta public.movimientos_boletas.boleta_id; no se instaló la eliminación.
+```
+
+La validación falló antes de CREATE OR REPLACE FUNCTION. En este intento no se
+creó/reemplazó la función ni se ejecutaron los DELETE. El mismo mensaje aparece
+si falta la tabla completa o si existe sin esa columna: aún hay que distinguirlo.
+La referencia boleta_id proviene del insert en app/api/ghl-reserva/route.ts;
+el código del webhook no acredita el esquema productivo. Los tests SQL anteriores
+usaron fixtures con esa columna, por lo que no certifican compatibilidad real.
+
+### Paso manual actual: consultar el esquema, sin modificarlo
+
+1. En la base Supabase actual de Pulse, abrir **SQL Editor → New query**.
+2. Copiar el contenido completo de
+   `supabase/production/20261003_00_project_deletion_preflight.sql`, pegar y pulsar
+   **Run**. Es un único SELECT sobre catálogos: no lee filas de compradores ni
+   modifica datos, tablas o funciones; tampoco llama al borrado.
+3. Compartir la tabla de resultados con las columnas **tipo, objeto, detalle**.
+   Se puede copiar o exportar como CSV desde el resultado. Incluye nombres/tipos
+   de columnas, claves/relaciones y nombres de triggers, sin datos de boletas.
+4. Esperar la revisión y el SQL adaptado. El botón no se activa hasta instalar
+   correctamente la versión corregida y confirmar su verificación.
+
+No repetir el instalador 01 mientras figure suspendido. La operación debe
+adaptarse a las relaciones existentes; no cambiar el esquema operativo para
+satisfacer el supuesto anterior.
+
+## Instalación posterior, una sola vez (pendiente de SQL corregido)
 
 1. Abrir **Supabase Dashboard** y seleccionar la base que usa Pulse en producción.
 2. Entrar en **SQL Editor** y crear una consulta nueva.
@@ -85,6 +117,13 @@ ejecutable local y el entorno Codex puede usar su Playwright ya instalado.
 También TypeScript y lint acotado. Estas pruebas no acreditan el catálogo, RLS,
 triggers, PostgREST, carga/concurrencia ni el resultado de una eliminación en la
 base productiva. No se han borrado datos reales para probar esta función.
+
+`tests/project-deletion-preflight.test.mjs`: 3/3 pruebas PGlite. Reproduce el
+rechazo del instalador con columna o tabla ausente, verifica que no se instala la
+función ni cambian filas y ejecuta el diagnóstico en transacciones READ ONLY.
+Comprueba columnas, otras tablas relacionadas, claves, CASCADE y triggers sin
+ejecutarlos ni exportar registros. Lint del test sin errores. Para correrlo:
+`PULSE_TEST_MODULES=<node_modules_de_pruebas> node --test tests/project-deletion-preflight.test.mjs`.
 
 ## Reversión
 

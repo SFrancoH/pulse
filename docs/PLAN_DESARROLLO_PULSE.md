@@ -17,7 +17,7 @@
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-03, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-03 16:27 America/Bogota; preparación DEL-01 integrada `493fadb42154a09826c6e85f66fc075065a6b20d` y Vercel success; candidato probado guardado, esperando confirmación SQL |
+| Último checkpoint de ejecución | 2026-10-03 16:54 America/Bogota; DEL-01 bloqueado: instalador rechazado en Supabase por movimientos_boletas.boleta_id; diagnóstico de solo lectura preparado |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -29,15 +29,15 @@
 | Estado de integración de GitHub | `merged=true`; SHA y árbol de main comprobados después del merge |
 | Build histórico de la rama/Preview descartado | **Vercel: failure** por URL Supabase ausente; no corresponde al nuevo build de main |
 | Build del merge funcional | **Vercel: success**, SHA `726f99f5251940fe7b6e38e46bc428eda11c40cd`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HK2CZgTuz6Lg8xuLKCLXMYu2ipJk) |
-| Último deployment de main comprobado | **Vercel success**, preparación SQL/documental `493fadb42154a09826c6e85f66fc075065a6b20d`; [deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/G9fWEyRSgJB6bDu4r8DNPRjSCHiP). Toda la aplicación conserva los blobs de `fac967769e9f75a45cd4c98137b89fdda4a7bcd7`; UI DEL-01 no activada |
+| Último deployment de main comprobado | **Vercel success**, checkpoint documental `3cd1f5bb33dd0907b7b073c19360d5d0b47fe24c`; [deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/9nE2JCs5YkvyGFFG1epBUF4LNtXV). Runtime conserva fac967; UI DEL-01 no activada |
 | Check `Vercel Preview Comments` | Success: sólo confirma que no hay comentarios pendientes; no confirma un build correcto |
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
 | SHA y dominio efectivo de producción | CSV-01 `3566b8ce40d1e4f289175b8ca9508457bae55103`: Vercel success desde main; alias/entorno efectivo e importación real no expuestos por ese status. P00 tenía confirmación manual del usuario |
-| Fase activa | `DEL-01` — Verificado local; preparación en main y espera de confirmación manual de SQL. UI/endpoints pendientes de activar. CSV-01 aún sin confirmación de importación; P01/GHL aplazados |
-| Última evidencia recibida | Solicitud DEL-01; 32/32 tests API, 12/12 SQL local PGlite y 10/10 UI Chromium; TypeScript exit 0 |
-| Paso siguiente | Usuario instala `supabase/production/20261003_01_project_deletion.sql` en la DB actual de Pulse y confirma true/true/false/false/0; después integrar código DEL-01 probado en main y comprobar Vercel |
-| Bloqueo actual | Espera de instalación manual de la función SQL atómica. No activar botón antes de la confirmación; no se han eliminado proyectos reales |
+| Fase activa | `DEL-01` — **Bloqueado por esquema productivo incompatible con el instalador**. UI/endpoints no activados. CSV-01 sin confirmación de importación; P01/GHL aplazados |
+| Última evidencia recibida | Usuario reporta ERROR P0001: falta public.movimientos_boletas.boleta_id. Diagnóstico probado 3/3 en PostgreSQL local; pruebas antiguas no acreditan compatibilidad con producción |
+| Paso siguiente | Usuario ejecuta `supabase/production/20261003_00_project_deletion_preflight.sql` (solo catálogos) y comparte tipo/objeto/detalle; adaptar función y fixtures al esquema real, probar e instalar versión corregida antes de activar |
+| Bloqueo actual | Falta catálogo real: determinar si movimientos_boletas existe, sus columnas/relaciones y dependencias/triggers del proyecto. No repetir instalador suspendido ni activar candidato todavía |
 | Regresión local del parche | 7/7 pruebas con fixtures; fuentes probadas verificadas por hash contra `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no acredita build, DB real ni producción |
 | Confirmación manual del usuario | P00 confirmado con «listo»; evidencia declarada por el usuario, no una prueba independiente automatizada. No se solicitan de nuevo Preview ni otro Supabase |
 | Preparación de P01 | Revertida por `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`: módulos, tests y runbook de `fcbfd1590e19702a14780ef04db52af59d11c37b` retirados. Historial conservado; P01 aplazado. Nunca se conectó ese guard a los handlers |
@@ -45,7 +45,7 @@
 | Base de esta reversión | Main `6e6ade4ee05052fee7f05ace029ffccad3bb0fd5`, árbol `3e9bd6b089c2903566b903aecb41efa608e2b2bc`; referencia anterior a la preparación `570cf77acd8d3de461b1c632963a1b91e946c7db` |
 | Contrato obligatorio | Pulse → formularios simples de GHL; GHL → webhooks existentes de Pulse. Mantener payloads/URLs y costos actuales; pasos de configuración de ayer cancelados |
 | Implementación CSV-01 | `3566b8ce40d1e4f289175b8ca9508457bae55103`; árbol `b76b7edae803b8eda77fc02a1042930816f4809c`, main directo, sin PR/merge nuevo |
-| Candidato DEL-01 verificado local | `fdc1cceb9e10ff99199fedc693fe2c34f7b8f75e`; árbol `a8c01bfb5c1baa7f6cfaca1601c1d328e9bcc103`, sin ref actualizado/deployment; UI espera instalación SQL |
+| Candidato DEL-01 verificado local | `fdc1cceb9e10ff99199fedc693fe2c34f7b8f75e`; árbol `a8c01bfb5c1baa7f6cfaca1601c1d328e9bcc103`. Pruebas con fixtures; SQL incompatible con catálogo informado, requiere corrección antes de activar |
 | Cambios de aplicación realizados al crear este plan | Ninguno; se creó la documentación y la regla de mantenimiento de la memoria |
 
 **Conclusión y evidencia:** la corrección `b3a00c764c1d4a8011574ac71b2fac16e06fa749` se integró por PR #34 en `726f99f5251940fe7b6e38e46bc428eda11c40cd`, y la memoria por PR #35 en `e4165c58751ebb928930323f37da9b42c2d098a2`. Vercel completó también el build documental `570cf77acd8d3de461b1c632963a1b91e946c7db`. La respuesta «listo» del usuario confirma el procedimiento solicitado de Production/alias y disponibilidad; P00 se cierra con esa evidencia manual. No se inventan dominio, boletas concretas, capturas, prueba de compra completa ni pruebas independientes de DB/navegador.
@@ -703,6 +703,21 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Espera obligatoria por instrucción del usuario:** confirmar instalación correcta antes de cualquier activación dependiente. El backup sigue siendo opcional para el uso futuro; no se sustituye por un requisito de descarga ni se compra otro servicio.
 - **Próximo paso concreto:** después de la confirmación, refrescar main y rearmar aplicación/tests usando los blobs del candidato fdc1cceb, conservando los documentos/checkpoints vigentes; integrar por main sin force/Preview, registrar SHA funcional real y Vercel. Actualizar la guía a estado activado. Verificar el botón/descarga con el usuario; no borrar un proyecto real por cuenta propia.
 - **Checkpoint documental:** esta entrada registra SHAs ya existentes; su propio commit sólo documental se consulta en Git, sin autorregistro circular.
+
+### Registro 2026-10-03 16:54 America/Bogota / M-020 — DEL-01 bloqueado por esquema; diagnóstico sin mutaciones
+
+- **Estado antes → después:** espera de instalación SQL → Bloqueado. UI/endpoints nunca activados en main; no continuar con la activación del candidato fdc1cceb sin corregir SQL y fixtures.
+- **Base externa comprobada:** main idéntico a `3cd1f5bb33dd0907b7b073c19360d5d0b47fe24c` mediante compare_commits, memoria blob `15192893cdb4bcf67f41de48ceb6c96ab16239fd`. Árbol base `2930f87a013f075f8874c6ccbc6e6b79e185edaf`. Vercel success del checkpoint [9nE2JCs5YkvyGFFG1epBUF4LNtXV](https://vercel.com/soy-sebastian-franco-s-projects/pulse/9nE2JCs5YkvyGFFG1epBUF4LNtXV).
+- **Evidencia del usuario:** `ERROR P0001: DEL-01: falta public.movimientos_boletas.boleta_id; no se instaló la eliminación.` La validación DO falla antes de CREATE OR REPLACE FUNCTION. El intento no define/reemplaza esa función ni alcanza ningún DELETE; el error no distingue tabla ausente de columna ausente.
+- **Causa comprobada/límite:** el instalador asumió boleta_id a partir del insert de `app/api/ghl-reserva/route.ts`. No existe baseline versionado de movimientos_boletas. El insert del webhook no acredita que la tabla/columna exista en producción (su error de insert no se comprueba ahí). Los tests anteriores tenían fixtures con boleta_id; no prueban compatibilidad cloud. Error de validación del catálogo reconocido; no atribuirlo al operador ni cambiar el webhook para esta tarea.
+- **Unidad concreta:** nuevo SELECT de catálogo `supabase/production/20261003_00_project_deletion_preflight.sql`. Devuelve tipo/objeto/detalle: existencia, columnas/tipos, PK/unique/FK incluidas referencias externas, otras tablas con proyecto_id/boleta_id o nombres relacionados y nombres/funciones de triggers no internos. También comprueba existencia de la función sin invocarla. No consulta filas de compradores, cuerpos/argumentos de triggers ni secretos.
+- **Archivos:** nuevo diagnóstico, `tests/project-deletion-preflight.test.mjs`, aviso SUSPENDIDO como comentario en instalador 01, `docs/ELIMINAR_PROYECTO.md` y esta memoria. No cambia app/components/lib/autenticación, dependencias/lockfile, tablas/constraints/triggers, GHL, datos o variables.
+- **Pruebas reales locales:** `PULSE_TEST_MODULES=... node --test tests/project-deletion-preflight.test.mjs`: 3/3 pass, 0 fail/skip. PGlite con fixtures; reproduce rechazo del instalador por columna o tabla ausente, comprueba función no instalada y datos conservados, ejecuta diagnóstico en READ ONLY y verifica claves/cascadas/triggers/tablas adicionales sin ejecutarlos ni mostrar registros. Lint del test exit 0. No repetir API/UI/TypeScript por cambios limitados a SQL de lectura, comentario/documentos y test aislado.
+- **Publicación prevista:** integrar sólo esta unidad de diagnóstico sobre main vigente, sin Preview ni activar código DEL-01. Registrar SHA de implementación real después de crear commit; runtime de Pulse seguirá igual.
+- **Paso manual necesario:** Supabase de Pulse → SQL Editor → New query → pegar diagnóstico 00 completo → Run → copiar o exportar el resultado tipo/objeto/detalle. Esperar respuesta conforme a instrucción del usuario; no repetir instalador 01 ni ejecutar la función de borrado.
+- **Siguiente acción concreta:** revisar catálogo recibido, definir cómo filtrar los movimientos existentes o tratar una tabla realmente ausente, revisar dependencias y triggers, ajustar operación atómica y fixtures, pasar pruebas y entregar SQL corregido. La instalación y verificación del script corregido se confirmarán antes de integrar interfaz/endpoints.
+- **Datos/productivo:** ningún borrado real ejecutado por el agente. No acceso directo a Supabase. El error del instalador aporta evidencia de incompatibilidad, no evidencia de que todos los datos/funciones de la DB hayan sido inspeccionados.
+- **Reversión:** no requerida para datos por esta unidad; el diagnóstico SELECT no modifica registros. Conservar el historial, incluidos M-016–M-019; sus pruebas previas se mantienen como evidencia local con el límite ahora confirmado.
 
 ### Plantilla para la siguiente unidad
 

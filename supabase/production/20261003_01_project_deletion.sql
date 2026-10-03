@@ -1,4 +1,7 @@
 -- PULSE / DEL-01: instalar la operación atómica de eliminación de proyectos.
+-- SUSPENDIDO 2026-10-03: producción no cumple movimientos_boletas.boleta_id.
+-- Ejecutar primero 20261003_00_project_deletion_preflight.sql y revisar resultados.
+-- Este instalador debe adaptarse al catálogo real antes de volver a usarlo.
 -- Ejecutar este archivo NO elimina proyectos ni boletas: sólo define una función.
 -- La función se invoca posteriormente desde Pulse, con sesión admin y confirmación.
 -- No ejecutar SELECT public.eliminar_proyecto_pulse(...) durante la instalación.
