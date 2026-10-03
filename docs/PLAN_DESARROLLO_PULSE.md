@@ -17,7 +17,7 @@
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-03, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-03 16:54 America/Bogota; DEL-01 bloqueado: instalador rechazado en Supabase por movimientos_boletas.boleta_id; diagnóstico de solo lectura preparado |
+| Último checkpoint de ejecución | 2026-10-03 16:59 America/Bogota; diagnóstico DEL-01 integrado en `72f7e3cf2fa5b6c5816a21e9e1e1d23b51da7b82`; instalación y activación bloqueadas hasta recibir catálogo real |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -718,6 +718,16 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Siguiente acción concreta:** revisar catálogo recibido, definir cómo filtrar los movimientos existentes o tratar una tabla realmente ausente, revisar dependencias y triggers, ajustar operación atómica y fixtures, pasar pruebas y entregar SQL corregido. La instalación y verificación del script corregido se confirmarán antes de integrar interfaz/endpoints.
 - **Datos/productivo:** ningún borrado real ejecutado por el agente. No acceso directo a Supabase. El error del instalador aporta evidencia de incompatibilidad, no evidencia de que todos los datos/funciones de la DB hayan sido inspeccionados.
 - **Reversión:** no requerida para datos por esta unidad; el diagnóstico SELECT no modifica registros. Conservar el historial, incluidos M-016–M-019; sus pruebas previas se mantienen como evidencia local con el límite ahora confirmado.
+
+### Registro 2026-10-03 16:59 America/Bogota / M-021 — Diagnóstico DEL-01 integrado; espera del catálogo
+
+- **Commit real de diagnóstico:** `72f7e3cf2fa5b6c5816a21e9e1e1d23b51da7b82`, padre `3cd1f5bb33dd0907b7b073c19360d5d0b47fe24c`, árbol `874437e714c5de82dda78ec2710bec4f351964e2`.
+- **Alcance remoto verificado:** compare_commits acredita cinco archivos: consulta preflight 00, comentario de suspensión en instalador 01, test preflight, guía y memoria. Ningún archivo de aplicación/runtime cambia; el botón sigue sin activar. Main se actualizó sin force y sin crear rama/Preview.
+- **Build observado:** Vercel pending para el commit de diagnóstico, [ELgpWc9k55RfRVJ6mH1xfd3sZfp7](https://vercel.com/soy-sebastian-franco-s-projects/pulse/ELgpWc9k55RfRVJ6mH1xfd3sZfp7). No afirmar despliegue completado con ese estado. Último build comprobado success sigue siendo el checkpoint 3cd1f5bb.
+- **Verificación:** 3/3 tests reales PGlite y lint exit 0, sin skips; git diff --check correcto. Ningún cambio de datos/esquema productivo ejecutado por el agente. El archivo de lectura ya puede usarse desde SQL Editor; no depende del deployment de la aplicación.
+- **Manual pendiente y siguiente paso:** usuario ejecuta sólo 00_project_deletion_preflight y comparte la tabla tipo/objeto/detalle. Esperar esa evidencia antes de ajustar el DELETE al catálogo real, entregar instalador corregido y activar UI/endpoints después de confirmación de instalación.
+- **Bloqueo preservado:** catálogo productivo no disponible, instalación anterior rechazada. Los resultados locales de fdc1cceb no acreditan compatibilidad de la columna boleta_id. P01/GHL no se reactivan.
+- **Checkpoint documental:** registra un commit ya existente; su propio SHA se consulta en Git sin autorregistro circular.
 
 ### Plantilla para la siguiente unidad
 
