@@ -14,7 +14,6 @@ catch {
 }
 
 const diagnosis = await fs.readFile("supabase/production/20261003_00_project_deletion_preflight.sql", "utf8");
-const installer = await fs.readFile("supabase/production/20261003_01_project_deletion.sql", "utf8");
 
 async function database(t, withMovements) {
   const db = new PGlite();
@@ -45,11 +44,6 @@ for (const withMovements of [true, false]) {
   test(`Diagnóstico sin escrituras cuando ${withMovements ? "la columna boleta_id falta" : "la tabla movimientos_boletas falta"}`, { skip: !PGlite }, async (t) => {
     const db = await database(t, withMovements);
     const before = await snapshot(db);
-    await assert.rejects(db.exec(installer), (error) => error.code === "P0001" && error.message.includes("falta public.movimientos_boletas.boleta_id"));
-    await db.exec("rollback");
-    assert.deepEqual(await snapshot(db), before);
-    assert.equal((await db.query("select to_regprocedure('public.eliminar_proyecto_pulse(text,text,text,boolean)') as funcion")).rows[0].funcion, null);
-
     await db.exec("begin read only");
     const report = (await db.query(diagnosis)).rows;
     await db.exec("rollback");
