@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import EliminarProyectoDialog from "@/components/EliminarProyectoDialog";
 import { parseCsvBoletas } from "@/lib/boletas-csv";
 import { useEffect, useRef, useState } from "react";
 
@@ -62,6 +63,8 @@ export default function AdminDashboardPage() {
   const [modalError, setModalError] = useState("");
   const [syncingProyectoId, setSyncingProyectoId] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
+  const [proyectoEliminar, setProyectoEliminar] = useState<Proyecto | null>(null);
+  const [eliminandoProyectoId, setEliminandoProyectoId] = useState("");
   const canManageProjects = role === "super_admin" || role === "empresa_admin";
   const isSeller = role === "vendedor";
 
@@ -178,6 +181,43 @@ export default function AdminDashboardPage() {
       setSyncingProyectoId("");
       proyectoCsvRef.current = "";
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function eliminarProyecto() {
+    if (!canManageProjects || !proyectoEliminar || eliminandoProyectoId) return;
+
+    const proyecto = proyectoEliminar;
+    setProyectoEliminar(null);
+    setEliminandoProyectoId(proyecto.id);
+    setError("");
+    setSyncMessage(`Eliminando proyecto ${proyecto.nombre}...`);
+
+    try {
+      const res = await fetch(`/api/admin/proyectos/${encodeURIComponent(proyecto.id)}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmacion: "ELIMINAR" }),
+      });
+
+      const data = await leerJsonSeguro(res);
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "No se pudo eliminar el proyecto.");
+      }
+
+      setEmpresas((prev) =>
+        prev.map((grupo) => ({
+          ...grupo,
+          proyectos: grupo.proyectos.filter((item) => item.id !== proyecto.id),
+        })),
+      );
+      setSyncMessage(`Proyecto ${proyecto.nombre} eliminado junto con sus datos asociados.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo confirmar la eliminación.");
+      setSyncMessage("");
+    } finally {
+      setEliminandoProyectoId("");
     }
   }
 
@@ -336,8 +376,19 @@ export default function AdminDashboardPage() {
                           </Link>
 
                           {canManageProjects && (
-                            <button type="button" onClick={() => abrirCsv(proyecto.id)} disabled={syncingProyectoId === proyecto.id} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold disabled:opacity-60">
+                            <button type="button" onClick={() => abrirCsv(proyecto.id)} disabled={syncingProyectoId === proyecto.id || eliminandoProyectoId === proyecto.id} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold disabled:opacity-60">
                               {syncingProyectoId === proyecto.id ? "Actualizando..." : "Actualizar por CSV"}
+                            </button>
+                          )}
+
+                          {canManageProjects && (
+                            <button
+                              type="button"
+                              onClick={() => setProyectoEliminar(proyecto)}
+                              disabled={Boolean(eliminandoProyectoId) || syncingProyectoId === proyecto.id}
+                              className="rounded-2xl border border-red-300 bg-red-50 px-5 py-4 text-center text-lg font-semibold text-red-700 disabled:opacity-50"
+                            >
+                              {eliminandoProyectoId === proyecto.id ? "Eliminando proyecto..." : "Eliminar proyecto"}
                             </button>
                           )}
                         </div>
@@ -350,6 +401,15 @@ export default function AdminDashboardPage() {
           ))}
         </div>
       </section>
+
+      {proyectoEliminar && canManageProjects && (
+        <EliminarProyectoDialog
+          key={proyectoEliminar.id}
+          proyecto={proyectoEliminar}
+          onCancel={() => setProyectoEliminar(null)}
+          onConfirm={() => void eliminarProyecto()}
+        />
+      )}
 
       {modalAbierto && canManageProjects && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4">

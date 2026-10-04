@@ -16,8 +16,8 @@
 | Rama vigente de esta memoria | `main`; historial documental original en `docs/plan-desarrollo-pulse` |
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
-| Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-03, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-03 18:25 America/Bogota; SQL DEL-01 v2 integrado en `eaaa1582202fefe4a2084c0341867bd424fb8abd`, Vercel success; espera de instalación manual antes de activar |
+| Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-04, zona horaria America/Bogota |
+| Último checkpoint de ejecución | 2026-10-04; activación de UI/API DEL-01 autorizada por el usuario y preparada sobre `main`; confirmación exacta `ELIMINAR`, permisos super_admin/empresa_admin y RPC transaccional |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
@@ -34,10 +34,10 @@
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
 | SHA y dominio efectivo de producción | CSV-01 `3566b8ce40d1e4f289175b8ca9508457bae55103`: Vercel success desde main; alias/entorno efectivo e importación real no expuestos por ese status. P00 tenía confirmación manual del usuario |
-| Fase activa | `DEL-01` — SQL v2 **Verificado local** con DDL recibido; pendiente instalar y confirmar en Supabase. UI/endpoints no activados. CSV-01 sin confirmación de importación; P01/GHL aplazados |
+| Fase activa | `DEL-01` — UI/API de eliminación activadas en código sobre `main`; SQL v2 permanece como dependencia productiva y su instalación real en Supabase no puede verificarse desde GitHub. CSV-01 sin confirmación de importación; P01/GHL aplazados |
 | Última evidencia recibida | DDL del usuario: boletas/asignaciones_vendedores/proyectos/seller_sales_links. 31/31 pruebas PostgreSQL locales y lint exit 0. Presencia/esquema de movimientos y catálogo adicional se verifican durante instalación |
-| Paso siguiente | Usuario instala la versión actualizada de `supabase/production/20261003_01_project_deletion.sql`; confirma true/true/false/false, movimientos no_existe o por_boleta_id, dependencias_adicionales=0 y triggers_por_revisar=0. Después activar sólo aplicación/tests API/UI del candidato |
-| Bloqueo actual | Espera de instalación manual v2 y resultado real del catálogo. Si movimientos existe con relación desconocida, o aparecen dependencias/triggers pendientes, revisar diagnóstico antes de activar |
+| Paso siguiente | Verificar build de Production del commit funcional. Si la RPC aún no está instalada en Supabase, ejecutar `supabase/production/20261003_01_project_deletion.sql` y comprobar su tabla final; después probar el popup sin elegir un proyecto real para borrado automático |
+| Bloqueo actual | GitHub no da acceso al Supabase productivo: la existencia real de `eliminar_proyecto_pulse` sigue sin evidencia independiente. El endpoint falla de forma segura con 503 si la RPC no existe |
 | Regresión local del parche | 7/7 pruebas con fixtures; fuentes probadas verificadas por hash contra `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no acredita build, DB real ni producción |
 | Confirmación manual del usuario | P00 confirmado con «listo»; evidencia declarada por el usuario, no una prueba independiente automatizada. No se solicitan de nuevo Preview ni otro Supabase |
 | Preparación de P01 | Revertida por `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`: módulos, tests y runbook de `fcbfd1590e19702a14780ef04db52af59d11c37b` retirados. Historial conservado; P01 aplazado. Nunca se conectó ese guard a los handlers |
@@ -753,6 +753,22 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Espera vigente:** recibir resultado/confirmación del usuario antes de integrar interfaz/endpoints dependientes. Si existe movimientos con relación desconocida o cualquier dependencia/trigger pendiente, revisar salida del diagnóstico 00/DDL de esa relación y ajustar de forma acotada; no ignorar registros ni modificar tablas/workflows para hacer pasar el instalador.
 - **Retomar activación:** refrescar main; incorporar sólo app/components/lib y tests API/UI del candidato `fdc1cceb9e10ff99199fedc693fe2c34f7b8f75e`, preservar instalador y pruebas SQL v2/fixture/guía/memoria vigentes. Registrar evidencia de instalación como declarada por usuario, SHA funcional/deployment y verificación del botón/backup. No seleccionar/borrar un proyecto real por cuenta propia.
 - **Checkpoint documental:** registra SHA existente; su propio commit se consulta en Git sin autorregistro circular. CSV-01 sigue pendiente de confirmación de importación, P01/GHL aplazados.
+
+### Registro 2026-10-04 / M-024 — UI y endpoint de Eliminar proyecto activados
+
+- **Tarea:** DEL-01, activación solicitada expresamente por el usuario sobre el flujo de eliminación de proyectos.
+- **Base de trabajo:** `7b021a17b0a6fe3393ebb4403c011eb9995f4387` en `main`; SQL v2 existente en `supabase/production/20261003_01_project_deletion.sql` preservado sin cambios.
+- **Interfaz:** cada tarjeta de proyecto muestra **Eliminar proyecto** sólo cuando `role` es `super_admin` o `empresa_admin`. Vendedores no reciben el botón.
+- **Confirmación:** el popup pide escribir exactamente `ELIMINAR`; **ACEPTAR** permanece deshabilitado para cualquier otro valor. **Cancelar** y Escape cierran el popup antes de enviar la operación.
+- **Autorización servidor:** `DELETE /api/admin/proyectos/[proyectoId]` usa `requireProjectManagerAccess`, limita `empresa_admin` a su empresa, valida mismo origen y no toma `empresa_id` del body.
+- **Persistencia:** una única RPC `eliminar_proyecto_pulse` recibe empresa/proyecto derivados del guard. La función existente elimina movimientos ligados a boletas si corresponde, asignaciones del proyecto, `seller_sales_links`, boletas y finalmente el proyecto dentro de una transacción. No elimina `admin_users`, vendedores, usuarios, empresas ni tablas.
+- **Protección ante RPC ausente:** PGRST202/42883 devuelve 503. No existe fallback de DELETE secuenciales desde Next que pudiera dejar un borrado parcial.
+- **Archivos de esta unidad:** `app/admin/page.tsx`, `components/EliminarProyectoDialog.tsx`, `lib/project-deletion.ts`, `app/api/admin/proyectos/[proyectoId]/route.ts`, `docs/ELIMINAR_PROYECTO.md` y esta memoria.
+- **Cambio de esquema:** ninguno. No se ejecuta `DROP TABLE`, `TRUNCATE`, `ALTER TABLE` ni se eliminan constraints/índices.
+- **Validación previa reutilizada:** el SQL v2 mantiene 31/31 pruebas PostgreSQL locales registradas en M-022/M-023. El candidato anterior de API/UI había sido probado localmente; esta activación simplifica el diálogo al requisito actual y por ello el build de Production del nuevo SHA debe comprobarse antes de declarar despliegue.
+- **Limitación externa:** no hay acceso desde el conector GitHub al Supabase productivo; no afirmar que la RPC está instalada hasta tener evidencia de su ejecución/verificación.
+- **Commit funcional:** se registra en la entrada documental posterior para evitar circularidad del hash.
+- **Siguiente acción concreta:** publicar este árbol en `main`, revisar estado de Vercel del SHA exacto y documentar el resultado. No borrar un proyecto real automáticamente para probar.
 
 ### Plantilla para la siguiente unidad
 
