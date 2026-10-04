@@ -17,11 +17,11 @@
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
 | Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-04, zona horaria America/Bogota |
-| Último checkpoint de ejecución | 2026-10-04; activación de UI/API DEL-01 autorizada por el usuario y preparada sobre `main`; confirmación exacta `ELIMINAR`, permisos super_admin/empresa_admin y RPC transaccional |
+| Último checkpoint de ejecución | 2026-10-04; DEL-01 activado en `10b0e326202ef8efd312617fa51f7ecac5dbdd0a`, Vercel Production success; botón/popup/API ya forman parte de `main` |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
-| Main de integración funcional verificado | `726f99f5251940fe7b6e38e46bc428eda11c40cd`; commits documentales posteriores se consultan en el historial del archivo |
+| Main de integración funcional verificado | `10b0e326202ef8efd312617fa51f7ecac5dbdd0a` para DEL-01; commits documentales posteriores se consultan en el historial del archivo |
 | Commit de corrección de disponibilidad | `b3a00c764c1d4a8011574ac71b2fac16e06fa749` |
 | Rama de esa corrección | `fix/exclude-occupied-tickets` |
 | PR de corrección | [#34 — Excluir boletas con cliente o abonos de la disponibilidad](https://github.com/SFrancoH/pulse/pull/34) |
@@ -29,14 +29,14 @@
 | Estado de integración de GitHub | `merged=true`; SHA y árbol de main comprobados después del merge |
 | Build histórico de la rama/Preview descartado | **Vercel: failure** por URL Supabase ausente; no corresponde al nuevo build de main |
 | Build del merge funcional | **Vercel: success**, SHA `726f99f5251940fe7b6e38e46bc428eda11c40cd`; [deployment completado](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HK2CZgTuz6Lg8xuLKCLXMYu2ipJk) |
-| Último deployment de main comprobado | **Vercel success**, instalador/tests/documentación v2 `eaaa1582202fefe4a2084c0341867bd424fb8abd`; [deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/A6ftjEGFYpTmRYUAFFZwc2dRGvFK). Aplicación conserva blobs de fac967; UI DEL-01 no activada |
+| Último deployment funcional de main comprobado | **Vercel success**, DEL-01 `10b0e326202ef8efd312617fa51f7ecac5dbdd0a`; [deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/2S8WRQYZ287wB8VRZfVZ6uyRVXvu). Incluye botón, popup y endpoint de eliminación; no modifica tablas |
 | Check `Vercel Preview Comments` | Success: sólo confirma que no hay comentarios pendientes; no confirma un build correcto |
 | Check `Supabase Preview` | Skipped: no detectó cambios en el directorio `supabase` |
 | Deployment fallido identificado | `dpl_8GDk9mWaeq1TaZavqSc31qriNKNQ` |
 | SHA y dominio efectivo de producción | CSV-01 `3566b8ce40d1e4f289175b8ca9508457bae55103`: Vercel success desde main; alias/entorno efectivo e importación real no expuestos por ese status. P00 tenía confirmación manual del usuario |
-| Fase activa | `DEL-01` — UI/API de eliminación activadas en código sobre `main`; SQL v2 permanece como dependencia productiva y su instalación real en Supabase no puede verificarse desde GitHub. CSV-01 sin confirmación de importación; P01/GHL aplazados |
+| Fase activa | `DEL-01` — UI/API integradas y build de Production correcto. Pendiente únicamente evidencia de que `eliminar_proyecto_pulse` existe en el Supabase productivo y una prueba operativa controlada; no se borró ningún proyecto real durante esta implementación |
 | Última evidencia recibida | DDL del usuario: boletas/asignaciones_vendedores/proyectos/seller_sales_links. 31/31 pruebas PostgreSQL locales y lint exit 0. Presencia/esquema de movimientos y catálogo adicional se verifican durante instalación |
-| Paso siguiente | Verificar build de Production del commit funcional. Si la RPC aún no está instalada en Supabase, ejecutar `supabase/production/20261003_01_project_deletion.sql` y comprobar su tabla final; después probar el popup sin elegir un proyecto real para borrado automático |
+| Paso siguiente | Confirmar en Supabase que `eliminar_proyecto_pulse` está instalada. Si no lo está, ejecutar `supabase/production/20261003_01_project_deletion.sql`. Después realizar una prueba controlada con un proyecto descartable; no usar datos reales como prueba |
 | Bloqueo actual | GitHub no da acceso al Supabase productivo: la existencia real de `eliminar_proyecto_pulse` sigue sin evidencia independiente. El endpoint falla de forma segura con 503 si la RPC no existe |
 | Regresión local del parche | 7/7 pruebas con fixtures; fuentes probadas verificadas por hash contra `b3a00c764c1d4a8011574ac71b2fac16e06fa749`; no acredita build, DB real ni producción |
 | Confirmación manual del usuario | P00 confirmado con «listo»; evidencia declarada por el usuario, no una prueba independiente automatizada. No se solicitan de nuevo Preview ni otro Supabase |
@@ -769,6 +769,20 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Limitación externa:** no hay acceso desde el conector GitHub al Supabase productivo; no afirmar que la RPC está instalada hasta tener evidencia de su ejecución/verificación.
 - **Commit funcional:** se registra en la entrada documental posterior para evitar circularidad del hash.
 - **Siguiente acción concreta:** publicar este árbol en `main`, revisar estado de Vercel del SHA exacto y documentar el resultado. No borrar un proyecto real automáticamente para probar.
+
+### Registro 2026-10-04 / M-025 — DEL-01 integrado en main y build Production correcto
+
+- **Commit funcional real:** `10b0e326202ef8efd312617fa51f7ecac5dbdd0a`, padre `7b021a17b0a6fe3393ebb4403c011eb9995f4387`, árbol `252a7b6839eed783449cf1a1399de5d90747d95c`.
+- **Diff verificado:** seis archivos: `app/admin/page.tsx`, nuevo `components/EliminarProyectoDialog.tsx`, nuevo `lib/project-deletion.ts`, nuevo `app/api/admin/proyectos/[proyectoId]/route.ts`, `docs/ELIMINAR_PROYECTO.md` y esta memoria. Ningún archivo SQL, tabla, constraint, índice, trigger, dependencia o workflow GHL cambió.
+- **Flujo final UI:** sólo `super_admin` y `empresa_admin` ven **Eliminar proyecto**. El popup pide escribir exactamente `ELIMINAR`; **ACEPTAR** sólo se habilita con coincidencia exacta. **Cancelar** y Escape cierran sin enviar DELETE.
+- **Backend:** el DELETE vuelve a validar rol/proyecto/empresa mediante `requireProjectManagerAccess`, valida mismo origen y deriva `empresa_id` en servidor. El body no puede redirigir el borrado a otra empresa/proyecto.
+- **Operación DB:** una única llamada a `eliminar_proyecto_pulse`; no hay DELETE secuenciales de fallback. El SQL v2 conserva usuarios/vendedores y elimina sólo filas relacionadas al proyecto en movimientos (si aplica), asignaciones, `seller_sales_links`, boletas y proyecto. No usa `DROP TABLE` ni `TRUNCATE`.
+- **Build:** Vercel reportó **success** para `10b0e326202ef8efd312617fa51f7ecac5dbdd0a`: https://vercel.com/soy-sebastian-franco-s-projects/pulse/2S8WRQYZ287wB8VRZfVZ6uyRVXvu
+- **Check Supabase:** el check GitHub de Supabase terminó success para el push, pero no se toma como evidencia de que la RPC productiva exista, porque esta unidad no modificó el SQL.
+- **Prueba destructiva:** no se ejecutó. Ningún proyecto real fue elegido ni eliminado por el agente.
+- **Riesgo residual:** si `eliminar_proyecto_pulse` no está instalada en producción, el endpoint devuelve 503 y no intenta una ruta alternativa. Esto evita un borrado parcial.
+- **Siguiente acción concreta:** confirmar la instalación real de la RPC; si falta, ejecutar el instalador v2 ya versionado. Luego probar con un proyecto descartable creado para esa validación.
+- **Checkpoint documental:** esta entrada registra el commit funcional ya existente; el commit exclusivamente documental que la publica se consulta en el historial para evitar autorregistro circular.
 
 ### Plantilla para la siguiente unidad
 
