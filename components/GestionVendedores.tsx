@@ -112,13 +112,13 @@ export default function GestionVendedores() {
     <>
       <button type="button" onClick={abrir} className="rounded-2xl border border-[#1A1A1A] bg-white px-6 py-4 text-lg font-semibold text-[#1A1A1A]">Gestionar vendedores</button>
       {abierto && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4">
-          <div className="max-h-[92vh] w-full max-w-3xl overflow-auto rounded-3xl bg-white text-[#1A1A1A] shadow-xl">
+        <div className="fixed inset-0 z-[1000] flex min-h-dvh items-center justify-center overflow-y-auto bg-black/60 p-4" role="presentation">
+          <div role="dialog" aria-modal="true" aria-labelledby="gestion-vendedores-titulo" className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white text-[#1A1A1A] shadow-xl">
             <div className="flex items-center justify-between bg-[#1A1A1A] px-6 py-5 text-white">
-              <div><p className="text-sm uppercase tracking-[3px] text-white/60">Administración</p><h2 className="mt-1 text-3xl font-bold">Gestionar vendedores</h2></div>
+              <div><p className="text-sm uppercase tracking-[3px] text-white/60">Administración</p><h2 id="gestion-vendedores-titulo" className="mt-1 text-3xl font-bold">Gestionar vendedores</h2></div>
               <button type="button" onClick={cerrar} className="text-4xl leading-none" aria-label="Cerrar">×</button>
             </div>
-            <div className="space-y-6 p-6">
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
               {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
               {mensaje && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{mensaje}</div>}
               {cargando ? (
@@ -145,6 +145,9 @@ export default function GestionVendedores() {
                   )}
                 </>
               )}
+            </div>
+            <div className="flex justify-end border-t border-[#E0D9CE] bg-white px-6 py-4">
+              <button type="button" onClick={cerrar} disabled={Boolean(actualizando)} className="rounded-xl border border-[#D8D0C5] bg-white px-6 py-3 font-semibold text-[#1A1A1A] transition hover:bg-[#F2EDE4] disabled:cursor-not-allowed disabled:opacity-50">Cancelar</button>
             </div>
           </div>
         </div>
