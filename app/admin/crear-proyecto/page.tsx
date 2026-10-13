@@ -38,6 +38,8 @@ export default function CrearProyectoAdminPage() {
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState("60000");
   const [flyerUrl, setFlyerUrl] = useState("");
+  const [formularioCompraUrl,setFormularioCompraUrl] = useState("");
+  const [reservasV2Activas,setReservasV2Activas] = useState(false);
   const [cargandoEmpresas, setCargandoEmpresas] = useState(true);
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState("");
@@ -56,6 +58,7 @@ export default function CrearProyectoAdminPage() {
         if (!data.success) throw new Error(data.message || "No se pudieron cargar las empresas.");
 
         setEmpresas(data.empresas || []);
+        setReservasV2Activas(data.reservas_v2_activas === true);
         if (data.empresas?.[0]?.id) setEmpresaId(data.empresas[0].id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
@@ -86,6 +89,7 @@ export default function CrearProyectoAdminPage() {
           nombre,
           precio_boleta: Number(precio || 60000),
           flyer_url: flyerUrl,
+          formulario_compra_url: reservasV2Activas ? "" : formularioCompraUrl,
         }),
       });
 
@@ -170,6 +174,11 @@ export default function CrearProyectoAdminPage() {
               <label className="mb-2 block text-sm font-medium">Precio por boleta</label>
               <input type="number" value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder="60000" className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" required />
             </div>
+
+            {!reservasV2Activas && (<div>
+              <label className="mb-2 block text-sm font-medium">Formulario de compra</label>
+              <input type="url" value={formularioCompraUrl} onChange={(e) => setFormularioCompraUrl(e.target.value)} placeholder="https://forms.example.com/..." className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" />
+            </div>)}
 
             <div>
               <label className="mb-2 block text-sm font-medium">URL imagen / flyer</label>
