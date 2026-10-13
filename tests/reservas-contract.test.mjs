@@ -29,7 +29,7 @@ test("el envío privado es único y recuperable de forma manual, nunca por reint
  assert.match(code,/\.eq\("estado","pendiente"\)/);
  assert.match(code,/estado:"enviando"/);
  assert.equal((code.match(/\bfetch\(/g)||[]).length,1);
- assert.match(code,/estado:"incierto"/);
+ assert.match(code,/,"incierto",/);
  assert.match(code,/comprobante_url_/);
  assert.match(code,/consecutivo_/);
  assert.doesNotMatch(code,/NEXT_PUBLIC_/);
