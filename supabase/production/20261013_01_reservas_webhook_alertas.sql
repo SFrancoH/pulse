@@ -7,13 +7,10 @@ BEGIN;
 ALTER TABLE public.boletas
   ADD COLUMN IF NOT EXISTS creado_por_user_id uuid NULL;
 
--- Tabla privada: configuración de integración por empresa (solo service_role).
-CREATE TABLE IF NOT EXISTS public.pulse_empresa_integraciones (
-  empresa_id text PRIMARY KEY,
-  webhook_url_cifrada text NULL,
-  responsable_publico_user_id uuid NULL,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+-- Reutilizar la tabla empresas para una sola configuración por empresa.
+ALTER TABLE public.empresas
+  ADD COLUMN IF NOT EXISTS webhook_reservas_url_cifrada text NULL,
+  ADD COLUMN IF NOT EXISTS responsable_reservas_publicas_user_id uuid NULL;
 
 CREATE TABLE IF NOT EXISTS public.pulse_eventos_reserva (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -52,13 +49,10 @@ CREATE INDEX IF NOT EXISTS idx_pulse_alertas_responsable
   ON public.pulse_alertas_oportunidades (empresa_id, responsable_user_id, estado, created_at);
 
 -- Las tablas quedan inaccesibles a anon/authenticated incluso si el esquema public está expuesto.
-ALTER TABLE public.pulse_empresa_integraciones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pulse_eventos_reserva ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pulse_alertas_oportunidades ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.pulse_empresa_integraciones FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON public.pulse_eventos_reserva FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON public.pulse_alertas_oportunidades FROM PUBLIC, anon, authenticated;
-GRANT ALL ON public.pulse_empresa_integraciones TO service_role;
 GRANT ALL ON public.pulse_eventos_reserva TO service_role;
 GRANT ALL ON public.pulse_alertas_oportunidades TO service_role;
 
@@ -121,8 +115,8 @@ BEGIN
 
   -- La responsable de reservas públicas debe ser una empresa_admin activa de esta empresa.
   IF p_con_integracion AND p_usuario_id IS NULL THEN
-    SELECT i.responsable_publico_user_id INTO v_responsable
-      FROM public.pulse_empresa_integraciones i
+    SELECT i.responsable_reservas_publicas_user_id INTO v_responsable
+      FROM public.empresas i
      WHERE i.empresa_id = p_empresa_id;
     IF v_responsable IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM public.admin_users u WHERE u.id = v_responsable

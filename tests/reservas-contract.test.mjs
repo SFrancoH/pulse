@@ -50,5 +50,6 @@ test("la configuración privada nunca devuelve el secreto al navegador",()=>{
  const api=file("app/api/admin/empresas/[empresaId]/integracion/route.ts");
  assert.match(ui,/type="password"/);
  assert.match(api,/configurada:Boolean/);
+ assert.match(api,/from\("empresas"\)/);
  assert.doesNotMatch(api,/webhook_url_cifrada:conf\.data/);
 });
