@@ -27,6 +27,7 @@ type EmpresaGrupo = {
 
 type ApiResponse = {
   success: boolean;
+  reservas_v2_activas?: boolean;
   role?: string;
   empresa_id?: string | null;
   empresas?: EmpresaGrupo[];
