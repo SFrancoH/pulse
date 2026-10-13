@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!allowedRoles.has(role)) {
+    if ((role === "oficina_admin" && process.env.PULSE_RESERVAS_V2 !== "enabled") || !allowedRoles.has(role)) {
       return Response.json({ success: false, message: "No puedes crear usuarios con ese rol." }, { status: 403 });
     }
 
