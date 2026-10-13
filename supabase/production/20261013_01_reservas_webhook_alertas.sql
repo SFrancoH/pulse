@@ -177,6 +177,31 @@ REVOKE ALL ON FUNCTION public.pulse_confirmar_reserva(text,text,text[],timestamp
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.pulse_confirmar_reserva(text,text,text[],timestamptz,uuid,text,uuid,boolean)
   TO service_role;
+
+-- Cierre manual de una alerta, una boleta por transacción.
+CREATE OR REPLACE FUNCTION public.pulse_marcar_alerta_manual(
+ p_alerta_id uuid,p_empresa_id text,p_proyecto_id text,p_usuario_id uuid
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp
+AS $
+DECLARE v_boleta uuid; v_grupo uuid;
+BEGIN
+ UPDATE public.pulse_alertas_oportunidades a
+ SET estado='creada_manual',resuelto_at=clock_timestamp(),resuelto_por_user_id=p_usuario_id
+ WHERE a.id=p_alerta_id AND a.empresa_id=p_empresa_id AND a.proyecto_id=p_proyecto_id
+   AND a.responsable_user_id=p_usuario_id AND a.estado='pendiente'
+ RETURNING a.boleta_id,a.reserva_grupo INTO v_boleta,v_grupo;
+ IF NOT FOUND THEN RETURN false; END IF;
+ UPDATE public.boletas b SET oportunidad_creada=true,oportunidad_error_at=NULL
+ WHERE b.id=v_boleta AND b.empresa_id=p_empresa_id AND b.proyecto_id=p_proyecto_id
+   AND b.reserva_grupo=v_grupo;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Boleta no encontrada al resolver alerta'; END IF;
+ RETURN true;
+END;
+$;
+REVOKE ALL ON FUNCTION public.pulse_marcar_alerta_manual(uuid,text,text,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.pulse_marcar_alerta_manual(uuid,text,text,uuid) TO service_role;
+
 COMMIT;
 
 -- POST-APLICACIÓN: verificar existencia/privilegios; no ejecutar reservas reales de prueba.
