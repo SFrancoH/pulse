@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     const slugEntrada = String(body.slug || slugify(nombre)).trim();
     const slug = slugify(slugEntrada || nombre);
     const webhookUrl = String(body.webhook_url || "").trim();
-    const urlCifrada = webhookUrl ? cifrarWebhook(webhookUrl) : null;
+    const urlCifrada = process.env.PULSE_RESERVAS_V2 === "enabled" && webhookUrl ? cifrarWebhook(webhookUrl) : null;
 
     if (!id || !nombre || !slug) {
       return Response.json(
