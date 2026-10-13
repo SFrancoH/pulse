@@ -7,18 +7,17 @@ const MAX_SELECCION = 10;
 const PAGE_SIZE = 1000;
 
 type Boleta = { id: string; numero: string };
-type PasoModal = "datos" | "confirmacion" | "ghl" | "expirada";
+type PasoModal = "datos" | "confirmacion" | "exito" | "expirada";
+type BoletaConfirmada = {boleta_id:string;numero:string;comprobante_url:string|null};
 
 type Props = {
   empresaNombre: string;
   proyectoNombre: string;
   precioBoleta: number;
-  formularioCompraUrl: string | null;
   boletas: Boleta[];
   proyectoId?: string;
   boletasEndpoint?: string;
   reservationEndpoint?: string;
-  formTrackingParams?: Record<string, string>;
   officeWhatsappUrl?: string;
 };
 
@@ -40,6 +39,7 @@ type ReservaResponse = {
   reservadas?: string[];
   noDisponibles?: string[];
   confirmadas?: string[];
+  confirmadas_detalle?: BoletaConfirmada[];
   liberadas?: string[];
 };
 
@@ -77,12 +77,10 @@ export default function ProyectoVentaReservaClient({
   empresaNombre,
   proyectoNombre,
   precioBoleta,
-  formularioCompraUrl,
   boletas: iniciales,
   proyectoId,
   boletasEndpoint,
   reservationEndpoint,
-  formTrackingParams,
   officeWhatsappUrl,
 }: Props) {
   const endpoint = boletasEndpoint || (proyectoId ? `/api/proyectos/${proyectoId}/boletas-disponibles` : "");
@@ -105,6 +103,7 @@ export default function ProyectoVentaReservaClient({
   const [city, setCity] = useState("");
   const [holdToken, setHoldToken] = useState("");
   const [reservadasTemporales, setReservadasTemporales] = useState<string[]>([]);
+  const [confirmadasDetalle, setConfirmadasDetalle] = useState<BoletaConfirmada[]>([]);
   const [noDisponibles, setNoDisponibles] = useState<string[]>([]);
   const [segundos, setSegundos] = useState(60);
 
@@ -200,8 +199,6 @@ export default function ProyectoVentaReservaClient({
     };
   }, [endpoint, consultaActual, refrescarBusqueda, modalAbierto, cargandoPagina]);
 
-  const numerosFormulario = pasoModal === "ghl" ? reservadasTemporales : seleccionados;
-  const totalPagarFormulario = numerosFormulario.length * precioBoleta;
   const datosCompletos = Boolean(firstName.trim() && phone.trim() && city.trim());
 
   const textoResultado = useMemo(() => {
@@ -212,21 +209,6 @@ export default function ProyectoVentaReservaClient({
     const fin = Math.min(pagina * PAGE_SIZE + boletasPagina.length, totalDisponibles);
     return `${inicio.toLocaleString("es-CO")} a ${fin.toLocaleString("es-CO")} de ${totalDisponibles.toLocaleString("es-CO")} números disponibles`;
   }, [boletasPagina.length, busquedaContiene, pagina, resultados, tipoResultado, totalDisponibles]);
-
-  const formularioUrl = useMemo(() => {
-    if (!formularioCompraUrl || pasoModal !== "ghl") return "";
-    const params = new URLSearchParams();
-    numerosFormulario.forEach((numero, index) => params.set(`consecutivo_${index + 1}`, numero));
-    for (let index = numerosFormulario.length; index < MAX_SELECCION; index++) params.set(`consecutivo_${index + 1}`, "");
-    Object.entries(formTrackingParams || {}).forEach(([key, value]) => params.set(key, value));
-    params.set("first_name", firstName.trim());
-    params.set("phone", normalizarTelefono(phone));
-    params.set("city", city.trim());
-    params.set("nombre_proyecto", proyectoNombre);
-    params.set("valor_a_pagar", String(totalPagarFormulario));
-    const separador = formularioCompraUrl.includes("?") ? "&" : "?";
-    return `${formularioCompraUrl}${separador}${params.toString()}`;
-  }, [city, firstName, formTrackingParams, formularioCompraUrl, numerosFormulario, pasoModal, phone, proyectoNombre, totalPagarFormulario]);
 
   async function refrescarDisponibles() {
     if (!endpoint) return;
@@ -339,10 +321,10 @@ export default function ProyectoVentaReservaClient({
 
   function abrirReserva() {
     if (!seleccionados.length) return mostrarToast("Selecciona al menos un número.");
-    if (!formularioCompraUrl) return mostrarToast("Este proyecto no tiene formulario de compra configurado.");
     if (!reservationEndpoint) return mostrarToast("No está configurado el servicio de reserva.");
     setPasoModal("datos");
     setReservadasTemporales([]);
+    setConfirmadasDetalle([]);
     setNoDisponibles([]);
     setHoldToken("");
     setSegundos(60);
@@ -421,7 +403,8 @@ export default function ProyectoVentaReservaClient({
       setReservadasTemporales(confirmadas);
       setSeleccionados(confirmadas);
       setHoldToken("");
-      setPasoModal("ghl");
+      setConfirmadasDetalle(data.confirmadas_detalle || []);
+      setPasoModal("exito");
     } catch (error) {
       mostrarToast(error instanceof Error ? error.message : "No se pudo confirmar la reserva.");
     } finally {
@@ -436,6 +419,7 @@ export default function ProyectoVentaReservaClient({
       return;
     }
     setModalAbierto(false);
+    if (pasoModal === "exito") await refrescarDisponibles();
   }
 
   return (
@@ -488,7 +472,7 @@ export default function ProyectoVentaReservaClient({
 
       {modalAbierto && <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-4 max-[932px]:items-end max-[932px]:p-0">
         <div className="relative max-h-[90vh] w-full max-w-[520px] overflow-visible rounded-2xl bg-white max-[932px]:max-h-[94dvh] max-[932px]:max-w-none max-[932px]:rounded-t-3xl max-[932px]:rounded-b-none">
-          <div className="flex h-[60px] items-center justify-between rounded-t-2xl bg-[#1A1A1A] px-5 text-lg font-semibold text-white"><span>{pasoModal === "ghl" ? "Finalizar reserva" : "Confirmar reserva"}</span><button type="button" onClick={() => void cerrarModal()} disabled={procesando} className="text-3xl leading-none text-white disabled:opacity-40">×</button></div>
+          <div className="flex h-[60px] items-center justify-between rounded-t-2xl bg-[#1A1A1A] px-5 text-lg font-semibold text-white"><span>{pasoModal === "exito" ? "Reserva realizada" : "Confirmar reserva"}</span><button type="button" onClick={() => void cerrarModal()} disabled={procesando} className="text-3xl leading-none text-white disabled:opacity-40">×</button></div>
 
           {pasoModal === "datos" && <form onSubmit={crearRetencion} className="space-y-5 p-6">
             <div><h2 className="text-2xl font-bold">Tus datos</h2><p className="mt-2 text-sm text-[#6F665C]">Primero validaremos y apartaremos tus números durante 1 minuto.</p></div>
@@ -507,7 +491,19 @@ export default function ProyectoVentaReservaClient({
 
           {pasoModal === "expirada" && <div className="space-y-5 p-6 text-center"><div className="text-5xl">⌛</div><h2 className="text-3xl font-bold">El tiempo de reserva terminó</h2><p className="text-[#6F665C]">Los números apartados fueron liberados nuevamente. Selecciona los que quieras e inténtalo otra vez.</p><button type="button" onClick={() => setModalAbierto(false)} className="w-full rounded-2xl bg-[#E8620A] px-5 py-4 font-bold text-white">Volver a seleccionar</button></div>}
 
-          {pasoModal === "ghl" && <div className="h-[calc(90vh-60px)] max-h-[620px]"><iframe src={formularioUrl} className="h-full w-full border-0" title="Formulario de compra" /></div>}
+          {pasoModal === "exito" && <div className="max-h-[calc(90dvh-60px)] space-y-4 overflow-y-auto p-5">
+            <div className="text-center"><div className="text-5xl text-green-600">✓</div><h2 className="mt-2 text-2xl font-bold">¡Reserva realizada correctamente!</h2><p className="mt-2 text-sm text-[#6F665C]">La reserva se registró correctamente y los datos del cliente quedaron guardados.</p><p className="mt-2 font-semibold">{firstName.trim()}</p></div>
+            {(confirmadasDetalle.length ? confirmadasDetalle : reservadasTemporales.map(numero => ({boleta_id:numero,numero,comprobante_url:null}))).map((boleta) => (
+              <div key={boleta.boleta_id} className="rounded-xl border border-[#E0D9CE] bg-[#F9F6F1] p-4">
+                <div className="flex items-center justify-between gap-2"><p className="font-bold">Boleta N.º {boleta.numero}</p><span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-800">Debe</span></div>
+                {boleta.comprobante_url ? <div className="mt-3 grid grid-cols-2 gap-2">
+                  <a href={boleta.comprobante_url} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-[#1A1A1A] bg-white px-3 py-3 text-center text-sm font-semibold">Ver boleta</a>
+                  <button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(boleta.comprobante_url||"");mostrarToast("Enlace de boleta copiado.");}catch{mostrarToast("No fue posible copiar el enlace.");}}} className="rounded-xl bg-[#1A1A1A] px-3 py-3 text-sm font-semibold text-white">Copiar boleta virtual</button>
+                </div> : <p className="mt-3 text-sm text-[#9A342F]">Enlace de boleta no disponible.</p>}
+              </div>
+            ))}
+            <button type="button" onClick={()=>void cerrarModal()} className="w-full rounded-2xl bg-[#E8620A] px-6 py-4 font-bold text-white">Finalizar</button>
+          </div>}
         </div>
       </div>}
 

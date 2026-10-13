@@ -53,11 +53,9 @@ export default async function OfficePublicSalesPage({ params }: Props) {
         empresaNombre={empresa.nombre || ""}
         proyectoNombre={proyecto.nombre || ""}
         precioBoleta={Number(proyecto.precio_boleta || 0)}
-        formularioCompraUrl={proyecto.formulario_compra_url || ""}
         boletas={boletas || []}
         boletasEndpoint={`/api/public/project-sales/${token}/boletas`}
         reservationEndpoint={`/api/public/project-sales/${token}/reserva-temporal`}
-        formTrackingParams={{ ref: token, sales_rep: "Oficina" }}
       />
 
       <PreviousWinners winners={ganadores} />

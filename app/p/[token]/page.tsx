@@ -51,17 +51,9 @@ export default async function SellerPublicSalesPage({ params }: Props) {
         empresaNombre={empresa.nombre || ""}
         proyectoNombre={proyecto.nombre || ""}
         precioBoleta={Number(proyecto.precio_boleta || 0)}
-        formularioCompraUrl={proyecto.formulario_compra_url || ""}
         boletas={boletas || []}
         boletasEndpoint={`/api/public/sales-links/${token}/boletas`}
         reservationEndpoint={`/api/public/sales-links/${token}/reserva-temporal`}
-        formTrackingParams={{
-          ref: token,
-          sales_rep: vendedorNombre,
-          vendedor_id: link.vendedor_user_id,
-          vendedor_nombre: vendedorNombre,
-          vendedor_telefono: vendedorTelefono,
-        }}
         officeWhatsappUrl="https://wa.me/573147903518"
       />
 

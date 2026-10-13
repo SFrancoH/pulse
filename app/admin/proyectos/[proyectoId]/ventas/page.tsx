@@ -85,15 +85,9 @@ export default async function AdminProjectSalesPage({ params }: Props) {
         empresaNombre={empresa.nombre || ""}
         proyectoNombre={proyecto.nombre || ""}
         precioBoleta={Number(proyecto.precio_boleta || 0)}
-        formularioCompraUrl={proyecto.formulario_compra_url || ""}
         boletas={boletas || []}
         boletasEndpoint={`/api/public/project-sales/${proyecto.sales_token}/boletas`}
         reservationEndpoint={`/api/admin/proyectos/${proyectoId}/reserva-temporal`}
-        formTrackingParams={{
-          ref: proyecto.sales_token,
-          sales_rep: "Creacion Manual",
-          vendedor_nombre: "Creacion Manual",
-        }}
       />
 
       <PreviousWinners winners={ganadores} />
