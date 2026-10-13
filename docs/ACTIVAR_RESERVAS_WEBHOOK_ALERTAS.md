@@ -24,3 +24,5 @@ Conservar la información de reservas y alertas. Si es preciso detener la nueva 
 - Falta el inventario real de constraints/roles de Supabase, lo que impide certificar el SQL en producción desde GitHub.
 - La función de borrado de proyecto anterior debe reconciliarse con las nuevas entidades antes del despliegue.
 - Los enlaces de boleta muestran datos del titular en la vista pública; minimizar teléfono antes de publicar masivamente.
+
+La migración incorpora la RPC `pulse_eliminar_proyecto_con_reservas` para eliminar eventos/alertas dentro de la misma transacción de `eliminar_proyecto_pulse`. Validar ambas antes de desplegar. El nuevo endpoint de borrado requiere la función envolvente.

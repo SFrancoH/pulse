@@ -201,6 +201,30 @@ $;
 REVOKE ALL ON FUNCTION public.pulse_marcar_alerta_manual(uuid,text,text,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.pulse_marcar_alerta_manual(uuid,text,text,uuid) TO service_role;
 
+
+-- Eliminar incidencias/eventos de un proyecto en la misma transacción que la RPC existente.
+CREATE OR REPLACE FUNCTION public.pulse_eliminar_proyecto_con_reservas(
+ p_empresa_id text,p_proyecto_id text,p_confirmacion text,p_aceptado boolean
+) RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path=public,pg_temp
+AS $
+DECLARE v_resultado jsonb;
+BEGIN
+ IF p_aceptado IS DISTINCT FROM true OR p_confirmacion IS DISTINCT FROM 'ELIMINAR'
+    OR coalesce(btrim(p_empresa_id),'')='' OR coalesce(btrim(p_proyecto_id),'')='' THEN
+  RAISE EXCEPTION 'Confirmación inválida' USING ERRCODE='22023';
+ END IF;
+ PERFORM 1 FROM public.proyectos WHERE id=p_proyecto_id AND empresa_id=p_empresa_id FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Proyecto no encontrado' USING ERRCODE='P0002'; END IF;
+ DELETE FROM public.pulse_alertas_oportunidades WHERE empresa_id=p_empresa_id AND proyecto_id=p_proyecto_id;
+ DELETE FROM public.pulse_eventos_reserva WHERE empresa_id=p_empresa_id AND proyecto_id=p_proyecto_id;
+ -- Fallo en la función antigua revierte ambos DELETE anteriores.
+ SELECT public.eliminar_proyecto_pulse(p_empresa_id,p_proyecto_id,p_confirmacion,p_aceptado) INTO v_resultado;
+ RETURN v_resultado;
+END;
+$;
+REVOKE ALL ON FUNCTION public.pulse_eliminar_proyecto_con_reservas(text,text,text,boolean) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.pulse_eliminar_proyecto_con_reservas(text,text,text,boolean) TO service_role;
+
 COMMIT;
 
 -- POST-APLICACIÓN: verificar existencia/privilegios; no ejecutar reservas reales de prueba.

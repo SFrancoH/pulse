@@ -23,7 +23,7 @@ export async function DELETE(req: Request, { params }: Props) {
       );
     }
 
-    const { data, error } = await supabaseAdmin.rpc("eliminar_proyecto_pulse", {
+    const { data, error } = await supabaseAdmin.rpc("pulse_eliminar_proyecto_con_reservas", {
       p_empresa_id: auth.proyecto.empresa_id,
       p_proyecto_id: proyectoId,
       p_confirmacion: body.confirmacion,
