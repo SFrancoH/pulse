@@ -370,9 +370,9 @@ export default function AdminDashboardPage() {
                             Página de ventas
                           </a>
 
-                          <Link href={proyecto.base_datos_url} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold">
+                          {role !== "oficina_admin" && <Link href={proyecto.base_datos_url} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold">
                             Base de datos
-                          </Link>
+                          </Link>}
 
                           {canManageProjects && (
                             <button type="button" onClick={() => abrirCsv(proyecto.id)} disabled={syncingProyectoId === proyecto.id || eliminandoProyectoId === proyecto.id} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold disabled:opacity-60">
