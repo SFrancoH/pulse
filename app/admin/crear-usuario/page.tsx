@@ -9,6 +9,7 @@ type SessionResponse = {
   role?: AdminRole;
   empresa_id?: string | null;
   message?: string;
+  reservas_v2_activas?: boolean;
 };
 
 export default function CrearUsuarioPage() {
@@ -18,6 +19,7 @@ export default function CrearUsuarioPage() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<AdminRole>("empresa_admin");
   const [currentRole, setCurrentRole] = useState<AdminRole | "">("");
+  const [reservasV2Activas,setReservasV2Activas] = useState(false);
   const [empresaId, setEmpresaId] = useState("");
   const [loadingSession, setLoadingSession] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -39,8 +41,9 @@ export default function CrearUsuarioPage() {
         }
 
         setCurrentRole(data.role);
+        setReservasV2Activas(data.reservas_v2_activas===true);
         setEmpresaId(data.empresa_id || "");
-        setRole(data.role === "empresa_admin" ? "oficina_admin" : "empresa_admin");
+        setRole(data.role === "empresa_admin" ? (data.reservas_v2_activas === true ? "oficina_admin" : "vendedor") : "empresa_admin");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error cargando la sesión.");
       } finally {
@@ -92,8 +95,8 @@ export default function CrearUsuarioPage() {
 
   const allowedRoles: AdminRole[] =
     currentRole === "super_admin"
-      ? ["empresa_admin", "oficina_admin", "vendedor", "super_admin"]
-      : ["oficina_admin", "vendedor"];
+      ? (reservasV2Activas ? ["empresa_admin", "oficina_admin", "vendedor", "super_admin"] : ["empresa_admin", "vendedor", "super_admin"])
+      : (reservasV2Activas ? ["oficina_admin", "vendedor"] : ["vendedor"]);
 
   return (
     <main className="min-h-screen bg-[#F2EDE4] px-4 py-10 text-[#1A1A1A]">
