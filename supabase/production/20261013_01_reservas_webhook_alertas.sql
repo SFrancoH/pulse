@@ -182,7 +182,7 @@ CREATE OR REPLACE FUNCTION public.pulse_marcar_alerta_manual(
  p_alerta_id uuid,p_empresa_id text,p_proyecto_id text,p_usuario_id uuid
 ) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp
-AS $
+AS $$
 DECLARE v_boleta uuid; v_grupo uuid;
 BEGIN
  UPDATE public.pulse_alertas_oportunidades a
@@ -197,7 +197,7 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'Boleta no encontrada al resolver alerta'; END IF;
  RETURN true;
 END;
-$;
+$$;
 REVOKE ALL ON FUNCTION public.pulse_marcar_alerta_manual(uuid,text,text,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.pulse_marcar_alerta_manual(uuid,text,text,uuid) TO service_role;
 
@@ -206,7 +206,7 @@ GRANT EXECUTE ON FUNCTION public.pulse_marcar_alerta_manual(uuid,text,text,uuid)
 CREATE OR REPLACE FUNCTION public.pulse_eliminar_proyecto_con_reservas(
  p_empresa_id text,p_proyecto_id text,p_confirmacion text,p_aceptado boolean
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path=public,pg_temp
-AS $
+AS $$
 DECLARE v_resultado jsonb;
 BEGIN
  IF p_aceptado IS DISTINCT FROM true OR p_confirmacion IS DISTINCT FROM 'ELIMINAR'
@@ -221,7 +221,7 @@ BEGIN
  SELECT public.eliminar_proyecto_pulse(p_empresa_id,p_proyecto_id,p_confirmacion,p_aceptado) INTO v_resultado;
  RETURN v_resultado;
 END;
-$;
+$$;
 REVOKE ALL ON FUNCTION public.pulse_eliminar_proyecto_con_reservas(text,text,text,boolean) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.pulse_eliminar_proyecto_con_reservas(text,text,text,boolean) TO service_role;
 
