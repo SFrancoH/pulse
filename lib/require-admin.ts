@@ -126,6 +126,15 @@ export async function requireProjectAccess(proyectoId: string) {
   return authorizeProject(proyectoId, false);
 }
 
+export async function requireProjectSalesAccess(proyectoId: string) {
+  const result = await authorizeProject(proyectoId, false);
+  if (result.error || !result.session) return result;
+  if (!["super_admin","empresa_admin","oficina_admin"].includes(result.session.rol)) {
+    return {...result,error:Response.json({success:false,message:"Acceso denegado."},{status:403})};
+  }
+  return result;
+}
+
 export async function requireProjectManagerAccess(proyectoId: string) {
   return authorizeProject(proyectoId, true);
 }

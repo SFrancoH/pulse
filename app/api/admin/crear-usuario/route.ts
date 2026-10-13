@@ -1,8 +1,8 @@
 import { getCurrentAdminSession, hashPassword } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-const SUPER_ADMIN_ROLES = new Set(["super_admin", "empresa_admin", "vendedor"]);
-const EMPRESA_ADMIN_ROLES = new Set(["vendedor"]);
+const SUPER_ADMIN_ROLES = new Set(["super_admin", "empresa_admin", "oficina_admin", "vendedor"]);
+const EMPRESA_ADMIN_ROLES = new Set(["oficina_admin", "vendedor"]);
 
 export async function POST(req: Request) {
   try {

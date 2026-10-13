@@ -5,7 +5,7 @@ import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
 import { getPreviousWinners } from "@/lib/previous-winners";
-import { requireProjectManagerAccess } from "@/lib/require-admin";
+import { requireProjectSalesAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type Props = {
@@ -20,7 +20,7 @@ const OCTOBER_PROJECT_ID = "z6D7TmXDOdu2At3H4Tqy_sorteo_10_de_octubre";
 export default async function AdminProjectSalesPage({ params }: Props) {
   const { proyectoId } = await params;
   const baselineReservas = new Date().toISOString();
-  const { proyecto: proyectoAutorizado, error: authError } = await requireProjectManagerAccess(proyectoId);
+  const { proyecto: proyectoAutorizado, error: authError } = await requireProjectSalesAccess(proyectoId);
 
   if (authError || !proyectoAutorizado) {
     return (

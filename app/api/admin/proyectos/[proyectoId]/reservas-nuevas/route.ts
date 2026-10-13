@@ -1,4 +1,4 @@
-import { requireProjectManagerAccess } from "@/lib/require-admin";
+import { requireProjectSalesAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -16,7 +16,7 @@ function fechaValida(value: string | null) {
 export async function GET(req: Request, { params }: PageProps) {
   try {
     const { proyectoId } = await params;
-    const { proyecto, error } = await requireProjectManagerAccess(proyectoId);
+    const { proyecto, error } = await requireProjectSalesAccess(proyectoId);
 
     if (error || !proyecto) {
       return error || Response.json({ success: false, message: "No autorizado." }, { status: 403 });

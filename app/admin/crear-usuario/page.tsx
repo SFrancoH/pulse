@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type AdminRole = "super_admin" | "empresa_admin" | "vendedor";
+type AdminRole = "super_admin" | "empresa_admin" | "oficina_admin" | "vendedor";
 
 type SessionResponse = {
   success: boolean;
@@ -40,7 +40,7 @@ export default function CrearUsuarioPage() {
 
         setCurrentRole(data.role);
         setEmpresaId(data.empresa_id || "");
-        setRole(data.role === "empresa_admin" ? "vendedor" : "empresa_admin");
+        setRole(data.role === "empresa_admin" ? "oficina_admin" : "empresa_admin");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error cargando la sesión.");
       } finally {
@@ -92,8 +92,8 @@ export default function CrearUsuarioPage() {
 
   const allowedRoles: AdminRole[] =
     currentRole === "super_admin"
-      ? ["empresa_admin", "vendedor", "super_admin"]
-      : ["vendedor"];
+      ? ["empresa_admin", "oficina_admin", "vendedor", "super_admin"]
+      : ["oficina_admin", "vendedor"];
 
   return (
     <main className="min-h-screen bg-[#F2EDE4] px-4 py-10 text-[#1A1A1A]">
