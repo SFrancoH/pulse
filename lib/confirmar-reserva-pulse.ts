@@ -2,6 +2,7 @@ import "server-only";
 import { sincronizarDisponibilidadesGoogleSheet } from "@/lib/google-sheets-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { enviarReservaUnaVez } from "@/lib/reservation-webhook";
+import { cancelarReservaTemporal } from "@/lib/temporary-reservations";
 export type BoletaConfirmada={boleta_id:string;numero:string;comprobante_url:string|null};
 export async function confirmarReservaPulse(input:{empresaId:string;proyectoId:string;numeros:string[];holdToken:string;vendedorUserId?:string|null;canal:"Oficina"|"Creacion Manual"|"Vendedores";usuarioId?:string|null;integrar:boolean}){
  const {data,error}=await supabaseAdmin.rpc("pulse_confirmar_reserva",{
@@ -10,7 +11,10 @@ export async function confirmarReservaPulse(input:{empresaId:string;proyectoId:s
  });
  if(error)throw error;
  const result=data as {expired:boolean;reserva_grupo?:string|null;confirmadas?:BoletaConfirmada[]};
- if(result.expired)return {expired:true,confirmadas:[],confirmadas_detalle:[],liberadas:[]};
+ if(result.expired){
+  const liberadas=await cancelarReservaTemporal({empresaId:input.empresaId,proyectoId:input.proyectoId,vendedorUserId:input.vendedorUserId},input.numeros,input.holdToken);
+  return {expired:true,confirmadas:[],confirmadas_detalle:[],liberadas};
+ }
  const boletas=result.confirmadas||[];
  if(!input.vendedorUserId){try{await sincronizarDisponibilidadesGoogleSheet(boletas.map(b=>({numero:b.numero,estado:"Debe"})));}catch{}}
  if(input.integrar&&result.reserva_grupo)await enviarReservaUnaVez(input.empresaId,input.proyectoId,result.reserva_grupo);
