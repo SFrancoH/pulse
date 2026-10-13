@@ -89,8 +89,8 @@ BEGIN
   IF p_empresa_id IS NULL OR p_proyecto_id IS NULL OR p_hold_token IS NULL
      OR p_canal NOT IN ('Oficina', 'Creacion Manual', 'Vendedores')
      OR cardinality(p_numeros) < 1 OR cardinality(p_numeros) > 10
-     OR (SELECT count(DISTINCT n) FROM unnest(p_numeros) AS n) <> cardinality(p_numeros)
-     OR EXISTS (SELECT 1 FROM unnest(p_numeros) AS n WHERE n !~ '^[0-9]{4}$')
+     OR (SELECT count(DISTINCT n) FROM unnest(p_numeros) AS t(n)) <> cardinality(p_numeros)
+     OR EXISTS (SELECT 1 FROM unnest(p_numeros) AS t(n) WHERE n !~ '^[0-9]{4}$')
      OR (p_con_integracion AND (p_canal = 'Vendedores' OR p_vendedor_user_id IS NOT NULL))
      OR (NOT p_con_integracion AND p_canal <> 'Vendedores')
   THEN
@@ -139,7 +139,6 @@ BEGIN
     UPDATE public.boletas b SET
       estado = 'Debe',
       canal = p_canal,
-      created_at = b.created_at,
       updated_at = clock_timestamp(),
       creado_por_user_id = p_usuario_id,
       reserva_grupo = CASE WHEN p_con_integracion THEN v_grupo ELSE b.reserva_grupo END,

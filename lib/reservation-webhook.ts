@@ -26,14 +26,17 @@ export async function enviarReservaUnaVez(empresa:string,proyecto:string,grupo:s
  try{
   const [conf,lista,proy]=await Promise.all([
    supabaseAdmin.from("pulse_empresa_integraciones").select("webhook_url_cifrada").eq("empresa_id",empresa).maybeSingle(),
-   supabaseAdmin.from("boletas").select("id,numero,comprobante_url,nombre_cliente,telefono_cliente,ciudad_cliente,email_cliente").eq("empresa_id",empresa).eq("proyecto_id",proyecto).eq("reserva_grupo",grupo).order("numero",{ascending:true}),
+   supabaseAdmin.from("boletas").select("id,numero,comprobante_url,nombre_cliente,telefono_cliente,ciudad_cliente,email_cliente,creado_por_user_id,canal").eq("empresa_id",empresa).eq("proyecto_id",proyecto).eq("reserva_grupo",grupo).order("numero",{ascending:true}),
    supabaseAdmin.from("proyectos").select("nombre,precio_boleta").eq("empresa_id",empresa).eq("id",proyecto).maybeSingle()
   ]);
   if(conf.error||lista.error||proy.error||!conf.data?.webhook_url_cifrada||!lista.data?.length||!proy.data) {await fallo(empresa,proyecto,grupo,"fallido","Integración no configurada o datos incompletos.");return;}
-  const rows=lista.data;const payload:Record<string,string|number|null>={
+  const rows=lista.data;
+  if(rows.length>10||rows.some(b=>!b.comprobante_url)){await fallo(empresa,proyecto,grupo,"fallido","Falta el enlace virtual de alguna boleta.");return;}
+  const payload:Record<string,string|number|null>={
    evento:"reserva_confirmada",evento_id:evento.id,reserva_grupo:grupo,empresa_id:empresa,proyecto_id:proyecto,
    nombre_proyecto:proy.data.nombre||"",first_name:rows[0].nombre_cliente||"",phone:rows[0].telefono_cliente||"",
-   city:rows[0].ciudad_cliente||"",email:rows[0].email_cliente||"",cantidad_boletas:rows.length,
+   city:rows[0].ciudad_cliente||"",email:rows[0].email_cliente||"",canal:rows[0].canal||"",
+   responsable_user_id:rows[0].creado_por_user_id||null,cantidad_boletas:rows.length,
    valor_a_pagar:rows.length*Number(proy.data.precio_boleta||0)
   };
   rows.forEach((b,i)=>{payload["consecutivo_"+(i+1)]=b.numero;payload["comprobante_url_"+(i+1)]=b.comprobante_url||"";});
