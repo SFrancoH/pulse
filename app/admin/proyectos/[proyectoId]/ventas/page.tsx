@@ -1,11 +1,13 @@
 import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import AdminSalesReservationMonitor from "@/components/AdminSalesReservationMonitor";
 import OpportunityErrorRecovery from "@/components/OpportunityErrorRecovery";
+import OpportunityErrorRecoveryLegacy from "@/components/OpportunityErrorRecoveryLegacy";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
+import ProyectoVentaReservaLegacyClient from "@/components/ProyectoVentaReservaLegacyClient";
 import { getPreviousWinners } from "@/lib/previous-winners";
-import { requireProjectManagerAccess } from "@/lib/require-admin";
+import { requireProjectSalesAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type Props = {
@@ -20,7 +22,7 @@ const OCTOBER_PROJECT_ID = "z6D7TmXDOdu2At3H4Tqy_sorteo_10_de_octubre";
 export default async function AdminProjectSalesPage({ params }: Props) {
   const { proyectoId } = await params;
   const baselineReservas = new Date().toISOString();
-  const { proyecto: proyectoAutorizado, error: authError } = await requireProjectManagerAccess(proyectoId);
+  const { proyecto: proyectoAutorizado, error: authError } = await requireProjectSalesAccess(proyectoId);
 
   if (authError || !proyectoAutorizado) {
     return (
@@ -73,7 +75,7 @@ export default async function AdminProjectSalesPage({ params }: Props) {
         Modo administrativo · Las nuevas reservas bloquearán esta pantalla hasta actualizar los números.
       </div>
 
-      <OpportunityErrorRecovery proyectoId={proyectoId} proyectoNombre={proyecto.nombre || ""} />
+      {process.env.PULSE_RESERVAS_V2 === "enabled" ? <OpportunityErrorRecovery proyectoId={proyectoId} proyectoNombre={proyecto.nombre || ""} /> : <OpportunityErrorRecoveryLegacy proyectoId={proyectoId} proyectoNombre={proyecto.nombre || ""} />}
 
       <ProyectoSalesHero
         proyectoNombre={proyecto.nombre || ""}
@@ -81,7 +83,14 @@ export default async function AdminProjectSalesPage({ params }: Props) {
         showOctoberPromo={esSorteoOctubre}
       />
 
-      <ProyectoVentaReservaClient
+      {process.env.PULSE_RESERVAS_V2 === "enabled" ? (<ProyectoVentaReservaClient
+        empresaNombre={empresa.nombre || ""}
+        proyectoNombre={proyecto.nombre || ""}
+        precioBoleta={Number(proyecto.precio_boleta || 0)}
+        boletas={boletas || []}
+        boletasEndpoint={`/api/public/project-sales/${proyecto.sales_token}/boletas`}
+        reservationEndpoint={`/api/admin/proyectos/${proyectoId}/reserva-temporal`}
+      />) : (<ProyectoVentaReservaLegacyClient
         empresaNombre={empresa.nombre || ""}
         proyectoNombre={proyecto.nombre || ""}
         precioBoleta={Number(proyecto.precio_boleta || 0)}
@@ -94,7 +103,7 @@ export default async function AdminProjectSalesPage({ params }: Props) {
           sales_rep: "Creacion Manual",
           vendedor_nombre: "Creacion Manual",
         }}
-      />
+      />)}
 
       <PreviousWinners winners={ganadores} />
 

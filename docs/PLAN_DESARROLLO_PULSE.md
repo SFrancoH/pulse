@@ -798,6 +798,18 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Siguiente acción:** al recibir autorización para implementar, empezar D01 (inventario y preflight) y avanzar secuencialmente con tests y reversión; actualizar esta memoria con SHAs reales, migraciones y verificación Production. **No implementar código por esta instrucción documental.**
 - **Checkpoint:** los commits exclusivamente documentales se consultan en Git y no autorregistran recursivamente su SHA.
 
+### Registro 2026-10-13 / M-027 — Implementación preparada para main con activación diferida
+
+- **Alcance solicitado:** incorporar a `main` el código de reservas V2, integración por empresa, alertas individuales, boletas virtuales, permisos y migración SQL, preservando las ventas en curso.
+- **Rama:** `feat/reservas-webhook-alertas-20261013`. Código y SQL en el repositorio, pero **migración sin aplicar a Supabase de producción** y automatizaciones externas sin configurar/verificar.
+- **Activación segura:** `PULSE_RESERVAS_V2=enabled` habilita el nuevo flujo. **Sin esa variable o con otro valor, mantienen su funcionamiento el formulario incrustado existente, los endpoints de confirmación previos, la creación de proyecto con campo de formulario y el callback histórico.** Se conservan componentes/handlers legacy separados con esta finalidad. No activar el flag sin completar `docs/ACTIVAR_RESERVAS_WEBHOOK_ALERTAS.md`.
+- **Implementado en código (no verificado en producción):** RPC propuesta `pulse_confirmar_reserva` para confirmar hasta 10 números; un evento único por reserva de Oficina; no hay reintentos salientes; callback por número autenticado; alertas por usuario y boleta; flujo vendedor asignado sin webhook; nuevo rol `oficina_admin`; UI de comprobantes con `comprobante_url` y configuración cifrada por empresa; borrado de registros vinculados en transacción.
+- **Pruebas automatizadas:** GitHub Actions `validar-reservas.yml` verifica TypeScript, pruebas de contrato y PostgreSQL con datos ficticios. Registrar el resultado y SHA final antes de integrar. Esas pruebas NO equivalen a verificar Vercel/CRM/Supabase reales.
+- **Pendientes críticos de activación:** revisar DDL/constraints reales de `admin_users` y boletas con preflight SQL, adaptar rol `oficina_admin` en DB, ejecutar migración SQL validada, verificar RPC previa de eliminación, configurar secretos privados de Vercel, URL del webhook de cada empresa, administrador responsable público y confirmación externa por cada número. No lanzar webhook real para probar sin preparación del receptor.
+- **Producción:** mezclar código a main no significa habilitar nuevas reservas. No afirmar activación de V2 mientras el flag esté apagado; la rama desplegada debe continuar con formulario anterior. Verificar el build de Production del commit exacto después del merge.
+- **Reversión:** deshabilitar el flag y restaurar flujo anterior si hay incidencia; nunca reenviar automáticamente eventos ya intentados. Conservar información de reserva en BD.
+- **Siguiente acción:** tras integración, registrar SHA real de merge/build; completar preflight y activación en una unidad diferente, verificando operaciones de reservas con datos ficticios antes de usuarios reales.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:

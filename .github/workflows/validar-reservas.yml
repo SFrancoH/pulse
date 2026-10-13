@@ -1,0 +1,78 @@
+name: Validar reservas sin desplegar
+on:
+  push:
+    branches:
+      - feat/reservas-webhook-alertas-20261013
+  pull_request:
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "supabase/**"
+      - "tests/**"
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Instalar dependencias sin ejecutar scripts
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verificar tipos sin build ni despliegue
+        run: npx tsc --noEmit
+      - name: Verificar contratos locales
+        run: node --test tests/reservas-contract.test.mjs
+  postgres:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: prueba
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: prueba
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar PostgreSQL para pruebas ficticias
+        shell: bash
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y postgresql-client
+          fi
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role; END IF;
+          END;
+          $$;
+          CREATE TABLE public.admin_users (id uuid PRIMARY KEY,empresa_id text,role text,estado text);
+          CREATE TABLE public.empresas (id text PRIMARY KEY,nombre text);
+          SQL
+      - name: Cargar fixture y RPC histórica
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/fixtures/project-deletion-schema.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/production/20261003_01_project_deletion.sql
+      - name: Instalar migración de reservas en PostgreSQL ficticio
+        run: psql -v ON_ERROR_STOP=1 -f supabase/production/20261013_01_reservas_webhook_alertas.sql
+      - name: Probar 2 boletas, propietario, deduplicación, vendedor y eliminación
+        run: psql -v ON_ERROR_STOP=1 -f tests/reservas-db-smoke.sql

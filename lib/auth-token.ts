@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
-export type AdminRole = "super_admin" | "empresa_admin" | "vendedor";
+export type AdminRole = "super_admin" | "empresa_admin" | "oficina_admin" | "vendedor";
 
 export type AdminSession = {
   user_id?: string | null;
@@ -68,7 +68,7 @@ export function verifyAdminSessionToken(token?: string | null): AdminSession | n
 
     const payload = JSON.parse(fromBase64url(encodedPayload)) as AdminSession;
 
-    const rolesValidos: AdminRole[] = ["super_admin", "empresa_admin", "vendedor"];
+    const rolesValidos: AdminRole[] = ["super_admin", "empresa_admin", "oficina_admin", "vendedor"];
 
     if (!payload.email || !rolesValidos.includes(payload.rol) || !payload.exp) return null;
     if (payload.exp < Date.now()) return null;

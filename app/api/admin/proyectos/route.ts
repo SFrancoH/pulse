@@ -78,7 +78,7 @@ export async function GET() {
     const empresaIds = empresasTipadas.map((empresa) => empresa.id);
 
     if (empresaIds.length === 0) {
-      return Response.json({ success: true, role: session.rol, empresa_id: session.empresa_id || null, empresas: [] });
+      return Response.json({ success: true, role: session.rol, empresa_id: session.empresa_id || null, empresas: [], reservas_v2_activas: process.env.PULSE_RESERVAS_V2 === "enabled" });
     }
 
     let proyectosPermitidos: string[] | null = null;
@@ -138,6 +138,7 @@ export async function GET() {
     return Response.json({
       success: true,
       role: session.rol,
+      reservas_v2_activas: process.env.PULSE_RESERVAS_V2 === "enabled",
       empresa_id: session.empresa_id || null,
       empresas: grupos,
     });

@@ -16,7 +16,6 @@ type CrearProyectoResponse = {
   webhook_url?: string;
   actualizar_boleta_url?: string;
   reservar_boleta_url?: string;
-  oportunidades_ghl_url?: string;
   asignar_vendedor_url?: string;
   proyecto_id?: string;
   proyecto_slug?: string;
@@ -38,8 +37,9 @@ export default function CrearProyectoAdminPage() {
   const [empresaId, setEmpresaId] = useState("");
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState("60000");
-  const [formularioCompraUrl, setFormularioCompraUrl] = useState("");
   const [flyerUrl, setFlyerUrl] = useState("");
+  const [formularioCompraUrl,setFormularioCompraUrl] = useState("");
+  const [reservasV2Activas,setReservasV2Activas] = useState(false);
   const [cargandoEmpresas, setCargandoEmpresas] = useState(true);
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState("");
@@ -58,6 +58,7 @@ export default function CrearProyectoAdminPage() {
         if (!data.success) throw new Error(data.message || "No se pudieron cargar las empresas.");
 
         setEmpresas(data.empresas || []);
+        setReservasV2Activas(data.reservas_v2_activas === true);
         if (data.empresas?.[0]?.id) setEmpresaId(data.empresas[0].id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
@@ -87,8 +88,8 @@ export default function CrearProyectoAdminPage() {
           empresa_id: empresaId,
           nombre,
           precio_boleta: Number(precio || 60000),
-          formulario_compra_url: formularioCompraUrl,
           flyer_url: flyerUrl,
+          formulario_compra_url: reservasV2Activas ? "" : formularioCompraUrl,
         }),
       });
 
@@ -141,7 +142,6 @@ export default function CrearProyectoAdminPage() {
     ? [
         { label: "Proyecto_id", value: resultado.proyecto_id, key: "proyecto" },
         { label: "Reservar Boleta", value: resultado.reservar_boleta_url, key: "reservar" },
-        { label: "oportunidades-ghl", value: resultado.oportunidades_ghl_url, key: "oportunidades" },
         { label: "actualizar boleta", value: resultado.actualizar_boleta_url || resultado.webhook_url, key: "actualizar" },
       ]
     : [];
@@ -175,10 +175,10 @@ export default function CrearProyectoAdminPage() {
               <input type="number" value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder="60000" className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" required />
             </div>
 
-            <div>
+            {!reservasV2Activas && (<div>
               <label className="mb-2 block text-sm font-medium">Formulario de compra</label>
               <input type="url" value={formularioCompraUrl} onChange={(e) => setFormularioCompraUrl(e.target.value)} placeholder="https://forms.example.com/..." className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" />
-            </div>
+            </div>)}
 
             <div>
               <label className="mb-2 block text-sm font-medium">URL imagen / flyer</label>

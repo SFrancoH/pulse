@@ -14,6 +14,7 @@ export async function GET() {
 
     return Response.json({
       success: true,
+      reservas_v2_activas: process.env.PULSE_RESERVAS_V2 === "enabled",
       empresas: data || [],
     });
   } catch (error: unknown) {

@@ -2,6 +2,7 @@ import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
+import ProyectoVentaReservaLegacyClient from "@/components/ProyectoVentaReservaLegacyClient";
 import { getPreviousWinners } from "@/lib/previous-winners";
 import { getActiveSellerSalesLink } from "@/lib/seller-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -47,7 +48,15 @@ export default async function SellerPublicSalesPage({ params }: Props) {
         showOctoberPromo={esSorteoOctubre}
       />
 
-      <ProyectoVentaReservaClient
+      {process.env.PULSE_RESERVAS_V2 === "enabled" ? (<ProyectoVentaReservaClient
+        empresaNombre={empresa.nombre || ""}
+        proyectoNombre={proyecto.nombre || ""}
+        precioBoleta={Number(proyecto.precio_boleta || 0)}
+        boletas={boletas || []}
+        boletasEndpoint={`/api/public/sales-links/${token}/boletas`}
+        reservationEndpoint={`/api/public/sales-links/${token}/reserva-temporal`}
+        officeWhatsappUrl="https://wa.me/573147903518"
+      />) : (<ProyectoVentaReservaLegacyClient
         empresaNombre={empresa.nombre || ""}
         proyectoNombre={proyecto.nombre || ""}
         precioBoleta={Number(proyecto.precio_boleta || 0)}
@@ -63,7 +72,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
           vendedor_telefono: vendedorTelefono,
         }}
         officeWhatsappUrl="https://wa.me/573147903518"
-      />
+      />)}
 
       <PreviousWinners winners={ganadores} />
     </>

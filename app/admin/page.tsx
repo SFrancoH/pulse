@@ -27,6 +27,7 @@ type EmpresaGrupo = {
 
 type ApiResponse = {
   success: boolean;
+  reservas_v2_activas?: boolean;
   role?: string;
   empresa_id?: string | null;
   empresas?: EmpresaGrupo[];
@@ -58,8 +59,9 @@ export default function AdminDashboardPage() {
   const [formEmpresaId, setFormEmpresaId] = useState("");
   const [formNombre, setFormNombre] = useState("");
   const [formPrecio, setFormPrecio] = useState("60000");
-  const [formFormularioUrl, setFormFormularioUrl] = useState("");
   const [formFlyerUrl, setFormFlyerUrl] = useState("");
+  const [formFormularioUrl,setFormFormularioUrl] = useState("");
+  const [reservasV2Activas,setReservasV2Activas] = useState(false);
   const [modalError, setModalError] = useState("");
   const [syncingProyectoId, setSyncingProyectoId] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
@@ -90,6 +92,7 @@ export default function AdminDashboardPage() {
       const grupos = data.empresas || [];
       setEmpresas(grupos);
       setRole(data.role || "");
+      setReservasV2Activas(data.reservas_v2_activas === true);
       setEmpresaSesionId(data.empresa_id || null);
 
       if (!formEmpresaId && grupos[0]?.empresa.id) {
@@ -236,8 +239,8 @@ export default function AdminDashboardPage() {
           empresa_id: empresaIdFinal,
           nombre: formNombre,
           precio_boleta: Number(formPrecio || 60000),
-          formulario_compra_url: formFormularioUrl,
           flyer_url: formFlyerUrl,
+          formulario_compra_url: reservasV2Activas ? "" : formFormularioUrl,
         }),
       });
 
@@ -249,8 +252,8 @@ export default function AdminDashboardPage() {
 
       setFormNombre("");
       setFormPrecio("60000");
-      setFormFormularioUrl("");
       setFormFlyerUrl("");
+      setFormFormularioUrl("");
       setModalAbierto(false);
       await cargar();
     } catch (err) {
@@ -321,7 +324,9 @@ export default function AdminDashboardPage() {
           {empresas.map((grupo) => (
             <section key={grupo.empresa.id}>
               <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-3xl font-bold">{grupo.empresa.nombre}</h2>
+                <div><h2 className="text-3xl font-bold">{grupo.empresa.nombre}</h2>
+                 {reservasV2Activas && role === "super_admin" && <Link href={"/admin/empresas/"+encodeURIComponent(grupo.empresa.id)+"/integracion"} className="mt-2 inline-block text-sm font-semibold text-[#E8620A] underline">Configurar integración de reservas</Link>}
+                </div>
 
                 {canManageProjects && (
                   <button type="button" onClick={() => abrirModal(grupo.empresa.id)} className="rounded-xl border border-[#1A1A1A] bg-white px-5 py-3 font-semibold">
@@ -371,9 +376,9 @@ export default function AdminDashboardPage() {
                             Página de ventas
                           </a>
 
-                          <Link href={proyecto.base_datos_url} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold">
+                          {role !== "oficina_admin" && <Link href={proyecto.base_datos_url} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold">
                             Base de datos
-                          </Link>
+                          </Link>}
 
                           {canManageProjects && (
                             <button type="button" onClick={() => abrirCsv(proyecto.id)} disabled={syncingProyectoId === proyecto.id || eliminandoProyectoId === proyecto.id} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold disabled:opacity-60">
@@ -446,10 +451,10 @@ export default function AdminDashboardPage() {
                 <input type="number" value={formPrecio} onChange={(e) => setFormPrecio(e.target.value)} placeholder="60000" className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" required />
               </div>
 
-              <div>
+              {!reservasV2Activas && (<div>
                 <label className="mb-2 block text-sm font-medium">Formulario de compra</label>
                 <input type="url" value={formFormularioUrl} onChange={(e) => setFormFormularioUrl(e.target.value)} placeholder="https://forms.example.com/..." className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" />
-              </div>
+              </div>)}
 
               <div>
                 <label className="mb-2 block text-sm font-medium">URL imagen / flyer</label>

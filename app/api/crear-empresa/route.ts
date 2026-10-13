@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireSuperAdmin } from "@/lib/require-admin";
 import { slugify } from "@/lib/slug";
+import { cifrarWebhook } from "@/lib/reservation-webhook";
 
 function limpiarId(value: string) {
   return value.trim();
@@ -20,6 +21,8 @@ export async function POST(req: Request) {
     const nombre = String(body.nombre || "").trim();
     const slugEntrada = String(body.slug || slugify(nombre)).trim();
     const slug = slugify(slugEntrada || nombre);
+    const webhookUrl = String(body.webhook_url || "").trim();
+    const urlCifrada = process.env.PULSE_RESERVAS_V2 === "enabled" && webhookUrl ? cifrarWebhook(webhookUrl) : null;
 
     if (!id || !nombre || !slug) {
       return Response.json(
@@ -47,6 +50,12 @@ export async function POST(req: Request) {
 
     if (error) {
       throw error;
+    }
+
+    if (urlCifrada) {
+      const { error: integracionError } = await supabaseAdmin.from("pulse_empresa_integraciones")
+        .upsert({empresa_id:id,webhook_url_cifrada:urlCifrada,updated_at:new Date().toISOString()},{onConflict:"empresa_id"});
+      if (integracionError) return Response.json({success:false,message:"Empresa guardada, pero falta configurar la integración. Abre su configuración privada."},{status:503});
     }
 
     return Response.json({

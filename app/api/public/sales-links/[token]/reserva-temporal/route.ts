@@ -1,9 +1,10 @@
 import { getActiveSellerSalesLink } from "@/lib/seller-sales-links";
 import {
   cancelarReservaTemporal,
-  confirmarReservaTemporal,
   retenerBoletasTemporales,
+  confirmarReservaTemporal,
 } from "@/lib/temporary-reservations";
+import { confirmarReservaPulse } from "@/lib/confirmar-reserva-pulse";
 
 type Props = { params: Promise<{ token: string }> };
 
@@ -47,7 +48,12 @@ export async function POST(req: Request, { params }: Props) {
     }
 
     if (body.action === "confirm") {
-      const result = await confirmarReservaTemporal(scope, body.numeros || [], String(body.hold_token || ""), "Vendedores");
+      if (process.env.PULSE_RESERVAS_V2 !== "enabled") {
+        const result = await confirmarReservaTemporal(scope, body.numeros || [], String(body.hold_token || ""), "Vendedores");
+        return Response.json({ success: !result.expired, code: result.expired ? "RESERVA_EXPIRADA" : undefined, ...result });
+      }
+      
+      const result = await confirmarReservaPulse({empresaId:scope.empresaId,proyectoId:scope.proyectoId,numeros:body.numeros || [],holdToken:String(body.hold_token||""),canal:"Vendedores",integrar:false,vendedorUserId:scope.vendedorUserId});
       return Response.json({ success: !result.expired, code: result.expired ? "RESERVA_EXPIRADA" : undefined, ...result });
     }
 

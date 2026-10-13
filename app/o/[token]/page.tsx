@@ -2,6 +2,7 @@ import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
+import ProyectoVentaReservaLegacyClient from "@/components/ProyectoVentaReservaLegacyClient";
 import { getPreviousWinners } from "@/lib/previous-winners";
 import { getActiveProjectSalesLink } from "@/lib/project-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -49,7 +50,14 @@ export default async function OfficePublicSalesPage({ params }: Props) {
         showOctoberPromo={esSorteoOctubre}
       />
 
-      <ProyectoVentaReservaClient
+      {process.env.PULSE_RESERVAS_V2 === "enabled" ? (<ProyectoVentaReservaClient
+        empresaNombre={empresa.nombre || ""}
+        proyectoNombre={proyecto.nombre || ""}
+        precioBoleta={Number(proyecto.precio_boleta || 0)}
+        boletas={boletas || []}
+        boletasEndpoint={`/api/public/project-sales/${token}/boletas`}
+        reservationEndpoint={`/api/public/project-sales/${token}/reserva-temporal`}
+      />) : (<ProyectoVentaReservaLegacyClient
         empresaNombre={empresa.nombre || ""}
         proyectoNombre={proyecto.nombre || ""}
         precioBoleta={Number(proyecto.precio_boleta || 0)}
@@ -58,7 +66,7 @@ export default async function OfficePublicSalesPage({ params }: Props) {
         boletasEndpoint={`/api/public/project-sales/${token}/boletas`}
         reservationEndpoint={`/api/public/project-sales/${token}/reserva-temporal`}
         formTrackingParams={{ ref: token, sales_rep: "Oficina" }}
-      />
+      />)}
 
       <PreviousWinners winners={ganadores} />
     </>

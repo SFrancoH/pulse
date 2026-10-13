@@ -40,8 +40,8 @@ export async function POST(req: Request) {
     const empresaId = String(body.empresa_id || "").trim();
     const nombre = String(body.nombre || "").trim();
     const precioBoleta = Number(body.precio_boleta || 60000);
-    const formularioCompraUrl = String(body.formulario_compra_url || "").trim();
     const flyerUrl = String(body.flyer_url || "").trim();
+    const legacyFormUrl = process.env.PULSE_RESERVAS_V2 === "enabled" ? "" : String(body.formulario_compra_url || "").trim();
 
     if (!empresaId || !nombre) {
       return Response.json({ success: false, message: "Datos inválidos." }, { status: 400 });
@@ -71,8 +71,8 @@ export async function POST(req: Request) {
       nombre,
       slug: proyectoSlug,
       precio_boleta: precioBoleta,
-      formulario_compra_url: formularioCompraUrl,
       flyer_url: flyerUrl,
+      formulario_compra_url: legacyFormUrl,
       sales_token: salesToken,
       estado: "activo",
     });
@@ -89,7 +89,6 @@ export async function POST(req: Request) {
 
     const actualizarBoletaUrl = `${BASE_URL}/api/proyectos/${proyectoId}/actualizar-boleta`;
     const reservarBoletaUrl = `${BASE_URL}/api/proyectos/${proyectoId}/reservar-boleta`;
-    const oportunidadesGhlUrl = `${BASE_URL}/api/proyectos/${proyectoId}/oportunidades-ghl`;
 
     return Response.json({
       success: true,
@@ -102,7 +101,6 @@ export async function POST(req: Request) {
       webhook_url: actualizarBoletaUrl,
       actualizar_boleta_url: actualizarBoletaUrl,
       reservar_boleta_url: reservarBoletaUrl,
-      oportunidades_ghl_url: oportunidadesGhlUrl,
       asignar_vendedor_url: `${BASE_URL}/admin/proyectos/${proyectoId}/asignar-vendedor`,
       total_boletas: boletas.length,
     });

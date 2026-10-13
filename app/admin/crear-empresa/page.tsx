@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Empresa = {
   id: string;
@@ -28,11 +28,15 @@ export default function CrearEmpresaPage() {
   const [id, setId] = useState("");
   const [nombre, setNombre] = useState("");
   const [slug, setSlug] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [reservasV2Activas,setReservasV2Activas] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [empresaCreada, setEmpresaCreada] = useState<Empresa | null>(null);
   const [copiado, setCopiado] = useState(false);
+
+  useEffect(()=>{void fetch("/api/empresas").then(r=>r.json()).then(d=>setReservasV2Activas(d.reservas_v2_activas===true)).catch(()=>{});},[]);
 
   function handleNombre(value: string) {
     setNombre(value);
@@ -59,6 +63,7 @@ export default function CrearEmpresaPage() {
           id,
           nombre,
           slug,
+          webhook_url: webhookUrl.trim(),
         }),
       });
 
@@ -69,6 +74,7 @@ export default function CrearEmpresaPage() {
       }
 
       setEmpresaCreada(data.empresa);
+      setWebhookUrl("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -134,6 +140,11 @@ export default function CrearEmpresaPage() {
               />
             </div>
 
+            {reservasV2Activas && <div>
+              <label className="mb-2 block text-sm font-medium">URL privada para las reservas</label>
+              <input type="password" autoComplete="off" value={webhookUrl} onChange={e=>setWebhookUrl(e.target.value)} placeholder="https://..." className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3" />
+              <p className="mt-2 text-xs text-[#6F665C]">El enlace se almacena cifrado. Puedes configurarlo posteriormente desde el panel de la empresa.</p>
+            </div>}
             <button
               type="submit"
               disabled={loading}
