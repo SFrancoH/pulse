@@ -59,6 +59,8 @@ export default function AdminDashboardPage() {
   const [formNombre, setFormNombre] = useState("");
   const [formPrecio, setFormPrecio] = useState("60000");
   const [formFlyerUrl, setFormFlyerUrl] = useState("");
+  const [formFormularioUrl,setFormFormularioUrl] = useState("");
+  const [reservasV2Activas,setReservasV2Activas] = useState(false);
   const [modalError, setModalError] = useState("");
   const [syncingProyectoId, setSyncingProyectoId] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
@@ -89,6 +91,7 @@ export default function AdminDashboardPage() {
       const grupos = data.empresas || [];
       setEmpresas(grupos);
       setRole(data.role || "");
+      setReservasV2Activas(data.reservas_v2_activas === true);
       setEmpresaSesionId(data.empresa_id || null);
 
       if (!formEmpresaId && grupos[0]?.empresa.id) {
@@ -236,6 +239,7 @@ export default function AdminDashboardPage() {
           nombre: formNombre,
           precio_boleta: Number(formPrecio || 60000),
           flyer_url: formFlyerUrl,
+          formulario_compra_url: reservasV2Activas ? "" : formFormularioUrl,
         }),
       });
 
@@ -248,6 +252,7 @@ export default function AdminDashboardPage() {
       setFormNombre("");
       setFormPrecio("60000");
       setFormFlyerUrl("");
+      setFormFormularioUrl("");
       setModalAbierto(false);
       await cargar();
     } catch (err) {
@@ -319,7 +324,7 @@ export default function AdminDashboardPage() {
             <section key={grupo.empresa.id}>
               <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
                 <div><h2 className="text-3xl font-bold">{grupo.empresa.nombre}</h2>
-                 {role === "super_admin" && <Link href={"/admin/empresas/"+encodeURIComponent(grupo.empresa.id)+"/integracion"} className="mt-2 inline-block text-sm font-semibold text-[#E8620A] underline">Configurar integración de reservas</Link>}
+                 {reservasV2Activas && role === "super_admin" && <Link href={"/admin/empresas/"+encodeURIComponent(grupo.empresa.id)+"/integracion"} className="mt-2 inline-block text-sm font-semibold text-[#E8620A] underline">Configurar integración de reservas</Link>}
                 </div>
 
                 {canManageProjects && (
@@ -444,6 +449,11 @@ export default function AdminDashboardPage() {
                 <label className="mb-2 block text-sm font-medium">Precio por boleta</label>
                 <input type="number" value={formPrecio} onChange={(e) => setFormPrecio(e.target.value)} placeholder="60000" className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" required />
               </div>
+
+              {!reservasV2Activas && (<div>
+                <label className="mb-2 block text-sm font-medium">Formulario de compra</label>
+                <input type="url" value={formFormularioUrl} onChange={(e) => setFormFormularioUrl(e.target.value)} placeholder="https://forms.example.com/..." className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" />
+              </div>)}
 
               <div>
                 <label className="mb-2 block text-sm font-medium">URL imagen / flyer</label>
