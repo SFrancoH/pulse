@@ -1,9 +1,9 @@
 import { getActiveProjectSalesLink } from "@/lib/project-sales-links";
 import {
   cancelarReservaTemporal,
-  confirmarReservaTemporal,
   retenerBoletasTemporales,
 } from "@/lib/temporary-reservations";
+import { confirmarReservaPulse } from "@/lib/confirmar-reserva-pulse";
 
 type Props = { params: Promise<{ token: string }> };
 
@@ -43,13 +43,7 @@ export async function POST(req: Request, { params }: Props) {
     }
 
     if (body.action === "confirm") {
-      const result = await confirmarReservaTemporal(
-        scope,
-        body.numeros || [],
-        String(body.hold_token || ""),
-        "Oficina",
-        true
-      );
+      const result = await confirmarReservaPulse({empresaId:scope.empresaId,proyectoId:scope.proyectoId,numeros:body.numeros || [],holdToken:String(body.hold_token||""),canal:"Oficina",integrar:true});
       return Response.json({ success: !result.expired, code: result.expired ? "RESERVA_EXPIRADA" : undefined, ...result });
     }
 

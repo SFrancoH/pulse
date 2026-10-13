@@ -40,7 +40,6 @@ export async function POST(req: Request) {
     const empresaId = String(body.empresa_id || "").trim();
     const nombre = String(body.nombre || "").trim();
     const precioBoleta = Number(body.precio_boleta || 60000);
-    const formularioCompraUrl = String(body.formulario_compra_url || "").trim();
     const flyerUrl = String(body.flyer_url || "").trim();
 
     if (!empresaId || !nombre) {
@@ -71,7 +70,6 @@ export async function POST(req: Request) {
       nombre,
       slug: proyectoSlug,
       precio_boleta: precioBoleta,
-      formulario_compra_url: formularioCompraUrl,
       flyer_url: flyerUrl,
       sales_token: salesToken,
       estado: "activo",

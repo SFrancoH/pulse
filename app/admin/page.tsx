@@ -58,7 +58,6 @@ export default function AdminDashboardPage() {
   const [formEmpresaId, setFormEmpresaId] = useState("");
   const [formNombre, setFormNombre] = useState("");
   const [formPrecio, setFormPrecio] = useState("60000");
-  const [formFormularioUrl, setFormFormularioUrl] = useState("");
   const [formFlyerUrl, setFormFlyerUrl] = useState("");
   const [modalError, setModalError] = useState("");
   const [syncingProyectoId, setSyncingProyectoId] = useState("");
@@ -236,7 +235,6 @@ export default function AdminDashboardPage() {
           empresa_id: empresaIdFinal,
           nombre: formNombre,
           precio_boleta: Number(formPrecio || 60000),
-          formulario_compra_url: formFormularioUrl,
           flyer_url: formFlyerUrl,
         }),
       });
@@ -249,7 +247,6 @@ export default function AdminDashboardPage() {
 
       setFormNombre("");
       setFormPrecio("60000");
-      setFormFormularioUrl("");
       setFormFlyerUrl("");
       setModalAbierto(false);
       await cargar();
@@ -444,11 +441,6 @@ export default function AdminDashboardPage() {
               <div>
                 <label className="mb-2 block text-sm font-medium">Precio por boleta</label>
                 <input type="number" value={formPrecio} onChange={(e) => setFormPrecio(e.target.value)} placeholder="60000" className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" required />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium">Formulario de compra</label>
-                <input type="url" value={formFormularioUrl} onChange={(e) => setFormFormularioUrl(e.target.value)} placeholder="https://forms.example.com/..." className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" />
               </div>
 
               <div>

@@ -1,9 +1,9 @@
-import { requireProjectManagerAccess } from "@/lib/require-admin";
+import { requireProjectSalesAccess } from "@/lib/require-admin";
 import {
   cancelarReservaTemporal,
-  confirmarReservaTemporal,
   retenerBoletasTemporales,
 } from "@/lib/temporary-reservations";
+import { confirmarReservaPulse } from "@/lib/confirmar-reserva-pulse";
 
 type Props = { params: Promise<{ proyectoId: string }> };
 
@@ -19,7 +19,7 @@ type Payload = {
 export async function POST(req: Request, { params }: Props) {
   try {
     const { proyectoId } = await params;
-    const { proyecto, error } = await requireProjectManagerAccess(proyectoId);
+    const { proyecto, session, error } = await requireProjectSalesAccess(proyectoId);
 
     if (error || !proyecto) {
       return error || Response.json({ success: false, message: "No autorizado." }, { status: 403 });
@@ -43,13 +43,7 @@ export async function POST(req: Request, { params }: Props) {
     }
 
     if (body.action === "confirm") {
-      const result = await confirmarReservaTemporal(
-        scope,
-        body.numeros || [],
-        String(body.hold_token || ""),
-        "Creacion Manual",
-        true
-      );
+      const result = await confirmarReservaPulse({empresaId:scope.empresaId,proyectoId,numeros:body.numeros || [],holdToken:String(body.hold_token||""),canal:"Creacion Manual",integrar:true,usuarioId:session!.user_id || null});
       return Response.json({ success: !result.expired, code: result.expired ? "RESERVA_EXPIRADA" : undefined, ...result });
     }
 
