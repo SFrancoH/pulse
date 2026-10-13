@@ -2,6 +2,7 @@ import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
+import ProyectoVentaReservaLegacyClient from "@/components/ProyectoVentaReservaLegacyClient";
 import { getPreviousWinners } from "@/lib/previous-winners";
 import { getActiveSellerSalesLink } from "@/lib/seller-sales-links";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -21,7 +22,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
     supabaseAdmin.from("empresas").select("nombre").eq("id", link.empresa_id).maybeSingle(),
     supabaseAdmin
       .from("proyectos")
-      .select("id,nombre,precio_boleta,flyer_url,estado")
+      .select("id,nombre,precio_boleta,formulario_compra_url,flyer_url,estado")
       .eq("id", link.proyecto_id)
       .eq("empresa_id", link.empresa_id)
       .eq("estado", "activo")
@@ -47,7 +48,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
         showOctoberPromo={esSorteoOctubre}
       />
 
-      <ProyectoVentaReservaClient
+      {process.env.PULSE_RESERVAS_V2 === "enabled" ? (<ProyectoVentaReservaClient
         empresaNombre={empresa.nombre || ""}
         proyectoNombre={proyecto.nombre || ""}
         precioBoleta={Number(proyecto.precio_boleta || 0)}
@@ -55,7 +56,23 @@ export default async function SellerPublicSalesPage({ params }: Props) {
         boletasEndpoint={`/api/public/sales-links/${token}/boletas`}
         reservationEndpoint={`/api/public/sales-links/${token}/reserva-temporal`}
         officeWhatsappUrl="https://wa.me/573147903518"
-      />
+      />) : (<ProyectoVentaReservaLegacyClient
+        empresaNombre={empresa.nombre || ""}
+        proyectoNombre={proyecto.nombre || ""}
+        precioBoleta={Number(proyecto.precio_boleta || 0)}
+        formularioCompraUrl={proyecto.formulario_compra_url || ""}
+        boletas={boletas || []}
+        boletasEndpoint={`/api/public/sales-links/${token}/boletas`}
+        reservationEndpoint={`/api/public/sales-links/${token}/reserva-temporal`}
+        formTrackingParams={{
+          ref: token,
+          sales_rep: vendedorNombre,
+          vendedor_id: link.vendedor_user_id,
+          vendedor_nombre: vendedorNombre,
+          vendedor_telefono: vendedorTelefono,
+        }}
+        officeWhatsappUrl="https://wa.me/573147903518"
+      />)}
 
       <PreviousWinners winners={ganadores} />
     </>
