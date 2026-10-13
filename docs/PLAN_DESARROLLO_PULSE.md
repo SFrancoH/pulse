@@ -6,7 +6,7 @@
 >
 > **Flujo autorizado desde 2026-10-02 15:58 America/Bogota:** validación local → `main` → build de **Production** en Vercel → verificación en producción. El usuario no utiliza Preview ni autoriza crear otro proyecto Supabase para esta publicación. Esta decisión sustituye el requisito anterior de configurar/verificar Preview.
 
-> **Restricción vigente desde 2026-10-03:** mantener Pulse → GHL mediante formularios simples y GHL → Pulse mediante los webhooks existentes, por costos. La preparación de autenticación y los pasos de Custom Webhook/Bearer se retiran; esas modificaciones quedan aplazadas para el futuro. Esta decisión sustituye las instrucciones de activación/configuración de M-008–M-010. No modificar el contrato operativo al retomar el orden histórico del plan.
+> **Decisión nueva documentada 2026-10-13 (D00):** el usuario aprueba **planificar** migración de formularios a un webhook privado por empresa para Oficina (único intento por reserva), alertas manuales individuales por boleta/usuario y copia de comprobantes. Vendedores con números asignados quedan sin webhook. **AÚN NO IMPLEMENTADO:** el producto en producción conserva el contrato previo hasta desarrollo y verificación. Ver [plan específico](PLAN_RESERVAS_WEBHOOK_ALERTAS.md). Se conserva el contexto histórico de la reversión del 2026-10-03 y no se reactivan indiscriminadamente preparaciones anteriores.
 
 ## 1. Estado actual: empezar a leer aquí
 
@@ -16,7 +16,7 @@
 | Rama vigente de esta memoria | `main`; historial documental original en `docs/plan-desarrollo-pulse` |
 | PR documental de origen | [#35 — Plan de desarrollo y memoria operativa](https://github.com/SFrancoH/pulse/pull/35), cerrado/merged por incorporación de su historial en `e4165c58751ebb928930323f37da9b42c2d098a2` |
 | Commit inicial de la memoria | `3b966483ffa103c9fa914af3e6e36a4b0228540c`; los cambios documentales posteriores se consultan en el historial Git |
-| Creación y última revisión de esta versión | Creado 2026-10-02; revisión 2026-10-04, zona horaria America/Bogota |
+| Creación y última revisión de esta versión | Creado 2026-10-02; revisión documental 2026-10-13, zona horaria America/Bogota |
 | Último checkpoint de ejecución | 2026-10-04; DEL-01 activado en `10b0e326202ef8efd312617fa51f7ecac5dbdd0a`, Vercel Production success; botón/popup/API ya forman parte de `main` |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
@@ -43,7 +43,7 @@
 | Preparación de P01 | Revertida por `df4ab0a1b3cc18665a6c6766e429a5be7ae0b27c`: módulos, tests y runbook de `fcbfd1590e19702a14780ef04db52af59d11c37b` retirados. Historial conservado; P01 aplazado. Nunca se conectó ese guard a los handlers |
 | Verificación de reversión | 7/7 pruebas de disponibilidad y TypeScript exit 0; árbol de toda la aplicación igual a `570cf77acd8d3de461b1c632963a1b91e946c7db`, salvo AGENTS/memoria; root de reversión `68e9f4bb0387777e45a17876983a907db47c13dc` |
 | Base de esta reversión | Main `6e6ade4ee05052fee7f05ace029ffccad3bb0fd5`, árbol `3e9bd6b089c2903566b903aecb41efa608e2b2bc`; referencia anterior a la preparación `570cf77acd8d3de461b1c632963a1b91e946c7db` |
-| Contrato obligatorio | Pulse → formularios simples de GHL; GHL → webhooks existentes de Pulse. Mantener payloads/URLs y costos actuales; pasos de configuración de ayer cancelados |
+| Contrato en producción | Formularios simples existentes. Cambio futuro aprobado en documento D00: webhook privado único por reserva de Oficina, sin retries, vendedor asignado sin webhook, alertas por boleta y comprobantes; **pendiente implementación/verificación** |
 | Implementación CSV-01 | `3566b8ce40d1e4f289175b8ca9508457bae55103`; árbol `b76b7edae803b8eda77fc02a1042930816f4809c`, main directo, sin PR/merge nuevo |
 | Candidato DEL-01 verificado local | `fdc1cceb9e10ff99199fedc693fe2c34f7b8f75e`; árbol `a8c01bfb5c1baa7f6cfaca1601c1d328e9bcc103`. Recuperar sólo app/components/lib y tests API/UI; NO recuperar su SQL/docs obsoletos. SQL v2 actual probado por separado |
 | Cambios de aplicación realizados al crear este plan | Ninguno; se creó la documentación y la regla de mantenimiento de la memoria |
@@ -113,7 +113,7 @@ Un archivo por sí solo no observa cambios externos ni se actualiza automáticam
 
 ## 3. Orden de ejecución
 
-**Excepción vigente (2026-10-03):** la prioridad inmediata es R01, revertir la preparación y preservar el contrato de integración actual. P01-01/02/03 y cualquier cambio que exija otro producto/credencial/payload quedan aplazados para el futuro por instrucción del usuario. La tabla siguiente conserva el roadmap técnico original; no autoriza activar esas tareas ni exigir configurar GHL ahora. El resto del plan se retomará con alcance compatible con formularios simples y los webhooks ya utilizados.
+**Reconciliación (2026-10-13):** el contrato de formularios sigue vigente **solo para el sistema aún desplegado**. El usuario ha cambiado la decisión de producto para una futura implementación: consultar `docs/PLAN_RESERVAS_WEBHOOK_ALERTAS.md` y ejecutar sus etapas D01–D07 cuando se solicite; esta documentación **no** activa por sí sola el cambio. El aplazamiento histórico de P01-01/02/03 y su implementación retirada siguen registrados, sin recuperarlos automáticamente. El resto del roadmap requiere reconciliarse con la nueva decisión antes de escribir código.
 
 | Orden | Fase | Resultado exigido antes de continuar |
 | --- | --- | --- |
@@ -783,6 +783,20 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Riesgo residual:** si `eliminar_proyecto_pulse` no está instalada en producción, el endpoint devuelve 503 y no intenta una ruta alternativa. Esto evita un borrado parcial.
 - **Siguiente acción concreta:** confirmar la instalación real de la RPC; si falta, ejecutar el instalador v2 ya versionado. Luego probar con un proyecto descartable creado para esa validación.
 - **Checkpoint documental:** esta entrada registra el commit funcional ya existente; el commit exclusivamente documental que la publica se consulta en el historial para evitar autorregistro circular.
+
+### Registro 2026-10-13 America/Bogota / M-026 — D00: contrato futuro de reservas documentado
+
+- **Tarea/fase:** D00; documentación previa a la implementación, solicitada expresamente por el usuario. Estado: **documentado; cambios funcionales pendientes**.
+- **Base de trabajo:** `main` remoto `5240538df031961d9e5a2b34bb10abaf22e106aa`; la secuencia documental se registra en el historial del repositorio. No se alteran datos ni aplicación.
+- **Decisión del usuario que sustituye el contrato anterior para el futuro:** reserva en Supabase sin iframe; un único webhook privado de empresa por reserva de Oficina, **ningún reintento**; vendedores con stock asignado sin webhook. Cada número exige su oportunidad individual y su alerta si no se confirma; las alertas de Oficina manual son solo del usuario que vendió, las de Oficina pública pertenecen al `empresa_admin` designado.
+- **Texto UI obligatorio:** título “Oportunidad pendiente de creación”; descripción “La reserva se registró correctamente en la web, pero no se ha creado la oportunidad.”; acción manual en Contactos, una oportunidad por número, volver a PULSE y marcar alerta como creada. Prohibido mencionar nombres de plataformas externas en UI final.
+- **Boleta virtual:** popup de éxito con `Ver boleta` y `Copiar boleta virtual` por boleta confirmada; fuente estricta `boletas.comprobante_url`. Incluida como `comprobante_url_1`…`comprobante_url_10` emparejada con consecutivos en el único payload.
+- **Análisis de compatibilidad:** actualmente no hay propietario de alerta ni rol `oficina_admin`; las alertas son por grupo y el componente termina en formulario; la confirmación devuelve números pero no links. Esas diferencias están inventariadas en el documento nuevo.
+- **Archivos de la unidad D00:** `docs/PLAN_RESERVAS_WEBHOOK_ALERTAS.md`, `docs/PLAN_DESARROLLO_PULSE.md` y `AGENTS.md`. No se tocan TypeScript, SQL, paquetes, migraciones, configuración ni workflows.
+- **Pruebas/evidencia:** inspección de código del repo y verificación documental de reglas/archivo; **sin pruebas runtime, sin migración, sin deploy funcional o comprobación productiva de integración**. No se declara un flujo nuevo activo.
+- **Riesgos/pasos manuales futuros:** confirmar DDL y roles reales, `empresa_admin` responsable de público, callback individual, hosting de comprobantes multiempresa, manejo de envío incierto y coste/acciones de procesamiento externo.
+- **Siguiente acción:** al recibir autorización para implementar, empezar D01 (inventario y preflight) y avanzar secuencialmente con tests y reversión; actualizar esta memoria con SHAs reales, migraciones y verificación Production. **No implementar código por esta instrucción documental.**
+- **Checkpoint:** los commits exclusivamente documentales se consultan en Git y no autorregistran recursivamente su SHA.
 
 ### Plantilla para la siguiente unidad
 
