@@ -26,3 +26,7 @@ Conservar la información de reservas y alertas. Si es preciso detener V2, retir
 - Los enlaces de boleta muestran datos del titular en la vista pública; minimizar teléfono antes de publicar masivamente.
 
 La migración incorpora la RPC `pulse_eliminar_proyecto_con_reservas` para eliminar eventos/alertas dentro de la misma transacción de `eliminar_proyecto_pulse`. Validar ambas antes de desplegar. El nuevo endpoint de borrado requiere la función envolvente.
+
+## Configuración consolidada en `public.empresas`
+
+La integración utiliza las columnas `webhook_reservas_url_cifrada` (TEXT, URL privada cifrada) y `responsable_reservas_publicas_user_id` (UUID, administrador principal) dentro de `public.empresas`. **No** se crea `pulse_empresa_integraciones`. La tabla de empresas conserva `apps_script_url` intacta. Este cambio debe instalarse antes de activar V2 y su acceso debe seguir siendo exclusivamente por el backend autorizado; no exponer estas columnas en rutas públicas.

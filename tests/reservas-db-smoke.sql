@@ -6,8 +6,7 @@ VALUES ('00000000-0000-0000-0000-000000000001','empresa_prueba','empresa_admin',
 INSERT INTO public.proyectos(id,empresa_id,nombre,slug,precio_boleta)
 VALUES ('sorteo_prueba','empresa_prueba','Sorteo ficticio','sorteo-ficticio',60000),
        ('sorteo_vendedor','empresa_prueba','Sorteo asignado','sorteo-asignado',60000);
-INSERT INTO public.pulse_empresa_integraciones(empresa_id,responsable_publico_user_id)
-VALUES ('empresa_prueba','00000000-0000-0000-0000-000000000001');
+UPDATE public.empresas SET responsable_reservas_publicas_user_id='00000000-0000-0000-0000-000000000001' WHERE id='empresa_prueba';
 INSERT INTO public.boletas(empresa_id,proyecto_id,numero,estado,canal,vendedor_nombre,updated_at,nombre_cliente,telefono_cliente,comprobante_url)
 VALUES ('empresa_prueba','sorteo_prueba','0001','No disponible','Reserva temporal','Oficina',now(),'Demo','3000000000','https://ejemplo.invalid/boleta/1'),
        ('empresa_prueba','sorteo_prueba','0002','No disponible','Reserva temporal','Oficina',now(),'Demo','3000000000','https://ejemplo.invalid/boleta/2');

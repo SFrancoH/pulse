@@ -13,12 +13,12 @@ export async function GET(_req:Request,{params}:Props){
   const {empresaId}=await params,empresa=await validarEmpresa(empresaId);
   if(!empresa)return Response.json({success:false,message:"Empresa no encontrada."},{status:404});
   const [conf,admins,unassigned]=await Promise.all([
-   supabaseAdmin.from("pulse_empresa_integraciones").select("webhook_url_cifrada,responsable_publico_user_id").eq("empresa_id",empresaId).maybeSingle(),
+   supabaseAdmin.from("empresas").select("webhook_reservas_url_cifrada,responsable_reservas_publicas_user_id").eq("id",empresaId).maybeSingle(),
    supabaseAdmin.from("admin_users").select("id,nombre,email").eq("empresa_id",empresaId).eq("role","empresa_admin").eq("estado","activo").order("email"),
    supabaseAdmin.from("pulse_alertas_oportunidades").select("id",{count:"exact",head:true}).eq("empresa_id",empresaId).is("responsable_user_id",null).in("estado",["esperando","pendiente"])
   ]);
   if(conf.error||admins.error||unassigned.error)throw Error("Error al consultar configuración.");
-  return Response.json({success:true,empresa_nombre:empresa.nombre,configurada:Boolean(conf.data?.webhook_url_cifrada),responsable_publico_user_id:conf.data?.responsable_publico_user_id||null,administradores:admins.data||[],sin_responsable:unassigned.count||0});
+  return Response.json({success:true,empresa_nombre:empresa.nombre,configurada:Boolean(conf.data?.webhook_reservas_url_cifrada),responsable_publico_user_id:conf.data?.responsable_reservas_publicas_user_id||null,administradores:admins.data||[],sin_responsable:unassigned.count||0});
  }catch{return Response.json({success:false,message:"Error al consultar la integración."},{status:500});}
 }
 export async function PUT(req:Request,{params}:Props){

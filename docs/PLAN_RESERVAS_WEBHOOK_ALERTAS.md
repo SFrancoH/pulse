@@ -79,7 +79,7 @@ Mismos datos, retención, validación de pertenencia y estado `Debe`, manteniend
 ### 4.1 Configuración por empresa
 
 - Registrar el webhook privado en **Crear empresa** y permitir cambio posterior exclusivamente a perfiles administrativos autorizados (preferiblemente solo `super_admin`).
-- Persistir URL cifrada en una entidad de integración por empresa; la clave de cifrado será un secreto **server-only** en Vercel (p. ej. `PULSE_WEBHOOK_ENCRYPTION_KEY`, sin prefijo `NEXT_PUBLIC_`).
+- Persistir URL cifrada en `empresas.webhook_reservas_url_cifrada`; la clave de cifrado será un secreto **server-only** en Vercel (p. ej. `PULSE_WEBHOOK_ENCRYPTION_KEY`, sin prefijo `NEXT_PUBLIC_`).
 - No almacenar la URL confidencial en `formulario_compra_url`, ni incorporarla a SSR props, HTML, JS cliente, respuestas API, logs, documentación o URLs de navegación.
 - Mostrar solo “Integración configurada/no configurada” y fecha de actualización; controlar modificación, revocación y acceso.
 - Validar esquema `https`, host autorizado, redirects y salida de red para evitar SSRF; permitir rotación sin crear un deployment por cada empresa.
@@ -271,3 +271,7 @@ Reglas:
 **Implementado en D00:** solo el diseño y su referencia en la memoria operativa, sin mutaciones de producto. La futura implementación requerirá cambiar código, base de datos y automatizaciones externas según D01–D07.
 
 **Siguiente acción concreta:** iniciar D01 cuando se solicite: comprobar DDL actual, usuarios/roles, responsable `empresa_admin` por empresa y formato de callback por número; de ahí preparar cambios con pruebas sin romper venta actual.
+
+### Decisión actualizada 2026-10-13 — configuración consolidada en empresas
+
+Se reutiliza `public.empresas` y no se crea una cuarta entidad ni la antigua tabla propuesta `pulse_empresa_integraciones`. Se agregan `webhook_reservas_url_cifrada TEXT` y `responsable_reservas_publicas_user_id UUID`, manteniendo `apps_script_url` intacta. Este criterio sustituye la sugerencia inicial de una tabla separada; las consultas del servidor y la migración se adaptaron antes de instalarse en producción.

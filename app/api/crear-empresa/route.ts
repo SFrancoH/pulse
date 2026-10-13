@@ -40,6 +40,7 @@ export async function POST(req: Request) {
       slug,
       estado: "activa",
       updated_at: new Date().toISOString(),
+      ...(urlCifrada ? { webhook_reservas_url_cifrada: urlCifrada } : {}),
     };
 
     const { data, error } = await supabaseAdmin
@@ -52,11 +53,7 @@ export async function POST(req: Request) {
       throw error;
     }
 
-    if (urlCifrada) {
-      const { error: integracionError } = await supabaseAdmin.from("pulse_empresa_integraciones")
-        .upsert({empresa_id:id,webhook_url_cifrada:urlCifrada,updated_at:new Date().toISOString()},{onConflict:"empresa_id"});
-      if (integracionError) return Response.json({success:false,message:"Empresa guardada, pero falta configurar la integración. Abre su configuración privada."},{status:503});
-    }
+
 
     return Response.json({
       success: true,
