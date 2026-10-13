@@ -1,0 +1,29 @@
+name: Validar reservas sin desplegar
+on:
+  push:
+    branches:
+      - feat/reservas-webhook-alertas-20261013
+  pull_request:
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "supabase/**"
+      - "tests/**"
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Instalar dependencias sin ejecutar scripts
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verificar tipos sin build ni despliegue
+        run: npx tsc --noEmit
+      - name: Verificar contratos locales
+        run: node --test tests/reservas-contract.test.mjs
