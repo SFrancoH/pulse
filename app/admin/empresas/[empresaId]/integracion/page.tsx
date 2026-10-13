@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
 type Admin={id:string;nombre:string|null;email:string};
-type Config={success:boolean;message?:string;empresa_nombre?:string;configurada?:boolean;responsable_publico_user_id?:string|null;administradores?:Admin[]};
+type Config={success:boolean;message?:string;empresa_nombre?:string;configurada?:boolean;responsable_publico_user_id?:string|null;administradores?:Admin[];sin_responsable?:number};
 
 export default function IntegracionEmpresaPage(){
  const {empresaId}=useParams<{empresaId:string}>();
@@ -41,6 +41,7 @@ export default function IntegracionEmpresaPage(){
    <header className="bg-[#1A1A1A] p-6 text-white"><p className="text-sm text-white/70">Configuración privada</p><h1 className="mt-2 text-2xl font-bold">Integración de reservas</h1><p className="mt-1">{config?.empresa_nombre||""}</p></header>
    <form onSubmit={guardar} className="space-y-5 p-6">
     <p className="text-sm">Estado: <strong>{config?.configurada?"Configurada":"Pendiente de configurar"}</strong></p>
+    {Boolean(config?.sin_responsable) && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{config?.sin_responsable} alertas sin responsable. Designa al administrador principal para asignárselas.</p>}
     <div><label className="block text-sm font-semibold">URL privada de recepción de reservas</label>
      <input type="password" autoComplete="off" value={url} onChange={e=>setUrl(e.target.value)} placeholder={config?.configurada?"Dejar vacío para conservar la URL actual":"https://..."} className="mt-2 w-full rounded-xl border px-4 py-3" />
      <p className="mt-2 text-xs text-[#6F665C]">Esta dirección se almacena cifrada y no se vuelve a mostrar. Cada reserva de Oficina realiza un único envío, sin reintentos.</p>
