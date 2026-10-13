@@ -70,7 +70,7 @@ export async function GET(req: Request) {
         estado: boleta.estado,
         disponible: String(boleta.estado || "").toLowerCase() === "disponible",
         nombre_cliente: boleta.nombre_cliente,
-        telefono_cliente: boleta.telefono_cliente ? String(boleta.telefono_cliente).replace(/\d(?=\D*\d{4}\D*$)/g, "*") : null,
+        telefono_cliente: boleta.telefono_cliente ? String(boleta.telefono_cliente).replace(/\d(?=\d{4})/g, "*") : null,
         valor_pagado: valorPagado,
         saldo_pendiente: Math.max(precioBoleta - valorPagado, 0),
       },
