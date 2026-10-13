@@ -1,3 +1,4 @@
+import { GET as legacyGET } from "@/lib/legacy-opportunity-pending";
 import { requireProjectSalesAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -5,6 +6,7 @@ type Props = {params:Promise<{proyectoId:string}>};
 const ESPERA_MS=60*60*1000;
 
 export async function GET(req:Request,{params}:Props){
+ if (process.env.PULSE_RESERVAS_V2 !== "enabled") return legacyGET(req, {params});
  try{
   const {proyectoId}=await params;
   const {proyecto,session,error}=await requireProjectSalesAccess(proyectoId);

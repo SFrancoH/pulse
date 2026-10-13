@@ -2,6 +2,7 @@ import { requireProjectSalesAccess } from "@/lib/require-admin";
 import {
   cancelarReservaTemporal,
   retenerBoletasTemporales,
+  confirmarReservaTemporal,
 } from "@/lib/temporary-reservations";
 import { confirmarReservaPulse } from "@/lib/confirmar-reserva-pulse";
 
@@ -43,6 +44,11 @@ export async function POST(req: Request, { params }: Props) {
     }
 
     if (body.action === "confirm") {
+      if (process.env.PULSE_RESERVAS_V2 !== "enabled") {
+        const result = await confirmarReservaTemporal(scope, body.numeros || [], String(body.hold_token || ""), "Creacion Manual", true);
+        return Response.json({ success: !result.expired, code: result.expired ? "RESERVA_EXPIRADA" : undefined, ...result });
+      }
+      
       const result = await confirmarReservaPulse({empresaId:scope.empresaId,proyectoId,numeros:body.numeros || [],holdToken:String(body.hold_token||""),canal:"Creacion Manual",integrar:true,usuarioId:session!.user_id || null});
       return Response.json({ success: !result.expired, code: result.expired ? "RESERVA_EXPIRADA" : undefined, ...result });
     }
