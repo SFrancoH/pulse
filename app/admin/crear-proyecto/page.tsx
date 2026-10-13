@@ -16,7 +16,6 @@ type CrearProyectoResponse = {
   webhook_url?: string;
   actualizar_boleta_url?: string;
   reservar_boleta_url?: string;
-  oportunidades_ghl_url?: string;
   asignar_vendedor_url?: string;
   proyecto_id?: string;
   proyecto_slug?: string;
@@ -139,7 +138,6 @@ export default function CrearProyectoAdminPage() {
     ? [
         { label: "Proyecto_id", value: resultado.proyecto_id, key: "proyecto" },
         { label: "Reservar Boleta", value: resultado.reservar_boleta_url, key: "reservar" },
-        { label: "Confirmación de oportunidades", value: resultado.oportunidades_ghl_url, key: "oportunidades" },
         { label: "actualizar boleta", value: resultado.actualizar_boleta_url || resultado.webhook_url, key: "actualizar" },
       ]
     : [];

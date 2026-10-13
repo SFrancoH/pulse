@@ -34,7 +34,7 @@ export default async function AdminProjectSalesPage({ params }: Props) {
     await Promise.all([
       supabaseAdmin
         .from("proyectos")
-        .select("id,empresa_id,nombre,precio_boleta,formulario_compra_url,flyer_url,sales_token,estado")
+        .select("id,empresa_id,nombre,precio_boleta,flyer_url,sales_token,estado")
         .eq("id", proyectoId)
         .eq("empresa_id", proyectoAutorizado.empresa_id)
         .maybeSingle(),

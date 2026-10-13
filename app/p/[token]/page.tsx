@@ -21,7 +21,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
     supabaseAdmin.from("empresas").select("nombre").eq("id", link.empresa_id).maybeSingle(),
     supabaseAdmin
       .from("proyectos")
-      .select("id,nombre,precio_boleta,formulario_compra_url,flyer_url,estado")
+      .select("id,nombre,precio_boleta,flyer_url,estado")
       .eq("id", link.proyecto_id)
       .eq("empresa_id", link.empresa_id)
       .eq("estado", "activo")
