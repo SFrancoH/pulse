@@ -117,7 +117,7 @@ BEGIN
   IF p_con_integracion AND p_usuario_id IS NULL THEN
     SELECT i.responsable_reservas_publicas_user_id INTO v_responsable
       FROM public.empresas i
-     WHERE i.empresa_id = p_empresa_id;
+     WHERE i.id = p_empresa_id;
     IF v_responsable IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM public.admin_users u WHERE u.id = v_responsable
         AND u.empresa_id = p_empresa_id AND u.role = 'empresa_admin'
