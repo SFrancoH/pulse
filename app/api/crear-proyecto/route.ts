@@ -41,6 +41,7 @@ export async function POST(req: Request) {
     const nombre = String(body.nombre || "").trim();
     const precioBoleta = Number(body.precio_boleta || 60000);
     const flyerUrl = String(body.flyer_url || "").trim();
+    const legacyFormUrl = process.env.PULSE_RESERVAS_V2 === "enabled" ? "" : String(body.formulario_compra_url || "").trim();
 
     if (!empresaId || !nombre) {
       return Response.json({ success: false, message: "Datos inválidos." }, { status: 400 });
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
       slug: proyectoSlug,
       precio_boleta: precioBoleta,
       flyer_url: flyerUrl,
+      formulario_compra_url: legacyFormUrl,
       sales_token: salesToken,
       estado: "activo",
     });
