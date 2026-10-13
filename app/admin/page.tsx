@@ -318,7 +318,9 @@ export default function AdminDashboardPage() {
           {empresas.map((grupo) => (
             <section key={grupo.empresa.id}>
               <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-3xl font-bold">{grupo.empresa.nombre}</h2>
+                <div><h2 className="text-3xl font-bold">{grupo.empresa.nombre}</h2>
+                 {role === "super_admin" && <Link href={"/admin/empresas/"+encodeURIComponent(grupo.empresa.id)+"/integracion"} className="mt-2 inline-block text-sm font-semibold text-[#E8620A] underline">Configurar integración de reservas</Link>}
+                </div>
 
                 {canManageProjects && (
                   <button type="button" onClick={() => abrirModal(grupo.empresa.id)} className="rounded-xl border border-[#1A1A1A] bg-white px-5 py-3 font-semibold">
