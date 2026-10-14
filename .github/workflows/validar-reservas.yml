@@ -2,7 +2,17 @@ name: Validar reservas sin desplegar
 on:
   push:
     branches:
+      - main
       - feat/reservas-webhook-alertas-20261013
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "supabase/**"
+      - "tests/**"
+      - "docs/**"
+      - "AGENTS.md"
+      - ".github/workflows/validar-reservas.yml"
   pull_request:
     paths:
       - "app/**"
@@ -10,6 +20,9 @@ on:
       - "lib/**"
       - "supabase/**"
       - "tests/**"
+      - "docs/**"
+      - "AGENTS.md"
+      - ".github/workflows/validar-reservas.yml"
 jobs:
   typescript:
     runs-on: ubuntu-latest

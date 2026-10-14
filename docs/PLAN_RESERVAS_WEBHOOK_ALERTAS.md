@@ -1,10 +1,10 @@
 # PULSE — Plan aprobado para reservas, webhooks, alertas individuales y boleta virtual
 
-> **Estado:** especificación documentada; **NO IMPLEMENTADA**. Fecha: 2026-10-13 (America/Bogota).
+> **Estado actualizado (2026-10-14):** diseño original D00 y contrato funcional de referencia. Implementación V2 **fusionada en `main`** (PR #37 y #38), **desactivada por defecto y aún sin pruebas de integración reales verificadas**. Para activación usar `docs/ACTIVAR_RESERVAS_WEBHOOK_ALERTAS.md`.
 >
-> **Alcance de este commit:** únicamente archivos Markdown. No modificar aplicación, esquemas/datos de Supabase, variables Vercel, credenciales, configuración externa ni workflows hasta iniciar otra unidad de implementación.
+> **Nota histórica:** D00 comenzó únicamente como documentación; ese alcance ya fue superado por las implementaciones posteriores. Los detalles de la fase histórica se conservan para trazabilidad.
 >
-> **Prioridad contractual:** esta decisión nueva del usuario sustituye, **para la futura implementación aquí descrita**, la elección anterior de formularios de compra. El sistema desplegado continúa operando con el contrato anterior hasta que haya migración, pruebas y activación verificadas. Los cambios se desarrollarán por unidades comprobables y nunca con una sustitución parcial que rompa ventas.
+> **Contrato vigente de diseño:** V2 sustituye el iframe solo cuando `PULSE_RESERVAS_V2=enabled`. Mientras esté apagado, el código conserva el flujo anterior. No asumir que un merge o una instalación SQL constituye activación.
 >
 > **Higiene:** no incluir URLs privadas de webhooks, tokens, secretos ni datos reales de compradores en documentación, commits, tests, logs o respuestas públicas.
 
@@ -22,7 +22,7 @@
 10. La interfaz final **no debe mencionar marcas/plataformas técnicas externas** en botones, mensajes, popups, alertas ni guías. Los nombres técnicos se permiten solo en código, documentación interna y configuración restringida.
 11. Mantener separada la alerta actual de **nueva reserva/cambio de disponibilidad**: no es una incidencia de integración y puede seguir protegiendo la página administrativa.
 
-## 2. Inventario verificado en el repositorio antes de implementar
+## 2. Inventario histórico anterior a la implementación (D00)
 
 | Situación actual en `main` | Fuente |
 | --- | --- |
@@ -187,7 +187,7 @@ Reglas:
 - En el regreso del endpoint `confirm`, devolver lista estructurada de `{boleta_id, numero, comprobante_url}`. El backend debe leer el campo de las filas efectivamente confirmadas, nunca aceptar URL enviada por navegador.
 - Las tarjetas funcionan tanto para administradores como para Oficina pública y vendedores asignados. Revisar exposición de datos personales en la página virtual: actualmente muestra teléfono completo; plantear enmascararlo antes de difusión masiva.
 
-## 7. Modelo de datos previsto (**diseño, NO SQL aplicado**)
+## 7. Modelo de datos previsto en D00 (histórico; usuario reportó migración aplicada)
 
 | Entidad | Campos/constraints deseados |
 | --- | --- |
@@ -202,7 +202,7 @@ Reglas:
 
 **Atomicidad:** las reservas multiboleta y registro de evento deben quedar consistentes: no confirmar algunos números, crear múltiples envíos o perder trazabilidad ante excepción. Especificar la operación transaccional/RPC tras contrastar el esquema real; no afirmar que el loop actual cumple atomicidad.
 
-## 8. Inventario de archivos a modificar en etapas FUTURAS
+## 8. Inventario original de archivos por implementar (histórico)
 
 | Grupo | Archivos y alcance |
 | --- | --- |
@@ -275,3 +275,12 @@ Reglas:
 ### Decisión actualizada 2026-10-13 — configuración consolidada en empresas
 
 Se reutiliza `public.empresas` y no se crea una cuarta entidad ni la antigua tabla propuesta `pulse_empresa_integraciones`. Se agregan `webhook_reservas_url_cifrada TEXT` y `responsable_reservas_publicas_user_id UUID`, manteniendo `apps_script_url` intacta. Este criterio sustituye la sugerencia inicial de una tabla separada; las consultas del servidor y la migración se adaptaron antes de instalarse en producción.
+
+
+## Actualización 2026-10-14 — implementación y preparación declarada
+
+- Código V2 fusionado en `main`: PR #37 y #38, sin activar automáticamente.
+- La configuración real usa **`public.empresas`** con `webhook_reservas_url_cifrada TEXT`, `responsable_reservas_publicas_user_id UUID`. **No** se crea `pulse_empresa_integraciones`; la fila histórica de §7 es una propuesta sustituida.
+- El usuario extendió adicionalmente `empresas` con `modulos_activos text[]` y `tipo_empresa text`, sujetos a CHECK de `PETS, AURA, VISION, DRIVE, NEURO, PULSE, LENS`. PULSE no ha implementado todavía autorización por módulos; no confundir esa clasificación futura con permisos de usuario.
+- Usuario declara migración ejecutada y seis verificaciones `true`; dos variables privadas en Vercel configuradas; webhook/workflow GHL finalizado. No se han verificado llamadas reales ni callbacks en producción.
+- Siguiente etapa: pruebas E2E del runbook; habilitar V2 global solo mediante activación supervisada, con plan de reversión.

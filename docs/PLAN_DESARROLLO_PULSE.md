@@ -810,6 +810,20 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Reversión:** deshabilitar el flag y restaurar flujo anterior si hay incidencia; nunca reenviar automáticamente eventos ya intentados. Conservar información de reserva en BD.
 - **Siguiente acción:** tras integración, registrar SHA real de merge/build; completar preflight y activación en una unidad diferente, verificando operaciones de reservas con datos ficticios antes de usuarios reales.
 
+### Registro 2026-10-14 America/Bogota / M-028 — Integración de reservas preparada para pruebas; documentación sincronizada
+
+- **Estado antes → después:** V2 fusionada en `main` → documentación operativa de preparación y pruebas actualizada. **El cambio de esta unidad es documental y de CI**; no ejecuta migraciones, no crea reservas ni activa V2.
+- **Commits de integración ya existentes:** PR #37 fusionado con `ef1a575f3034f0dce8747f40298ece4cb3a78750`; PR #38 fusionado con `74ef22b66207ef9386a127c38ad5891e707bb98b` (base de esta unidad). GitHub Actions TypeScript y PostgreSQL en la rama PR #38 completaron `success`. Estado Vercel para `74ef22b66207ef9386a127c38ad5891e707bb98b`: `success` (enlace https://vercel.com/soy-sebastian-franco-s-projects/pulse/A3yPU1hZvjmqTgozHhRYA6yWMBE2); **no** equivale a confirmar función activa/dominio Production.
+- **Configuración del usuario en Supabase:** informó esquema de `empresas` ampliado con `modulos_activos text[]` y `tipo_empresa text` con restricciones para `PETS, AURA, VISION, DRIVE, NEURO, PULSE, LENS`. Conserva `apps_script_url` y las columnas de integración cifrada. Informó ejecución de `20261013_01_reservas_webhook_alertas.sql` y seis comprobaciones de tablas/funciones/columna `true`. **No comprobado independientemente contra BD externa; no aseverar migración conductualmente validada.**
+- **Variables externas y CRM:** el usuario indicó que guardó `PULSE_WEBHOOK_ENCRYPTION_KEY` y `PULSE_CALLBACK_SECRET` en Vercel y terminó la configuración/mapeo del Inbound Webhook y las acciones de HighLevel (contacto y oportunidad). No se inspeccionaron los secretos ni los workflows desde una API; faltan pruebas del callback por boleta.
+- **Diseño por empresa:** PR #38 reutiliza `public.empresas.webhook_reservas_url_cifrada` y `responsable_reservas_publicas_user_id` sin crear `pulse_empresa_integraciones`. No añadir lógica de módulos todavía; es configuración futura.
+- **Archivos:** `AGENTS.md`, `docs/PLAN_DESARROLLO_PULSE.md`, `docs/ACTIVAR_RESERVAS_WEBHOOK_ALERTAS.md`, `docs/PLAN_RESERVAS_WEBHOOK_ALERTAS.md`, `.github/workflows/validar-reservas.yml`.
+- **Pruebas automáticas de esta unidad:** ejecutar CI TypeScript/contratos/PostgreSQL en el PR y en `main`; estos checks no envían webhooks ni validan servicios externos. Registrar sus resultados por SHA.
+- **Flag y límites:** mantener `PULSE_RESERVAS_V2` sin `enabled` hasta una ventana de validación explícitamente autorizada. Este flag afecta todas las empresas del despliegue; no existe activación segmentada por empresa en este cambio.
+- **Riesgos:** falta comprobar correlación entre un contacto y N oportunidades únicas en GHL, confirmación Bearer por cada `numero`, alerta de fallos parciales, permisos y la no emisión de vendedores; no insertar clientes reales ni publicar secretos para comprobarlo.
+- **Rollback:** retirar el flag y desplegar la versión compatible si la prueba falla; no borrar tablas ni reservas ni reintentar webhooks emitidos.
+- **Siguiente acción concreta:** confirmar configuración GHL por boleta, dominio Production y pruebas con proyecto descartable siguiendo el runbook. Registrar los resultados antes de anunciar sistema nuevo activo.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
