@@ -935,6 +935,17 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Rollback:** revertir ruta nueva y cambio de URL generado, sin revertir datos; no retirar legado durante la primera fase.
 - **Siguiente acción:** publicar vía PR y CI, configurar en GHL URL fija con headers y CUSTOM DATA, probar con boleta ficticia, corroborar en Supabase por empresa/proyecto/número y después programar desactivación del legado.
 
+### Checkpoint 2026-10-15 America/Bogota / M-033 — Webhook fijo publicado, pruebas automáticas correctas
+
+- **PR #44 integrado:** https://github.com/SFrancoH/pulse/pull/44, commit final de implementación/documentación `cee5c7931ce57ac91ad9e9b879ea8868618fd9c6`, merge en `main` `b1224ed9e062c362ce045db575b3829a4e831252`.
+- **GitHub Actions en main:** run `38710990984` terminado `typescript=success`, `postgres=success`. El nuevo test ejecuta la ruta POST real aislada con mock Supabase; comprueba 401, 400, rechazo de empresa ajena (404), confirmación 200 y actualización de valor total sin sumar.
+- **Vercel Production:** estado del despliegue del SHA `b1224ed9e062c362ce045db575b3829a4e831252` = `success`. https://vercel.com/soy-sebastian-franco-s-projects/pulse/4wtyQoVv5BHVpTc7RpqGCwk6aTDC
+- **Ruta operativa objetivo:** `POST /api/integraciones/boletas/actualizar`; recibe JSON plano o Custom Data con `empresa_id`, `proyecto_id`, `numero`, `estado`, `valor_pagado` total acumulado; usa secreto existente `PULSE_CALLBACK_SECRET`. `GET` no sirve como prueba de webhook.
+- **Compatibilidad y seguridad:** `/api/proyectos/[proyectoId]/actualizar-boleta` permanece activo sin autenticación **temporalmente** para no interrumpir integraciones anteriores. Se añadió interruptor `PULSE_LEGACY_BOLETA_UPDATE_DISABLED=true`; activar en Vercel Production y redeploy **solo después** de actualizar todos los workflows GHL, entonces el legado responderá HTTP 410. El riesgo actual del legado permanece hasta corte.
+- **Limitación explícita de disponibilidad:** nuevo endpoint no llama el sincronizador heredado a Google Sheets (identifica solo número); requiere proyecto en una futura integración segura para evitar cruces. No impacta al cambio de saldo en Supabase.
+- **Pendientes:** E2E real GHL→PULSE→Supabase para 1 boleta ficticia de nuevo proyecto, verificar `valor_pagado` y `updated_at`, identificar los demás workflows heredados, desactivarlos y activar interruptor. La publicación de Vercel no demuestra prueba de GHL.
+- **Checkpoint documental:** no autorregistrar el SHA de este commit; no cambia código, SQL, secretos ni flag V2.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
