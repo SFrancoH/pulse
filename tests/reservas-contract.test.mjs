@@ -120,3 +120,68 @@ test("contrato GHL: la ruta mantiene autenticación, filtros y diagnóstico sin 
  assert.match(callback,/\.in\("canal", \["Oficina", "Creacion Manual"\]\)/);
  assert.doesNotMatch(callback,/console\.log/);
 });
+
+// Sorteos por proyecto: pruebas reales del parser + contratos de UI y seguridad.
+const drawsSource = file("lib/project-draws.ts");
+const drawsJs = ts.transpileModule(drawsSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const { validarSorteos, leerSorteos } = await import(
+  "data:text/javascript;base64," + Buffer.from(drawsJs).toString("base64")
+);
+test("calendario obligatorio: un premio mayor y N anticipados antes de él",()=>{
+  assert.deepEqual(validarSorteos({
+    premio_mayor:"2026-12-31T20:00",anticipados:["2026-11-20T18:00","2026-10-20T12:00"],
+  }), {
+    premio_mayor:"2026-12-31T20:00:00-05:00",
+    anticipados:["2026-10-20T12:00:00-05:00","2026-11-20T18:00:00-05:00"],
+  });
+  assert.deepEqual(validarSorteos({premio_mayor:"2027-01-01T18:00",anticipados:[]}).anticipados,[]);
+  assert.throws(()=>validarSorteos({premio_mayor:"",anticipados:[]}));
+  assert.throws(()=>validarSorteos({premio_mayor:"2026-02-30T20:00",anticipados:[]}));
+  assert.throws(()=>validarSorteos({premio_mayor:"2026-12-31T20:00",anticipados:["2027-01-01T10:00"]}));
+  assert.throws(()=>validarSorteos({premio_mayor:"2026-12-31T20:00",anticipados:["2026-11-01T12:00","2026-11-01T12:00"]}));
+  assert.equal(leerSorteos(null),null);
+  assert.equal(leerSorteos({premio_mayor:"2026-12-31T20:00:00-05:00",anticipados:[]}).premio_mayor,"2026-12-31T20:00:00-05:00");
+});
+test("sorteos visibles entre flyer y consecutivos en los tres canales, sin hardcode del nuevo proyecto",()=>{
+ const hero=file("components/ProyectoSalesHero.tsx");
+ for(const path of ["app/o/[token]/page.tsx","app/p/[token]/page.tsx","app/admin/proyectos/[proyectoId]/ventas/page.tsx"]){
+   const code=file(path);
+   assert.match(code,/leerSorteosProyecto/);
+   assert.match(code,/sorteos=\{sorteos\}/);
+   assert.ok(code.indexOf("<ProyectoSalesHero")<code.indexOf("<ProyectoVentaReserva"));
+ }
+ assert.match(hero,/anticipados\.map/);
+ assert.match(hero,/title=\{`Anticipado \$\{index \+ 1\}`\}/);
+ assert.match(hero,/Premio mayor/);
+ assert.match(hero,/Fecha por anunciar/);
+ assert.match(hero,/timeZone: "America\/Bogota"/);
+ const api=file("app/api/crear-proyecto/route.ts");
+ assert.match(api,/validarSorteos\(body\.sorteos\)/);
+ assert.match(api,/sorteos_config: sorteos/);
+ const panel=file("app/admin/page.tsx");
+ const create=file("app/admin/crear-proyecto/page.tsx");
+ assert.match(panel,/SorteosFields value=\{formSorteos\}/);
+ assert.match(create,/SorteosFields value=\{sorteos\}/);
+ assert.match(panel,/Configurar premio mayor y anticipados/);
+});
+test("ganadores se administran por empresa y conservan historiales anteriores",()=>{
+ const api=file("app/api/admin/empresas/[empresaId]/ganadores/route.ts");
+ const reader=file("lib/previous-winners.ts");
+ assert.match(api,/requireCompanyManagerSession/);
+ assert.match(api,/canAccessEmpresa/);
+ assert.match(api,/\.eq\("empresa_id", empresaId\)/);
+ assert.match(api,/numero ~|\^\\d\{4\}\$/);
+ assert.match(reader,/from\("ganadores"\)/);
+ assert.doesNotMatch(reader,/pulse_ganadores_publicos/);
+ assert.match(api,/from\("ganadores"\)/);
+ assert.doesNotMatch(api,/pulse_ganadores_publicos/);
+ const sql=file("supabase/production/20261015_01_sorteos_y_ganadores_publicos.sql");
+ assert.match(sql,/ADD COLUMN IF NOT EXISTS sorteos_config jsonb/);
+ assert.doesNotMatch(sql,/CREATE TABLE.*(?:pulse_ganadores_publicos|ganadores)/i);
+ assert.doesNotMatch(sql,/ALTER TABLE public.ganadores/i);
+ assert.match(reader,/\.eq\("empresa_id", empresaId\)/);
+ assert.match(file("app/admin/page.tsx"),/Agregar ganadores/);
+ assert.match(file("app/admin/empresas/[empresaId]/ganadores/page.tsx"),/Enlace del flyer/);
+});

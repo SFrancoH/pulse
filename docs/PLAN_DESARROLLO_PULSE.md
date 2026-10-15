@@ -883,6 +883,36 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Siguiente acción:** probar callback de una boleta de prueba desde GHL y comprobar `HTTP 200`, `oportunidad_creada=true` y alerta cerrada, sin reintentar la creación de una oportunidad ya existente.
 - **Checkpoint solo documental:** no autorregistra su SHA ni altera código/secretos.
 
+### Registro 2026-10-15 America/Bogota / M-032 — Configuración de N anticipados y ganadores por empresa
+
+- **Pedido:** el bloque visual de cuentas regresivas debe mostrarse en **todas** las páginas de ventas (pública Oficina, vendedor y administración), inmediatamente debajo del flyer y antes de los números; un solo premio mayor obligatorio y N anticipados, definidos al crear el proyecto y editables posteriormente. El administrador requiere botón para agregar ganadores con fecha, número ganador, flyer y enlace de video; visibilidad por empresa.
+- **Diagnóstico de origen:** `components/ProyectoSalesHero.tsx` solo mostraba contadores para un proyecto específico de octubre, con fechas literales. `lib/previous-winners.ts` ya leía `public.ganadores` por `empresa_id`, pero no existía interfaz de administración ni conocemos el DDL completo de esa tabla histórica.
+- **Solución:** calendario por proyecto en `public.proyectos.sorteos_config jsonb` (premio mayor + anticipados), con validación de fecha y hora America/Bogota (UTC−05:00), orden y unicidad; formulario compartido en la creación del panel y en `/admin/crear-proyecto`, configuración posterior restringida a administrador. El héroe reutiliza los mismos contadores en todos los canales y muestra un bloque sin fecha definida para proyectos previos sin configuración; la campaña histórica conserva su promo mediante respaldo de compatibilidad.
+- **Ganadores (corregido con DDL real 2026-10-15):** utilizar solo `public.ganadores` existente (UUID, empresa_id, proyecto_id nullable, numero, fecha, poster_url nullable, video_url, activo, orden). No crear `pulse_ganadores_publicos`; la administración de ganadores nuevos e históricos utiliza la misma tabla, filtrada por empresa autorizada.
+- **Migración obligatoria y orden de publicación:** `supabase/production/20261015_01_sorteos_y_ganadores_publicos.sql` (nombre histórico, archivo corregido) **solo añade `proyectos.sorteos_config jsonb`**, e inicializa condicionalmente las fechas históricas de octubre. Los resultados previos `false` eran de la columna inexistente y de la tabla duplicada (descartada). El DDL de `ganadores` fue facilitado por el usuario. Verificar nueva consulta `calendario_disponible=true` y `ganadores_existentes=true` antes del merge; no se puede certificar la base de producción desde GitHub.
+- **Archivos:** `lib/project-draws.ts`, `components/SorteosFields.tsx`, `components/ProyectoSalesHero.tsx`, páginas pública/administración/vendedores, creación de proyecto UI/API, nueva edición de calendario, gestión de ganadores por empresa UI/API, `lib/previous-winners.ts`, migración, tests de contratos y SQL, runbook y este plan.
+- **Pruebas:** validar en rama TypeScript, contratos ejecutables de fechas, migración y smoke PostgreSQL con datos ficticios; no confundir con prueba real. Falta probar en producción crear proyecto descartable con 1 mayor y 3 anticipados, editar fechas, vistas de los tres canales, ganador empresa A no visible en empresa B, y ganadores históricos intactos.
+- **Sin cambios:** reservas, GHL/callbacks, secretos, flag `PULSE_RESERVAS_V2`, envío de eventos y selección de boletas no se modifican.
+- **Rollback:** revertir código; conservar `sorteos_config` y todos los datos de `ganadores` sin borrarlos.
+- **Siguiente acción:** completar revisión/CI, entregar SQL al usuario, esperar confirmación explícita de instalación, fusionar en `main`, comprobar Vercel Production y realizar la prueba operativa.
+
+### Corrección de alcance M-032 — DDL real aportado 2026-10-15
+
+- El usuario confirmó esquemas concretos de `public.proyectos` y `public.ganadores`. Ambas tablas ya existen; `public.ganadores` tiene todos los campos necesarios y `poster_url` nullable para registros históricos.
+- **Decisión:** no añadir tabla de ganadores. Actualizar PR #43 para reutilizar `ganadores` en consulta pública, GET/POST/PATCH/DELETE autorizados por empresa y pantalla de administración. Los nuevos ganadores se crean con `proyecto_id=NULL`; los existentes permanecen intactos hasta que el administrador los edite o elimine explícitamente.
+- **Migración mínima:** `ALTER TABLE public.proyectos ADD COLUMN IF NOT EXISTS sorteos_config jsonb NULL` con inicialización condicional del sorteo histórico. No cambiar RLS, claves, índices ni datos de `ganadores`. No volver a emitir `CREATE TABLE` para tablas existentes.
+- **Pruebas ajustadas:** fixture de `ganadores` según DDL confirmado, smoke de escritura/lectura con filtro por empresa y prueba de tres anticipados; verificar que el código no referencia `pulse_ganadores_publicos`.
+- **Estado:** correcciones en la rama del PR #43, CI pendiente de verificar tras el cambio. La migración **no** está confirmada en Production; mantener PR sin fusionar y no anunciar UI disponible hasta que el usuario ejecute el SQL y entregue ambos resultados `true`.
+- **Siguiente acción:** confirmar CI del PR, compartir SQL mínimo con el usuario, esperar prueba de migración, entonces evaluar merge a `main` y despliegue Production.
+
+### Checkpoint 2026-10-15 America/Bogota / M-032 — Ajuste a tablas reales y CI aprobado, instalación pendiente
+
+- **PR abierto:** [#43](https://github.com/SFrancoH/pulse/pull/43), rama `feat/project-draw-schedules-and-company-winners-20261015`, SHA de implementación `c5e8022b600d92144da83dd1f4c88b2495f4fdd0` antes de este checkpoint documental. No fusionado con `main`.
+- **DDL real:** usuario aporta `public.ganadores` existente (incluye `proyecto_id nullable`, `orden` y `poster_url nullable`) y `public.proyectos` existente sin `sorteos_config`. El SQL se redujo a la columna JSONB y una actualización condicional de una campaña histórica, sin crear tablas ni modificar `ganadores`.
+- **Pruebas automatizadas de la rama:** GitHub Actions `38700946705`, commit `c5e8022b600d92144da83dd1f4c88b2495f4fdd0`: `typescript=success`, `postgres=success`. PostgreSQL ejecutó fixture de `ganadores` con esquema aportado y la migración sobre base ficticia. Esto no demuestra la instalación real en Supabase.
+- **Despliegue:** pendiente; no se publicará ni se cambiará `PULSE_RESERVAS_V2` hasta recibir confirmación del usuario de `calendario_disponible=true` y `ganadores_existentes=true`.
+- **Siguiente acción:** usuario ejecuta SQL actualizado del PR #43 en Supabase Production, comparte resultados bool sin datos sensibles; entonces validar merge, Vercel Production y pruebas visuales de 1 premio mayor + 3 anticipados y sección ganadores en empresas separadas.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:

@@ -89,3 +89,26 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/production/20261013_01_reservas_webhook_alertas.sql
       - name: Probar 2 boletas, propietario, deduplicación, vendedor y eliminación
         run: psql -v ON_ERROR_STOP=1 -f tests/reservas-db-smoke.sql
+      - name: Crear fixture de ganadores históricos
+        shell: bash
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE TABLE public.ganadores (
+            id uuid NOT NULL DEFAULT gen_random_uuid(),
+            empresa_id text NOT NULL,
+            proyecto_id text NULL,
+            numero text NOT NULL,
+            fecha date NOT NULL,
+            video_url text NOT NULL,
+            poster_url text NULL,
+            activo boolean NOT NULL DEFAULT true,
+            orden integer NOT NULL DEFAULT 0,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now(),
+            CONSTRAINT ganadores_pkey PRIMARY KEY (id)
+          );
+          SQL
+      - name: Instalar calendario de sorteos por proyecto
+        run: psql -v ON_ERROR_STOP=1 -f supabase/production/20261015_01_sorteos_y_ganadores_publicos.sql
+      - name: Probar calendario y separación de ganadores por empresa
+        run: psql -v ON_ERROR_STOP=1 -f tests/project-draws-db-smoke.sql
