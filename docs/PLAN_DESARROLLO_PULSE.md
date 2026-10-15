@@ -856,6 +856,15 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Rollback:** revertir el PR asociado, sin revertir datos.
 - **Siguiente acción:** fusionar con CI verde, comprobar Vercel Production por SHA, solicitar prueba controlada real y registrar resultado. No publicar ni solicitar secretos ni datos reales.
 
+### Checkpoint 2026-10-14 America/Bogota / M-030 — Callback de GHL compatible, PR #41 integrado
+
+- **PR:** [#41](https://github.com/SFrancoH/pulse/pull/41) fusionado. Commit de implementación: `0b1c13fc6c27d5a61ad5b6ad9acda9c9e306e5b0`; SHA de merge en `main`: `60065875d77def0130a802cb7e68606b0ca93efa`.
+- **Pruebas:** workflow GitHub Actions del PR y del SHA de merge: jobs `typescript` y `postgres` en estado `success`. Los tests de contrato son de inspección estática; no prueban una ejecución real de la acción GHL.
+- **Despliegue:** estado Vercel `success` del SHA `60065875d77def0130a802cb7e68606b0ca93efa`, [deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/AZ2q12KzqUWwzk4GXDBeocsN2YBv). No hay verificación E2E del dominio y del flujo GHL desde estos checks.
+- **Cambio y seguridad:** mantiene la URL `/api/integraciones/oportunidades/confirmar`, autenticación Bearer y filtros de identidad de boleta; admite `customData`, `custom_data`, JSON plano, alias `consecutivo_1` y estado en diferentes capitalizaciones; error 400 devuelve `campos_invalidos`, exclusivamente nombres de parámetros. Sin SQL ni variables.
+- **Pendiente:** realizar callback controlado desde GHL con boleta ficticia; si retorna 400 revisar nombres en `campos_invalidos`; si retorna 404 revisar correlación con `boletas` y existencia de reserva; si 200 comprobar `oportunidad_creada=true` y alerta correspondiente.
+- **Rollback:** revertir PR #41 sin alterar datos. Este checkpoint es exclusivamente documental y no autorregistra su propio commit.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
