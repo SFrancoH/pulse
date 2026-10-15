@@ -913,6 +913,16 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Despliegue:** pendiente; no se publicará ni se cambiará `PULSE_RESERVAS_V2` hasta recibir confirmación del usuario de `calendario_disponible=true` y `ganadores_existentes=true`.
 - **Siguiente acción:** usuario ejecuta SQL actualizado del PR #43 en Supabase Production, comparte resultados bool sin datos sensibles; entonces validar merge, Vercel Production y pruebas visuales de 1 premio mayor + 3 anticipados y sección ganadores en empresas separadas.
 
+### Checkpoint 2026-10-15 America/Bogota / M-032 — PR #43 fusionado en main y desplegado
+
+- **Solicitud:** usuario autorizó expresamente «ok subir al main». PR [#43](https://github.com/SFrancoH/pulse/pull/43) fusionado en `main`, SHA de merge `b2f9b3cc76405410dce8c8964abe71b468f80846` (implementación rama `8c9d56d63448424564a0e91c8b14e3c10d357705`).
+- **GitHub CI:** workflow main `38701773814`, jobs `typescript=success` y `postgres=success`. Contratos / smoke usan datos ficticios y no sustituyen verificación real.
+- **Vercel Production:** estado de despliegue asociado al SHA de merge `success`, [deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/71UriCivNL7UY2ubsy92jBrsRFnR). No se ha comprobado manualmente la UI pública ni el flujo de creación real en Production.
+- **Importante — migración no verificada:** la conversación contiene DDL actual de `proyectos` y `ganadores`, pero **no** confirmación de que se haya ejecutado `ALTER TABLE public.proyectos ADD COLUMN IF NOT EXISTS sorteos_config JSONB` ni que `calendario_disponible=true`. El merge ocurrió por instrucción explícita del usuario. La creación de proyectos nuevos exige esa columna: si falta, la API de creación fallará. Prioridad inmediata comprobar/instalar la migración para asegurar el servicio.
+- **Tablas:** `public.ganadores` existente es la fuente única; no crear `pulse_ganadores_publicos` ni modificar esquemas históricos. Calendario en `proyectos.sorteos_config jsonb`.
+- **Siguiente acción:** pedir resultado de consulta de Supabase `calendario_disponible`, `ganadores_existentes`, ambos esperados true; luego verificar visualmente el contador con 1 mayor y 3 anticipados y gestión de ganadores por empresa. Si falla creación antes de migrar, ejecutar SQL mínimo; no repetir `CREATE TABLE`.
+- **Checkpoint documental:** este commit no autorregistra su propio hash ni significa prueba E2E.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
