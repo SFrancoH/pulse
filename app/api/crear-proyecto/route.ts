@@ -92,7 +92,7 @@ export async function POST(req: Request) {
       if (error) throw error;
     }
 
-    const actualizarBoletaUrl = `${BASE_URL}/api/proyectos/${proyectoId}/actualizar-boleta`;
+    const actualizarBoletaUrl = `${BASE_URL}/api/integraciones/boletas/actualizar`;
     const reservarBoletaUrl = `${BASE_URL}/api/proyectos/${proyectoId}/reservar-boleta`;
 
     return Response.json({

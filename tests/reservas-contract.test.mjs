@@ -185,3 +185,66 @@ test("ganadores se administran por empresa y conservan historiales anteriores",(
  assert.match(file("app/admin/page.tsx"),/Agregar ganadores/);
  assert.match(file("app/admin/empresas/[empresaId]/ganadores/page.tsx"),/Enlace del flyer/);
 });
+
+// Webhook de saldo unificado: pruebas de comportamiento de parsing, montos y Bearer.
+const boletaSource = file("lib/ghl-boleta-update-payload.ts");
+const boletaJs = ts.transpileModule(boletaSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const { extraerActualizacionBoleta, importeTotalCop, validarBearerBoleta } = await import(
+  "data:text/javascript;base64," + Buffer.from(boletaJs).toString("base64")
+);
+test("GHL: ruta de saldo acepta JSON plano, customData, custom_data, mixed y claves prefijadas",()=>{
+ const base={
+  empresa_id:"empresa-a",proyecto_id:"proyecto-b",numero:"7697",estado:"Abonado",
+  valor_pagado:"30.000"
+ };
+ const variants=[base,{customData:base},{custom_data:{...base,numero:"7697"}},
+  {custom_fields:{...base,numero:"7697",estado:"abonada"}},
+  {empresa_id:"empresa-a",customData:{proyecto_id:"proyecto-b",numero:7697,estado:"ABONADO",valor_pagado:30000}},
+  Object.fromEntries(Object.entries(base).map(([key,v])=>["customData."+key,v])),
+ ];
+ for(const variant of variants){
+  const actual=extraerActualizacionBoleta(variant);
+  assert.deepEqual(actual.campos_invalidos,[]);
+  assert.deepEqual([actual.empresa_id,actual.proyecto_id,actual.numero,actual.estado,actual.valor_pagado],
+    ["empresa-a","proyecto-b","7697","Abonado",30000]);
+ }
+ assert.equal(extraerActualizacionBoleta({...base,numero:"5"}).numero,"0005");
+});
+test("GHL: validar importe COP total con agrupadores y sin degradar errores a cero",()=>{
+ const buenos=[["30000",30000],[30000,30000],["30.000",30000],["30,000",30000],["30000.00",30000],
+ ["30.000,00",30000],["30,000.00",30000],["COP $ 30.000",30000],["0",0]];
+ for(const [input,expected] of buenos)assert.equal(importeTotalCop(input),expected,String(input));
+ for(const input of ["",null,"abc","$","-20000","30.000.000.000.000.000","12.34.567"])assert.equal(importeTotalCop(input),null,String(input));
+});
+test("GHL: importes o IDs ausentes y estados ajenos devuelven nombres de campos inválidos",()=>{
+ const base={empresa_id:"empresa-a",proyecto_id:"proyecto-b",numero:"7697",estado:"Abonado",valor_pagado:30000};
+ assert.deepEqual(extraerActualizacionBoleta({}).campos_invalidos,["empresa_id","proyecto_id","numero","estado","valor_pagado"]);
+ assert.deepEqual(extraerActualizacionBoleta({...base,valor_pagado:"no aplica"}).campos_invalidos,["valor_pagado"]);
+ assert.deepEqual(extraerActualizacionBoleta({...base,numero:"12345"}).campos_invalidos,["numero"]);
+ assert.deepEqual(extraerActualizacionBoleta({...base,estado:"X"}).campos_invalidos,["estado"]);
+ assert.deepEqual(extraerActualizacionBoleta({...base,empresa_id:""}).campos_invalidos,["empresa_id"]);
+});
+test("GHL: Bearer obligatorio; ni ausencia, token errado o corto autorizan escritura",()=>{
+ const secret="s".repeat(48);
+ assert.equal(validarBearerBoleta(new Request("https://example.com",{headers:{Authorization:"Bearer "+secret}}),secret),true);
+ for(const auth of ["","Bearer otro","Basic "+secret,"Bearer "+secret+"x"]){
+  assert.equal(validarBearerBoleta(new Request("https://example.com",{headers:{Authorization:auth}}),secret),false);
+ }
+ assert.equal(validarBearerBoleta(new Request("https://example.com",{headers:{Authorization:"Bearer corto"}}),"corto"),false);
+});
+test("GHL: endpoint financiero exige empresa, proyecto y número, y URL estable para nuevos proyectos",()=>{
+ const route=file("app/api/integraciones/boletas/actualizar/route.ts");
+ const create=file("app/api/crear-proyecto/route.ts");
+ assert.match(route,/validarBearerBoleta\(req, process\.env\.PULSE_CALLBACK_SECRET/);
+ assert.match(route,/extraerActualizacionBoleta\(body\)/);
+ assert.match(route,/campos_invalidos: campos\.campos_invalidos/);
+ assert.match(route,/\.eq\("empresa_id", empresa_id\)/);
+ assert.match(route,/\.eq\("proyecto_id", proyecto_id\)/);
+ assert.match(route,/\.eq\("numero", numero\)/);
+ assert.match(route,/valor_pagado/);
+ assert.doesNotMatch(route,/syncronizar|sincronizarDisponibilidadGoogleSheet/);
+ assert.doesNotMatch(route,/received_payload|console\.log/);
+ assert.match(create,/\`\$\{BASE_URL\}\/api\/integraciones\/boletas\/actualizar\`/);
+});

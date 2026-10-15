@@ -923,6 +923,18 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Siguiente acción:** pedir resultado de consulta de Supabase `calendario_disponible`, `ganadores_existentes`, ambos esperados true; luego verificar visualmente el contador con 1 mayor y 3 anticipados y gestión de ganadores por empresa. Si falla creación antes de migrar, ejecutar SQL mínimo; no repetir `CREATE TABLE`.
 - **Checkpoint documental:** este commit no autorregistra su propio hash ni significa prueba E2E.
 
+### Registro 2026-10-15 America/Bogota / M-033 — URL única de actualización de pagos/boletas desde GHL
+
+- **Pedido del usuario:** dejar de configurar `/api/proyectos/{proyectoId}/actualizar-boleta` en cada workflow; utilizar una sola URL en todos los proyectos y recibir `empresa_id`, `proyecto_id`, `numero` vía CUSTOM DATA de GHL. La ruta dinámica antigua ya es un solo manejador Next.js y no se crea por proyecto; el nuevo contrato centraliza la configuración.
+- **Base:** `main` SHA `af379d545d8630d1380527dd58ac17c788a207ad` antes del cambio. El webhook antiguo permite cambios no autenticados y solo filtra por proyecto/número; además hace `valor_pagado` como reemplazo y Google Sheets se sincroniza solo por número.
+- **Cambio de alcance aislado:** nuevo `POST /api/integraciones/boletas/actualizar`, autenticado con `Authorization: Bearer PULSE_CALLBACK_SECRET` ya existente. Parser puro en `lib/ghl-boleta-update-payload.ts` compatible con JSON plano/customData/custom_data/custom_fields/keys prefijadas y campos mixtos; valida empresa/proyecto/número, estado reconocido, importe COP seguro (incluye `30.000`, `30,000`, `30000.00`) y no transforma montos inválidos a cero. Actualiza exclusivamente boleta con coincidencia de tres campos; `valor_pagado` se interpreta como **total acumulado**, no pago individual. `400` lista nombres de campos inválidos, `404` diferencia boleta inexistente del `404` HTML de ruta y `401` diferencia autenticación.
+- **Respuesta de crear proyecto:** `webhook_url` y `actualizar_boleta_url` pasan a ser la URL fija sin id. `reservar_boleta_url` no se cambia. El callback de creación de oportunidades `/api/integraciones/oportunidades/confirmar` tampoco cambia.
+- **Sincronización Google Sheets:** se evita invocar el script legado desde la ruta nueva, porque solo identifica `numero` y puede afectar proyectos distintos. Queda pendiente una integración externa separada por empresa/proyecto antes de utilizar este endpoint para liberación de boletas.
+- **Transición / seguridad:** ruta heredada permanece temporalmente para no romper otros workflows activos; sigue no autenticada y es **riesgo residual prioritario**. Tras migrar todas las acciones GHL a la URL fija y probar una boleta real, retirar o bloquear el endpoint viejo; registrar fecha de corte y verificar que deja de aceptar POST. No registrar secretos ni payloads completos.
+- **Pruebas:** tests ejecutables de parsing, montos, bearer y contrato de ruta; CI TypeScript y PostgreSQL antes de fusionar. Sin migración SQL, sin secretos nuevos, sin activar ni cambiar Reservas V2. No se declara integración real probada hasta observar GHL→PULSE→Supabase.
+- **Rollback:** revertir ruta nueva y cambio de URL generado, sin revertir datos; no retirar legado durante la primera fase.
+- **Siguiente acción:** publicar vía PR y CI, configurar en GHL URL fija con headers y CUSTOM DATA, probar con boleta ficticia, corroborar en Supabase por empresa/proyecto/número y después programar desactivación del legado.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:

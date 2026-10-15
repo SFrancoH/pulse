@@ -6,6 +6,15 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Pulse: plan de desarrollo y memoria operativa
 
+## Regla de actualización de boletas desde GHL — URL fija
+
+- Endpoint actual para actualizar saldos: `POST /api/integraciones/boletas/actualizar`, **el ID del proyecto viaja en el cuerpo** como `proyecto_id`, siempre junto con `empresa_id` y `numero`. No generar URLs distintas por proyecto para esta integración.
+- **Authorization: Bearer** obligatorio con el secreto privado `PULSE_CALLBACK_SECRET`; conservar la compatibilidad de JSON plano, `customData`, `custom_data`, `custom_fields`, claves prefijadas y mezcla de formatos.
+- El saldo recibido `valor_pagado` es el **total acumulado** que sustituye el valor anterior; nunca sumar automáticamente un pago ni aceptar un importe inválido como `0`. Exigir estado válido y coincidencia exacta de empresa, proyecto y número. Pruebas ejecutables de formato, monto, autenticación y filtros antes del merge.
+- La ruta heredada `/api/proyectos/[proyectoId]/actualizar-boleta` está **pendiente de retiro tras actualizar GHL**; es no autenticada y no debe mantenerse indefinidamente. No cortarla sin verificar el reemplazo de todos los workflows, pero tampoco considerarla segura.
+- El sincronizador heredado de Google Sheets usa solo número y no es seguro para múltiples proyectos. La nueva ruta de actualización no lo llama hasta que la integración externa acepte empresa y proyecto. Ver `docs/WEBHOOK_UNICO_ACTUALIZAR_BOLETAS_GHL.md`.
+
+
 ## Regla estricta e inmutable: compatibilidad de webhooks entrantes GHL
 
 - **Prohibido regresar a una lectura exclusiva de JSON raíz.** Todo endpoint que reciba confirmaciones/eventos de GHL debe conservar compatibilidad con los campos en JSON plano y dentro de `customData` / `custom_data` (también `custom_fields` y claves prefijadas cuando existan), incluso cuando parte de los datos llegue en raíz y parte en Custom Data. La estructura concreta del payload no debe romper el contrato de negocio.
