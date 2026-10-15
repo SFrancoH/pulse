@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import ts from "typescript";
 const file=(path)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 
 test("los tres canales comparten confirmación segura con rutas distintas",()=>{
@@ -70,16 +71,49 @@ test("la base de datos ofrece ver y copiar URL auténtica por boleta antes de ac
  assert.doesNotMatch(ui,/PUBLIC_BOLETA_BASE_URL/);
 });
 
-// Receptor flexible para Webhook estándar: customData y JSON plano, sin relajar Bearer.
-test("el callback admite customData y diagnostica únicamente nombres de campos inválidos",()=>{
+// Pruebas ejecutables del contrato de recepción GHL; no solo regex sobre el código.
+const ghLCodigo = file("lib/ghl-callback-payload.ts");
+const ghLJs = ts.transpileModule(ghLCodigo, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const { extraerConfirmacionGhl } = await import(
+  "data:text/javascript;base64," + Buffer.from(ghLJs).toString("base64")
+);
+const identificadores = {
+  empresa_id: "empresa-ejemplo",
+  proyecto_id: "proyecto-ejemplo",
+  reserva_grupo: "22222222-2222-4222-8222-222222222222",
+};
+test("contrato GHL: JSON plano y Custom Data producen la misma confirmación",()=>{
+  const raiz={...identificadores,numero:"0045",estado:"creada"};
+  const casos=[
+    raiz,
+    {customData:{...identificadores,numero:"0045",estado:"Creada"}},
+    {custom_data:{...identificadores,consecutivo_1:"0045",estado:"CREADA"}},
+    {custom_fields:{...identificadores,numero:"0045",estado:"creada"}},
+    {empresa_id:identificadores.empresa_id,customData:{
+      proyecto_id:identificadores.proyecto_id,
+      reserva_grupo:identificadores.reserva_grupo,
+      consecutivo_1:"0045",estado:"Creada"
+    }},
+    Object.fromEntries(Object.entries(raiz).map(([clave,valor])=>["customData."+clave,valor])),
+  ];
+  const esperado={empresa:identificadores.empresa_id,proyecto:identificadores.proyecto_id,grupo:identificadores.reserva_grupo,numero:"0045",estado:"creada",camposInvalidos:[]};
+  for(const body of casos)assert.deepEqual(extraerConfirmacionGhl(body),esperado);
+});
+test("contrato GHL: no aceptar números alterados, campos ausentes ni estados desconocidos",()=>{
+  const base={...identificadores,numero:"0045",estado:"fallida"};
+  assert.deepEqual(extraerConfirmacionGhl({customData:base}).camposInvalidos,[]);
+  assert.deepEqual(extraerConfirmacionGhl(null).camposInvalidos,["empresa_id","proyecto_id","reserva_grupo","numero","estado"]);
+  assert.deepEqual(extraerConfirmacionGhl({customData:{...base,numero:"45"}}).camposInvalidos,["numero"]);
+  assert.deepEqual(extraerConfirmacionGhl({...base,numero:45}).camposInvalidos,["numero"]);
+  assert.deepEqual(extraerConfirmacionGhl({...base,estado:"pagada"}).camposInvalidos,["estado"]);
+  assert.deepEqual(extraerConfirmacionGhl({...base,reserva_grupo:" "}).camposInvalidos,["reserva_grupo"]);
+});
+test("contrato GHL: la ruta mantiene autenticación, filtros y diagnóstico sin exponer datos",()=>{
  const callback=file("app/api/integraciones/oportunidades/confirmar/route.ts");
- assert.match(callback,/objeto\(payload\.customData\)/);
- assert.match(callback,/objeto\(payload\.custom_data\)/);
- assert.match(callback,/const fuentes = \[.*payload\]/);
- assert.match(callback,/campo\(body, "numero"\) \|\| campo\(body, "consecutivo_1"\)/);
- assert.match(callback,/campo\(body, "estado"\)\.toLowerCase\(\)/);
+ assert.match(callback,/extraerConfirmacionGhl\(await req\.json\(\)\)/);
  assert.match(callback,/campos_invalidos: camposInvalidos/);
- assert.match(callback,/\/\^\\d\{4\}\$\//);
  assert.match(callback,/timingSafeEqual/);
  assert.match(callback,/if \(!autorizado\(req\)\)/);
  assert.match(callback,/\.eq\("reserva_grupo", grupo\)/);
