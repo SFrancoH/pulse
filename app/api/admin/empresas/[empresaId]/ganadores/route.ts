@@ -24,7 +24,7 @@ function entrada(body: Record<string, unknown>) {
   for (const [campo, valor] of [["flyer", poster_url], ["video", video_url]]) {
     let url: URL;
     try { url = new URL(valor); } catch { throw Error(`El enlace de ${campo} no es válido.`); }
-    if (url.protocol !== "https:" || url.username || url.password || valor.length > 2000) {
+    if (url.protocol !== "https:" || !url.hostname || url.username || url.password || valor.length > 2000) {
       throw Error(`El enlace de ${campo} debe usar HTTPS.`);
     }
   }
@@ -39,10 +39,10 @@ export async function GET(_req: Request, { params }: Props) {
   const { empresaId } = await params;
   const auth = await autorizar(empresaId);
   if (auth.error) return auth.error;
-  const { data, error } = await supabaseAdmin.from("pulse_ganadores_publicos")
+  const { data, error } = await supabaseAdmin.from("ganadores")
     .select("id,numero,fecha,poster_url,video_url,activo")
     .eq("empresa_id", empresaId).order("fecha", { ascending: false });
-  if (error) return Response.json({ success: false, message: "Instala primero la actualización de ganadores." }, { status: 503 });
+  if (error) return Response.json({ success: false, message: "No fue posible cargar los ganadores de esta empresa." }, { status: 503 });
   return Response.json({ success: true, ganadores: data || [] });
 }
 
@@ -53,8 +53,8 @@ export async function POST(req: Request, { params }: Props) {
   if (!origenPermitido(req)) return Response.json({ success: false, message: "Origen no autorizado." }, { status: 403 });
   try {
     const input = entrada(await req.json());
-    const { error } = await supabaseAdmin.from("pulse_ganadores_publicos")
-      .insert({ empresa_id: empresaId, ...input });
+    const { error } = await supabaseAdmin.from("ganadores")
+      .insert({ empresa_id: empresaId, proyecto_id: null, ...input });
     if (error) throw error;
     return Response.json({ success: true, message: "Ganador agregado." }, { status: 201 });
   } catch (err) {
@@ -72,7 +72,7 @@ export async function PATCH(req: Request, { params }: Props) {
     const id = String(body.id || "");
     if (!/^[0-9a-fA-F-]{36}$/.test(id)) return Response.json({ success: false, message: "Ganador inválido." }, { status: 400 });
     const input = entrada(body);
-    const { data, error } = await supabaseAdmin.from("pulse_ganadores_publicos")
+    const { data, error } = await supabaseAdmin.from("ganadores")
       .update(input).eq("empresa_id", empresaId).eq("id", id).select("id").maybeSingle();
     if (error) throw error;
     if (!data) return Response.json({ success: false, message: "Ganador no encontrado." }, { status: 404 });
@@ -90,7 +90,7 @@ export async function DELETE(req: Request, { params }: Props) {
   const body = await req.json().catch(() => ({}));
   const id = String(body.id || "");
   if (!/^[0-9a-fA-F-]{36}$/.test(id)) return Response.json({ success: false, message: "Ganador inválido." }, { status: 400 });
-  const { data, error } = await supabaseAdmin.from("pulse_ganadores_publicos")
+  const { data, error } = await supabaseAdmin.from("ganadores")
     .delete().eq("empresa_id", empresaId).eq("id", id).select("id").maybeSingle();
   if (error) return Response.json({ success: false, message: "No fue posible eliminar el ganador." }, { status: 500 });
   if (!data) return Response.json({ success: false, message: "Ganador no encontrado." }, { status: 404 });
