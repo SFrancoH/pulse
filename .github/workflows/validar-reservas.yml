@@ -89,3 +89,7 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/production/20261013_01_reservas_webhook_alertas.sql
       - name: Probar 2 boletas, propietario, deduplicación, vendedor y eliminación
         run: psql -v ON_ERROR_STOP=1 -f tests/reservas-db-smoke.sql
+      - name: Instalar calendarios y ganadores de prueba
+        run: psql -v ON_ERROR_STOP=1 -f supabase/production/20261015_01_sorteos_y_ganadores_publicos.sql
+      - name: Probar calendario y separación de ganadores por empresa
+        run: psql -v ON_ERROR_STOP=1 -f tests/project-draws-db-smoke.sql
