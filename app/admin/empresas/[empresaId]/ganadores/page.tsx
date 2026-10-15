@@ -5,7 +5,7 @@ import { use, useCallback, useEffect, useState } from "react";
 
 type Ganador = {
   id: string; numero: string; fecha: string;
-  poster_url: string; video_url: string; activo: boolean;
+  poster_url: string | null; video_url: string; activo: boolean;
 };
 type Valores = { numero: string; fecha: string; poster_url: string; video_url: string };
 type Props = { params: Promise<{ empresaId: string }> };
@@ -35,7 +35,7 @@ export default function GestionGanadoresPage({ params }: Props) {
 
   function editar(item: Ganador) {
     setEditando(item.id);
-    setForm({ numero: item.numero, fecha: item.fecha, poster_url: item.poster_url, video_url: item.video_url });
+    setForm({ numero: item.numero, fecha: item.fecha, poster_url: item.poster_url || "", video_url: item.video_url });
     setError(""); setMensaje("");
   }
   function cancelarEdicion() { setEditando(null); setForm(VACIO); }
@@ -79,7 +79,7 @@ export default function GestionGanadoresPage({ params }: Props) {
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-[#E8620A]">Ganadores de la empresa</p>
             <h1 className="mt-1 text-3xl font-black">Administrar ganadores</h1>
-            <p className="mt-2 text-sm text-[#6F665C]">Los ganadores de esta empresa aparecerán en las páginas de venta de sus proyectos.</p>
+            <p className="mt-2 text-sm text-[#6F665C]">Los ganadores de esta empresa, incluidos los históricos, aparecerán en las páginas de venta de sus proyectos.</p>
           </div>
           <Link href="/admin" className="rounded-xl border bg-white px-4 py-3 font-semibold">Volver al panel</Link>
         </div>
@@ -125,12 +125,12 @@ export default function GestionGanadoresPage({ params }: Props) {
 
         <div className="rounded-3xl bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-xl font-black">Ganadores registrados</h2>
-          {cargando ? <p>Cargando...</p> : ganadores.length === 0 ? <p className="text-[#6F665C]">Todavía no hay ganadores agregados desde este panel.</p> : (
+          {cargando ? <p>Cargando...</p> : ganadores.length === 0 ? <p className="text-[#6F665C]">Todavía no hay ganadores registrados para esta empresa.</p> : (
             <div className="space-y-3">
               {ganadores.map(item => (
                 <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
                   <div className="flex items-center gap-3">
-                    <img src={item.poster_url} alt={`Ganador ${item.numero}`} className="h-16 w-12 rounded-lg object-cover" />
+                    {item.poster_url ? <img src={item.poster_url} alt={`Ganador ${item.numero}`} className="h-16 w-12 rounded-lg object-cover" /> : <div className="flex h-16 w-12 items-center justify-center rounded-lg bg-[#F9F6F1] text-xs text-[#6F665C]">Sin imagen</div>}
                     <div><p className="font-black">Boleta {item.numero}</p><p className="text-sm text-[#6F665C]">{item.fecha}</p></div>
                   </div>
                   <div className="flex flex-wrap gap-2">
