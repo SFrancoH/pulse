@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SorteosFields from "@/components/SorteosFields";
+import type { SorteosInput } from "@/lib/project-draws";
 
 type Empresa = {
   id: string;
@@ -38,6 +40,7 @@ export default function CrearProyectoAdminPage() {
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState("60000");
   const [flyerUrl, setFlyerUrl] = useState("");
+  const [sorteos, setSorteos] = useState<SorteosInput>({ premio_mayor: "", anticipados: [] });
   const [formularioCompraUrl,setFormularioCompraUrl] = useState("");
   const [reservasV2Activas,setReservasV2Activas] = useState(false);
   const [cargandoEmpresas, setCargandoEmpresas] = useState(true);
@@ -89,6 +92,7 @@ export default function CrearProyectoAdminPage() {
           nombre,
           precio_boleta: Number(precio || 60000),
           flyer_url: flyerUrl,
+          sorteos,
           formulario_compra_url: reservasV2Activas ? "" : formularioCompraUrl,
         }),
       });
@@ -184,6 +188,8 @@ export default function CrearProyectoAdminPage() {
               <label className="mb-2 block text-sm font-medium">URL imagen / flyer</label>
               <input type="url" value={flyerUrl} onChange={(e) => setFlyerUrl(e.target.value)} placeholder="https://ejemplo.com/flyer.jpg" className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" />
             </div>
+
+            <SorteosFields value={sorteos} onChange={setSorteos} disabled={creando} />
 
             <button type="submit" disabled={creando || cargandoEmpresas} className="w-full rounded-2xl bg-[#E8620A] px-6 py-4 text-lg font-semibold text-white disabled:opacity-60">
               {creando ? "Creando proyecto y boletas..." : "Crear proyecto"}

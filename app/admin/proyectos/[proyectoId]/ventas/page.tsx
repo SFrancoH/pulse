@@ -4,6 +4,7 @@ import OpportunityErrorRecovery from "@/components/OpportunityErrorRecovery";
 import OpportunityErrorRecoveryLegacy from "@/components/OpportunityErrorRecoveryLegacy";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
+import { leerSorteosProyecto } from "@/lib/project-draws";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
 import ProyectoVentaReservaLegacyClient from "@/components/ProyectoVentaReservaLegacyClient";
 import { getPreviousWinners } from "@/lib/previous-winners";
@@ -67,6 +68,7 @@ export default async function AdminProjectSalesPage({ params }: Props) {
     );
   }
 
+  const sorteos = await leerSorteosProyecto(proyectoAutorizado.empresa_id, proyecto.id);
   const esSorteoOctubre = proyecto.id === OCTOBER_PROJECT_ID;
 
   return (
@@ -81,6 +83,7 @@ export default async function AdminProjectSalesPage({ params }: Props) {
         proyectoNombre={proyecto.nombre || ""}
         flyerUrl={proyecto.flyer_url}
         showOctoberPromo={esSorteoOctubre}
+        sorteos={sorteos}
       />
 
       {process.env.PULSE_RESERVAS_V2 === "enabled" ? (<ProyectoVentaReservaClient

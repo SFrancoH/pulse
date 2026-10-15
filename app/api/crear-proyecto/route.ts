@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { canAccessEmpresa, requireCompanyManagerSession } from "@/lib/require-admin";
 import { crearProjectSalesToken, crearUrlPublicaDeProyecto } from "@/lib/project-sales-links";
 import { slugify } from "@/lib/slug";
+import { validarSorteos } from "@/lib/project-draws";
 
 const TOTAL_NUMEROS = 10000;
 const TAMANO_LOTE = 1000;
@@ -42,6 +43,9 @@ export async function POST(req: Request) {
     const precioBoleta = Number(body.precio_boleta || 60000);
     const flyerUrl = String(body.flyer_url || "").trim();
     const legacyFormUrl = process.env.PULSE_RESERVAS_V2 === "enabled" ? "" : String(body.formulario_compra_url || "").trim();
+    let sorteos;
+    try { sorteos = validarSorteos(body.sorteos); }
+    catch (error) { return Response.json({ success: false, message: error instanceof Error ? error.message : "Fechas inválidas." }, { status: 400 }); }
 
     if (!empresaId || !nombre) {
       return Response.json({ success: false, message: "Datos inválidos." }, { status: 400 });
@@ -74,6 +78,7 @@ export async function POST(req: Request) {
       flyer_url: flyerUrl,
       formulario_compra_url: legacyFormUrl,
       sales_token: salesToken,
+      sorteos_config: sorteos,
       estado: "activo",
     });
     if (proyectoError) throw proyectoError;

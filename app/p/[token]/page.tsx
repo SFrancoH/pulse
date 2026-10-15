@@ -1,6 +1,7 @@
 import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
+import { leerSorteosProyecto } from "@/lib/project-draws";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
 import ProyectoVentaReservaLegacyClient from "@/components/ProyectoVentaReservaLegacyClient";
 import { getPreviousWinners } from "@/lib/previous-winners";
@@ -38,6 +39,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
 
   const vendedorNombre = vendedor.nombre?.trim() || vendedor.email;
   const vendedorTelefono = vendedor.telefono?.trim() || "";
+  const sorteos = await leerSorteosProyecto(link.empresa_id, proyecto.id);
   const esSorteoOctubre = proyecto.id === OCTOBER_PROJECT_ID;
 
   return (
@@ -46,6 +48,7 @@ export default async function SellerPublicSalesPage({ params }: Props) {
         proyectoNombre={proyecto.nombre || ""}
         flyerUrl={proyecto.flyer_url}
         showOctoberPromo={esSorteoOctubre}
+        sorteos={sorteos}
       />
 
       {process.env.PULSE_RESERVAS_V2 === "enabled" ? (<ProyectoVentaReservaClient

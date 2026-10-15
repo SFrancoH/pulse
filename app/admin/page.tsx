@@ -3,6 +3,8 @@
 import Link from "next/link";
 import EliminarProyectoDialog from "@/components/EliminarProyectoDialog";
 import { parseCsvBoletas } from "@/lib/boletas-csv";
+import SorteosFields from "@/components/SorteosFields";
+import type { SorteosInput } from "@/lib/project-draws";
 import { useEffect, useRef, useState } from "react";
 
 type Proyecto = {
@@ -60,6 +62,7 @@ export default function AdminDashboardPage() {
   const [formNombre, setFormNombre] = useState("");
   const [formPrecio, setFormPrecio] = useState("60000");
   const [formFlyerUrl, setFormFlyerUrl] = useState("");
+  const [formSorteos, setFormSorteos] = useState<SorteosInput>({ premio_mayor: "", anticipados: [] });
   const [formFormularioUrl,setFormFormularioUrl] = useState("");
   const [reservasV2Activas,setReservasV2Activas] = useState(false);
   const [modalError, setModalError] = useState("");
@@ -240,6 +243,7 @@ export default function AdminDashboardPage() {
           nombre: formNombre,
           precio_boleta: Number(formPrecio || 60000),
           flyer_url: formFlyerUrl,
+          sorteos: formSorteos,
           formulario_compra_url: reservasV2Activas ? "" : formFormularioUrl,
         }),
       });
@@ -253,6 +257,7 @@ export default function AdminDashboardPage() {
       setFormNombre("");
       setFormPrecio("60000");
       setFormFlyerUrl("");
+      setFormSorteos({ premio_mayor: "", anticipados: [] });
       setFormFormularioUrl("");
       setModalAbierto(false);
       await cargar();
@@ -329,9 +334,14 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {canManageProjects && (
-                  <button type="button" onClick={() => abrirModal(grupo.empresa.id)} className="rounded-xl border border-[#1A1A1A] bg-white px-5 py-3 font-semibold">
-                    Crear nuevo proyecto
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/admin/empresas/${encodeURIComponent(grupo.empresa.id)}/ganadores`} className="rounded-xl border border-[#1A1A1A] bg-white px-5 py-3 font-semibold">
+                      Agregar ganadores
+                    </Link>
+                    <button type="button" onClick={() => abrirModal(grupo.empresa.id)} className="rounded-xl border border-[#1A1A1A] bg-white px-5 py-3 font-semibold">
+                      Crear nuevo proyecto
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -362,6 +372,11 @@ export default function AdminDashboardPage() {
                         </div>
 
                         <div className="grid gap-3">
+                          {canManageProjects && (
+                            <Link href={`/admin/proyectos/${encodeURIComponent(proyecto.id)}/sorteos`} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold">
+                              Configurar premio mayor y anticipados
+                            </Link>
+                          )}
                           {canManageProjects && proyecto.asignar_vendedor_url && (
                             <Link href={proyecto.asignar_vendedor_url} className="rounded-2xl bg-[#1A1A1A] px-5 py-4 text-center text-lg font-semibold text-white">
                               Asignar vendedor
@@ -460,6 +475,8 @@ export default function AdminDashboardPage() {
                 <label className="mb-2 block text-sm font-medium">URL imagen / flyer</label>
                 <input type="url" value={formFlyerUrl} onChange={(e) => setFormFlyerUrl(e.target.value)} placeholder="https://ejemplo.com/flyer.jpg" className="w-full rounded-xl border border-[#E0D9CE] px-4 py-3 outline-none" />
               </div>
+
+              <SorteosFields value={formSorteos} onChange={setFormSorteos} disabled={creando} />
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <button type="button" onClick={cerrarModal} disabled={creando} className="rounded-2xl border border-[#1A1A1A] px-6 py-4 text-lg font-semibold disabled:opacity-50">

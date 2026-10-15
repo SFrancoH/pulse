@@ -1,6 +1,7 @@
 import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import PreviousWinners from "@/components/PreviousWinners";
 import ProyectoSalesHero from "@/components/ProyectoSalesHero";
+import { leerSorteosProyecto } from "@/lib/project-draws";
 import ProyectoVentaReservaClient from "@/components/ProyectoVentaReservaClient";
 import ProyectoVentaReservaLegacyClient from "@/components/ProyectoVentaReservaLegacyClient";
 import { getPreviousWinners } from "@/lib/previous-winners";
@@ -40,6 +41,7 @@ export default async function OfficePublicSalesPage({ params }: Props) {
     return <main className="min-h-screen bg-[#F2EDE4] p-10 text-center text-[#1A1A1A]">Enlace de venta no disponible.</main>;
   }
 
+  const sorteos = await leerSorteosProyecto(proyecto.empresa_id, proyecto.id);
   const esSorteoOctubre = proyecto.id === OCTOBER_PROJECT_ID;
 
   return (
@@ -48,6 +50,7 @@ export default async function OfficePublicSalesPage({ params }: Props) {
         proyectoNombre={proyecto.nombre || ""}
         flyerUrl={proyecto.flyer_url}
         showOctoberPromo={esSorteoOctubre}
+        sorteos={sorteos}
       />
 
       {process.env.PULSE_RESERVAS_V2 === "enabled" ? (<ProyectoVentaReservaClient
