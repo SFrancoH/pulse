@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import ts from "typescript";
+import vm from "node:vm";
 const file=(path)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 
 test("los tres canales comparten confirmación segura con rutas distintas",()=>{
@@ -247,4 +248,74 @@ test("GHL: endpoint financiero exige empresa, proyecto y número, y URL estable 
  assert.doesNotMatch(route,/syncronizar|sincronizarDisponibilidadGoogleSheet/);
  assert.doesNotMatch(route,/received_payload|console\.log/);
  assert.match(create,/\`\$\{BASE_URL\}\/api\/integraciones\/boletas\/actualizar\`/);
+});
+
+// Pruebas aisladas de ejecución real de POST. No conectan a Supabase Production.
+test("webhook fijo: autorización, validación, correlación tenant y escritura del total",async()=>{
+ const secret = "x".repeat(48);
+ const llamadas = [];
+ const registros = {empresa_id:"empresa-a",proyecto_id:"sorteo-2026",numero:"0005"};
+ const supabaseAdmin = {
+   from(table){
+     assert.equal(table,"boletas");
+     const query={filters:[],cambios:null};
+     return {
+       update(cambios){query.cambios=cambios;return this;},
+       eq(key,value){query.filters.push([key,value]);return this;},
+       select(){return this;},
+       async maybeSingle(){
+         llamadas.push(query);
+         const coincide = query.filters.every(([key,value])=>registros[key]===value);
+         return {data:coincide?{id:"test-boleta",...registros,...query.cambios}:null,error:null};
+       },
+     };
+   },
+ };
+ const routeCode=ts.transpileModule(file("app/api/integraciones/boletas/actualizar/route.ts"),{
+   compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
+ }).outputText;
+ const ctx={
+   exports:{},process:{env:{PULSE_CALLBACK_SECRET:secret}},Response,
+   require(name){
+     if(name==="@/lib/supabase-admin")return {supabaseAdmin};
+     if(name==="@/lib/ghl-boleta-update-payload")return {extraerActualizacionBoleta,validarBearerBoleta};
+     throw Error("Unexpected dependency "+name);
+   },
+ };
+ vm.runInNewContext(routeCode,ctx,{timeout:3000});
+ const post=ctx.exports.POST;
+ const endpoint="https://example.com/api/integraciones/boletas/actualizar";
+ const datos={empresa_id:"empresa-a",proyecto_id:"sorteo-2026",numero:"0005",estado:"Abonado",valor_pagado:"30.000"};
+ async function enviar(data,token=secret){
+   const req=new Request(endpoint,{method:"POST",headers:{
+     "Content-Type":"application/json",Authorization:token?"Bearer "+token:"",
+   },body:JSON.stringify({customData:data})});
+   const response=await post(req);
+   return {status:response.status,data:await response.json()};
+ }
+ const unauthorized=await enviar(datos,"");
+ assert.equal(unauthorized.status,401);
+ assert.equal(llamadas.length,0);
+ const malformed=await enviar({...datos,valor_pagado:"equivocado"});
+ assert.equal(malformed.status,400);
+ assert.deepEqual(malformed.data.campos_invalidos,["valor_pagado"]);
+ assert.equal(llamadas.length,0);
+ const other=await enviar({...datos,empresa_id:"otra-empresa"});
+ assert.equal(other.status,404);
+ assert.equal(llamadas.length,1);
+ const ok=await enviar(datos);
+ assert.equal(ok.status,200);
+ assert.equal(ok.data.success,true);
+ assert.equal(ok.data.modo_valor,"total_acumulado");
+ assert.equal(ok.data.boleta.valor_pagado,30000);
+ assert.deepEqual(llamadas.at(-1).filters,[
+   ["empresa_id","empresa-a"],["proyecto_id","sorteo-2026"],["numero","0005"],
+ ]);
+ assert.equal(llamadas.at(-1).cambios.valor_pagado,30000);
+ assert.equal(llamadas.at(-1).cambios.estado,"Abonado");
+});
+test("webhook heredado: mantiene compatibilidad hasta activar el interruptor de cierre",()=>{
+ const source=file("app/api/proyectos/[proyectoId]/actualizar-boleta/route.ts");
+ assert.match(source,/PULSE_LEGACY_BOLETA_UPDATE_DISABLED/);
+ assert.match(source,/status: 410/);
 });
