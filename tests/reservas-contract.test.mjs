@@ -53,3 +53,19 @@ test("la configuración privada nunca devuelve el secreto al navegador",()=>{
  assert.match(api,/from\("empresas"\)/);
  assert.doesNotMatch(api,/webhook_url_cifrada:conf\.data/);
 });
+
+test("la base de datos ofrece ver y copiar URL auténtica por boleta antes de actualizar",()=>{
+ const api=file("app/api/admin/proyectos/[proyectoId]/boletas/route.ts");
+ const ui=file("app/admin/proyectos/[proyectoId]/base-datos/page.tsx");
+ assert.match(api,/select\("id,numero,estado,[^"]*comprobante_url"\)/);
+ assert.match(ui,/comprobante_url: string \| null/);
+ assert.match(ui,/Omit<Boleta, "id" \| "numero" \| "comprobante_url">/);
+ assert.match(ui,/enlaceDeBoleta\(b\.comprobante_url\)/);
+ assert.match(ui,/navigator\.clipboard\.writeText\(enlace\)/);
+ assert.match(ui,/target="_blank"/);
+ assert.match(ui,/rel="noopener noreferrer"/);
+ assert.match(ui,/disabled=\{!enlace\}/);
+ assert.ok(ui.indexOf("Ver boleta",ui.indexOf('const enlace = enlaceDeBoleta(b.comprobante_url)')) < ui.indexOf("Copiar boleta",ui.indexOf('const enlace = enlaceDeBoleta(b.comprobante_url)')));
+ assert.ok(ui.indexOf("Copiar boleta",ui.indexOf('const enlace = enlaceDeBoleta(b.comprobante_url)')) < ui.indexOf("Actualizar",ui.indexOf('const enlace = enlaceDeBoleta(b.comprobante_url)')));
+ assert.doesNotMatch(ui,/PUBLIC_BOLETA_BASE_URL/);
+});

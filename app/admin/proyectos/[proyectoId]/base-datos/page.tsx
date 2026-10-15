@@ -14,14 +14,27 @@ type Boleta = {
   valor_pagado: number | null;
   vendedor_nombre: string | null;
   canal: string | null;
+  comprobante_url: string | null;
 };
 
 type Props = { params: Promise<{ proyectoId: string }> };
-type Editable = Omit<Boleta, "id" | "numero">;
+type Editable = Omit<Boleta, "id" | "numero" | "comprobante_url">;
 
 const ESTADOS = ["Disponible", "No disponible", "Debe", "Abonado", "Pagado"];
 const CANALES = ["", "Vendedores", "Anuncios", "Oficina"];
 const CSV_CHUNK_SIZE = 200;
+
+// Utilizar únicamente el enlace real almacenado en boletas.comprobante_url.
+// Impedir esquemas inseguros, sin inventar ni reconstruir direcciones.
+function enlaceDeBoleta(valor: string | null): string | null {
+  if (!valor) return null;
+  try {
+    const url = new URL(valor);
+    return url.protocol === "https:" || url.protocol === "http:" ? valor : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function BaseDatosProyectoPage({ params }: Props) {
   const { proyectoId } = use(params);
@@ -136,6 +149,19 @@ export default function BaseDatosProyectoPage({ params }: Props) {
       setError(e instanceof Error ? e.message : "Error desconocido.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function copiarBoleta(boleta: Boleta) {
+    const enlace = enlaceDeBoleta(boleta.comprobante_url);
+    if (!enlace) return;
+    try {
+      await navigator.clipboard.writeText(enlace);
+      setError("");
+      setMensaje(`Enlace de la boleta ${boleta.numero} copiado.`);
+    } catch {
+      setMensaje("");
+      setError("No fue posible copiar el enlace. Abre «Ver boleta» para copiarlo desde allí.");
     }
   }
 
@@ -262,6 +288,7 @@ export default function BaseDatosProyectoPage({ params }: Props) {
               <tbody>
                 {filtradas.map((b) => {
                   const valor = valorFila(b);
+                  const enlace = enlaceDeBoleta(b.comprobante_url);
                   return (
                     <tr key={b.id} className="border-b align-top">
                       <td className="p-2"><input type="checkbox" checked={seleccionadas.has(b.id)} onChange={(e) => setSeleccionadas((prev) => { const next = new Set(prev); if (e.target.checked) next.add(b.id); else next.delete(b.id); return next; })} /></td>
@@ -273,7 +300,42 @@ export default function BaseDatosProyectoPage({ params }: Props) {
                       <td className="p-2"><input type="number" value={valor.valor_pagado ?? 0} onChange={(e) => editar(b.id, "valor_pagado", Number(e.target.value))} className="w-32 rounded border p-2" /></td>
                       {puedeAdministrar && <td className="p-2"><input value={valor.vendedor_nombre || ""} onChange={(e) => editar(b.id, "vendedor_nombre", e.target.value)} className="w-44 rounded border p-2" /></td>}
                       {puedeAdministrar && <td className="p-2"><select value={valor.canal || ""} onChange={(e) => editar(b.id, "canal", e.target.value)} className="w-36 rounded border p-2"><option value="">Sin canal</option>{CANALES.filter(Boolean).map((item) => <option key={item}>{item}</option>)}</select></td>}
-                      <td className="p-2"><button disabled={!ediciones[b.id] || saving} onClick={() => void actualizar([b.id], ediciones[b.id])} className="rounded-lg bg-[#E8620A] px-3 py-2 font-semibold text-white disabled:opacity-40">Actualizar</button></td>
+                      <td className="p-2">
+                        <div className="flex min-w-[345px] flex-wrap items-center gap-2">
+                          {enlace ? (
+                            <a
+                              href={enlace}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-lg border border-[#1A1A1A] bg-white px-3 py-2 font-semibold"
+                              aria-label={`Ver boleta ${b.numero}`}
+                            >
+                              Ver boleta
+                            </a>
+                          ) : (
+                            <button type="button" disabled title="Enlace de boleta no disponible" className="rounded-lg border border-[#1A1A1A] bg-white px-3 py-2 font-semibold opacity-40">
+                              Ver boleta
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            disabled={!enlace}
+                            onClick={() => void copiarBoleta(b)}
+                            title={enlace ? "Copiar enlace de boleta" : "Enlace de boleta no disponible"}
+                            className="rounded-lg border border-[#1A1A1A] bg-white px-3 py-2 font-semibold disabled:opacity-40"
+                          >
+                            Copiar boleta
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!ediciones[b.id] || saving}
+                            onClick={() => void actualizar([b.id], ediciones[b.id])}
+                            className="rounded-lg bg-[#E8620A] px-3 py-2 font-semibold text-white disabled:opacity-40"
+                          >
+                            Actualizar
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
