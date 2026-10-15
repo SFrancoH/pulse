@@ -63,7 +63,7 @@ export async function GET(_req: Request, { params }: PageProps) {
     while (true) {
       let query = supabaseAdmin
         .from("boletas")
-        .select("id,numero,estado,nombre_cliente,telefono_cliente,email_cliente,valor_pagado,vendedor_nombre,canal")
+        .select("id,numero,estado,nombre_cliente,telefono_cliente,email_cliente,valor_pagado,vendedor_nombre,canal,comprobante_url")
         .eq("proyecto_id", proyectoId)
         .order("numero", { ascending: true })
         .range(desde, desde + PAGE_SIZE - 1);

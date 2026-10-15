@@ -824,6 +824,17 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Rollback:** retirar el flag y desplegar la versión compatible si la prueba falla; no borrar tablas ni reservas ni reintentar webhooks emitidos.
 - **Siguiente acción concreta:** confirmar configuración GHL por boleta, dominio Production y pruebas con proyecto descartable siguiendo el runbook. Registrar los resultados antes de anunciar sistema nuevo activo.
 
+### Registro 2026-10-14 America/Bogota / M-029 — Ver y copiar boleta en Base de datos
+
+- **Solicitud:** al abrir **Base de datos** de un proyecto, cada boleta debe mostrar **Ver boleta**, **Copiar boleta** y luego **Actualizar** en la columna Acciones.
+- **Base al iniciar:** `main` SHA `59dc16c41798285a9dd4962b4749b1ba1e1c4de0` tras integración de documentación/CI (PR #39). La pantalla consultaba boletas sin `comprobante_url`; el dato ya está en Supabase y era utilizado por el flujo V2.
+- **Cambio concreto:** agregar `comprobante_url` al SELECT autorizado de `GET /api/admin/proyectos/[proyectoId]/boletas`; incorporarlo como campo **solo lectura** en el tipo `Boleta` (no en campos editables/PATCH); ofrecer un enlace `target=_blank` con `noopener noreferrer`, copiar exactamente el dato real mediante Clipboard API y conservar **Actualizar** como tercera acción. Solo permitir URL HTTP/HTTPS; si no existe, deshabilitar las dos acciones. Aplicar a todos los registros a los que el usuario autenticado ya tiene acceso, sin elevar privilegios ni agregar APIs públicas.
+- **Archivos:** `app/api/admin/proyectos/[proyectoId]/boletas/route.ts`, `app/admin/proyectos/[proyectoId]/base-datos/page.tsx`, `tests/reservas-contract.test.mjs`, este plan.
+- **Sin SQL ni variables:** no hay migraciones, cambios en Supabase, GHL, Vercel env, URLs privadas o secretos. No activar ni desactivar `PULSE_RESERVAS_V2`; estas acciones funcionan independientemente de V2.
+- **Validación:** PR debe ejecutar `npx tsc --noEmit`, tests de contrato y smoke PostgreSQL en GitHub Actions; pendiente de resultados y revisión del merge. La prueba manual en Production requiere abrir Base de datos, comprobar nueva pestaña, copiado correcto para una boleta existente y botones desactivados si falta URL.
+- **Rollback:** revertir el commit UI/API; ninguna modificación de datos.
+- **Siguiente acción:** aprobar pruebas automáticas, fusionar a `main`, verificar Vercel Production por SHA y probar manualmente una boleta de prueba.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
