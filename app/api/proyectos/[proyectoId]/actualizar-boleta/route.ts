@@ -90,6 +90,14 @@ async function leerPayload(req: Request): Promise<Payload> {
 }
 
 export async function POST(req: Request, { params }: PageProps) {
+  // Interruptor de retiro del webhook antiguo tras migrar GHL al endpoint fijo
+  // autenticado. No cambiar el valor por defecto hasta verificar los workflows.
+  if (process.env.PULSE_LEGACY_BOLETA_UPDATE_DISABLED === "true") {
+    return Response.json(
+      { success: false, message: "La integración anterior fue desactivada. Utiliza el webhook único." },
+      { status: 410 }
+    );
+  }
   try {
     const { proyectoId } = await params;
     const payload = await leerPayload(req);

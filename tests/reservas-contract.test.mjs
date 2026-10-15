@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import ts from "typescript";
+import vm from "node:vm";
 const file=(path)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 
 test("los tres canales comparten confirmación segura con rutas distintas",()=>{
@@ -184,4 +185,137 @@ test("ganadores se administran por empresa y conservan historiales anteriores",(
  assert.match(reader,/\.eq\("empresa_id", empresaId\)/);
  assert.match(file("app/admin/page.tsx"),/Agregar ganadores/);
  assert.match(file("app/admin/empresas/[empresaId]/ganadores/page.tsx"),/Enlace del flyer/);
+});
+
+// Webhook de saldo unificado: pruebas de comportamiento de parsing, montos y Bearer.
+const boletaSource = file("lib/ghl-boleta-update-payload.ts");
+const boletaJs = ts.transpileModule(boletaSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const { extraerActualizacionBoleta, importeTotalCop, validarBearerBoleta } = await import(
+  "data:text/javascript;base64," + Buffer.from(boletaJs).toString("base64")
+);
+test("GHL: ruta de saldo acepta JSON plano, customData, custom_data, mixed y claves prefijadas",()=>{
+ const base={
+  empresa_id:"empresa-a",proyecto_id:"proyecto-b",numero:"7697",estado:"Abonado",
+  valor_pagado:"30.000"
+ };
+ const variants=[base,{customData:base},{custom_data:{...base,numero:"7697"}},
+  {custom_fields:{...base,numero:"7697",estado:"abonada"}},
+  {empresa_id:"empresa-a",customData:{proyecto_id:"proyecto-b",numero:7697,estado:"ABONADO",valor_pagado:30000}},
+  Object.fromEntries(Object.entries(base).map(([key,v])=>["customData."+key,v])),
+ ];
+ for(const variant of variants){
+  const actual=extraerActualizacionBoleta(variant);
+  assert.deepEqual(actual.campos_invalidos,[]);
+  assert.deepEqual([actual.empresa_id,actual.proyecto_id,actual.numero,actual.estado,actual.valor_pagado],
+    ["empresa-a","proyecto-b","7697","Abonado",30000]);
+ }
+ assert.equal(extraerActualizacionBoleta({...base,numero:"5"}).numero,"0005");
+});
+test("GHL: validar importe COP total con agrupadores y sin degradar errores a cero",()=>{
+ const buenos=[["30000",30000],[30000,30000],["30.000",30000],["30,000",30000],["30000.00",30000],
+ ["30.000,00",30000],["30,000.00",30000],["COP $ 30.000",30000],["0",0]];
+ for(const [input,expected] of buenos)assert.equal(importeTotalCop(input),expected,String(input));
+ for(const input of ["",null,"abc","$","-20000","30.000.000.000.000.000","12.34.567"])assert.equal(importeTotalCop(input),null,String(input));
+});
+test("GHL: importes o IDs ausentes y estados ajenos devuelven nombres de campos inválidos",()=>{
+ const base={empresa_id:"empresa-a",proyecto_id:"proyecto-b",numero:"7697",estado:"Abonado",valor_pagado:30000};
+ assert.deepEqual(extraerActualizacionBoleta({}).campos_invalidos,["empresa_id","proyecto_id","numero","estado","valor_pagado"]);
+ assert.deepEqual(extraerActualizacionBoleta({...base,valor_pagado:"no aplica"}).campos_invalidos,["valor_pagado"]);
+ assert.deepEqual(extraerActualizacionBoleta({...base,numero:"12345"}).campos_invalidos,["numero"]);
+ assert.deepEqual(extraerActualizacionBoleta({...base,estado:"X"}).campos_invalidos,["estado"]);
+ assert.deepEqual(extraerActualizacionBoleta({...base,empresa_id:""}).campos_invalidos,["empresa_id"]);
+});
+test("GHL: Bearer obligatorio; ni ausencia, token errado o corto autorizan escritura",()=>{
+ const secret="s".repeat(48);
+ assert.equal(validarBearerBoleta(new Request("https://example.com",{headers:{Authorization:"Bearer "+secret}}),secret),true);
+ for(const auth of ["","Bearer otro","Basic "+secret,"Bearer "+secret+"x"]){
+  assert.equal(validarBearerBoleta(new Request("https://example.com",{headers:{Authorization:auth}}),secret),false);
+ }
+ assert.equal(validarBearerBoleta(new Request("https://example.com",{headers:{Authorization:"Bearer corto"}}),"corto"),false);
+});
+test("GHL: endpoint financiero exige empresa, proyecto y número, y URL estable para nuevos proyectos",()=>{
+ const route=file("app/api/integraciones/boletas/actualizar/route.ts");
+ const create=file("app/api/crear-proyecto/route.ts");
+ assert.match(route,/validarBearerBoleta\(req, process\.env\.PULSE_CALLBACK_SECRET/);
+ assert.match(route,/extraerActualizacionBoleta\(body\)/);
+ assert.match(route,/campos_invalidos: campos\.campos_invalidos/);
+ assert.match(route,/\.eq\("empresa_id", empresa_id\)/);
+ assert.match(route,/\.eq\("proyecto_id", proyecto_id\)/);
+ assert.match(route,/\.eq\("numero", numero\)/);
+ assert.match(route,/valor_pagado/);
+ assert.doesNotMatch(route,/syncronizar|sincronizarDisponibilidadGoogleSheet/);
+ assert.doesNotMatch(route,/received_payload|console\.log/);
+ assert.match(create,/\`\$\{BASE_URL\}\/api\/integraciones\/boletas\/actualizar\`/);
+});
+
+// Pruebas aisladas de ejecución real de POST. No conectan a Supabase Production.
+test("webhook fijo: autorización, validación, correlación tenant y escritura del total",async()=>{
+ const secret = "x".repeat(48);
+ const llamadas = [];
+ const registros = {empresa_id:"empresa-a",proyecto_id:"sorteo-2026",numero:"0005"};
+ const supabaseAdmin = {
+   from(table){
+     assert.equal(table,"boletas");
+     const query={filters:[],cambios:null};
+     return {
+       update(cambios){query.cambios=cambios;return this;},
+       eq(key,value){query.filters.push([key,value]);return this;},
+       select(){return this;},
+       async maybeSingle(){
+         llamadas.push(query);
+         const coincide = query.filters.every(([key,value])=>registros[key]===value);
+         return {data:coincide?{id:"test-boleta",...registros,...query.cambios}:null,error:null};
+       },
+     };
+   },
+ };
+ const routeCode=ts.transpileModule(file("app/api/integraciones/boletas/actualizar/route.ts"),{
+   compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
+ }).outputText;
+ const ctx={
+   exports:{},process:{env:{PULSE_CALLBACK_SECRET:secret}},Response,
+   require(name){
+     if(name==="@/lib/supabase-admin")return {supabaseAdmin};
+     if(name==="@/lib/ghl-boleta-update-payload")return {extraerActualizacionBoleta,validarBearerBoleta};
+     throw Error("Unexpected dependency "+name);
+   },
+ };
+ vm.runInNewContext(routeCode,ctx,{timeout:3000});
+ const post=ctx.exports.POST;
+ const endpoint="https://example.com/api/integraciones/boletas/actualizar";
+ const datos={empresa_id:"empresa-a",proyecto_id:"sorteo-2026",numero:"0005",estado:"Abonado",valor_pagado:"30.000"};
+ async function enviar(data,token=secret){
+   const req=new Request(endpoint,{method:"POST",headers:{
+     "Content-Type":"application/json",Authorization:token?"Bearer "+token:"",
+   },body:JSON.stringify({customData:data})});
+   const response=await post(req);
+   return {status:response.status,data:await response.json()};
+ }
+ const unauthorized=await enviar(datos,"");
+ assert.equal(unauthorized.status,401);
+ assert.equal(llamadas.length,0);
+ const malformed=await enviar({...datos,valor_pagado:"equivocado"});
+ assert.equal(malformed.status,400);
+ assert.deepEqual(malformed.data.campos_invalidos,["valor_pagado"]);
+ assert.equal(llamadas.length,0);
+ const other=await enviar({...datos,empresa_id:"otra-empresa"});
+ assert.equal(other.status,404);
+ assert.equal(llamadas.length,1);
+ const ok=await enviar(datos);
+ assert.equal(ok.status,200);
+ assert.equal(ok.data.success,true);
+ assert.equal(ok.data.modo_valor,"total_acumulado");
+ assert.equal(ok.data.boleta.valor_pagado,30000);
+ assert.deepEqual(llamadas.at(-1).filters,[
+   ["empresa_id","empresa-a"],["proyecto_id","sorteo-2026"],["numero","0005"],
+ ]);
+ assert.equal(llamadas.at(-1).cambios.valor_pagado,30000);
+ assert.equal(llamadas.at(-1).cambios.estado,"Abonado");
+});
+test("webhook heredado: mantiene compatibilidad hasta activar el interruptor de cierre",()=>{
+ const source=file("app/api/proyectos/[proyectoId]/actualizar-boleta/route.ts");
+ assert.match(source,/PULSE_LEGACY_BOLETA_UPDATE_DISABLED/);
+ assert.match(source,/status: 410/);
 });
