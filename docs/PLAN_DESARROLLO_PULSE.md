@@ -874,6 +874,15 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Pruebas / publicación:** GitHub Actions debe pasar TypeScript, contrato ejecutable y PostgreSQL. Pendiente anotar PR/SHAs y status Vercel con evidencia real tras integrar. Las pruebas locales no confirman las peticiones GHL reales; seguir pendiente E2E controlado.
 - **Siguiente acción:** completar CI → fusionar a `main` → confirmar despliegue Production → prueba de callback con oportunidad real de prueba y `oportunidad_creada=true`.
 
+### Checkpoint 2026-10-14 America/Bogota / M-031 — Regla GHL validada e integrada
+
+- **PR #42:** https://github.com/SFrancoH/pulse/pull/42 fusionado en `main`, SHA funcional `b269473a32fd456ad1e32d833be57f760f4d128d`. Commits en rama: `8767869e6db61fc1dc6aea8e9c4f80f899544a36` y `19b81c56c8998e14f641d36ae6727696d480a975`.
+- **Pruebas:** GitHub Actions `typescript` y `postgres` en estado `success` tanto para rama final como para el merge en `main` (run de main `38682915051`). El test de contrato ejecuta realmente casos de parsing GHL con TypeScript transpile en entorno de prueba y verifica restricciones básicas de la ruta; la existencia de una prueba no prueba por sí sola entregas reales desde GHL.
+- **Despliegue:** estado Vercel `success` para el merge `b269473a32fd456ad1e32d833be57f760f4d128d`, [despliegue](https://vercel.com/soy-sebastian-franco-s-projects/pulse/AQrEvJsBrYedzbaFLH8gsUSLzR41). No se ha ejecutado confirmación GHL→PULSE→Supabase con datos de prueba en esta unidad.
+- **Contrato permanente:** `AGENTS.md` y runbook obligan a conservar JSON raíz + `customData` + `custom_data` + formatos mixtos, y tests de ejecución antes de modificar el receptor. URL, Bearer, verificaciones de identidad y esquema no cambian.
+- **Siguiente acción:** probar callback de una boleta de prueba desde GHL y comprobar `HTTP 200`, `oportunidad_creada=true` y alerta cerrada, sin reintentar la creación de una oportunidad ya existente.
+- **Checkpoint solo documental:** no autorregistra su SHA ni altera código/secretos.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
