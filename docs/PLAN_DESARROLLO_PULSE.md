@@ -905,6 +905,14 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Estado:** correcciones en la rama del PR #43, CI pendiente de verificar tras el cambio. La migración **no** está confirmada en Production; mantener PR sin fusionar y no anunciar UI disponible hasta que el usuario ejecute el SQL y entregue ambos resultados `true`.
 - **Siguiente acción:** confirmar CI del PR, compartir SQL mínimo con el usuario, esperar prueba de migración, entonces evaluar merge a `main` y despliegue Production.
 
+### Checkpoint 2026-10-15 America/Bogota / M-032 — Ajuste a tablas reales y CI aprobado, instalación pendiente
+
+- **PR abierto:** [#43](https://github.com/SFrancoH/pulse/pull/43), rama `feat/project-draw-schedules-and-company-winners-20261015`, SHA de implementación `c5e8022b600d92144da83dd1f4c88b2495f4fdd0` antes de este checkpoint documental. No fusionado con `main`.
+- **DDL real:** usuario aporta `public.ganadores` existente (incluye `proyecto_id nullable`, `orden` y `poster_url nullable`) y `public.proyectos` existente sin `sorteos_config`. El SQL se redujo a la columna JSONB y una actualización condicional de una campaña histórica, sin crear tablas ni modificar `ganadores`.
+- **Pruebas automatizadas de la rama:** GitHub Actions `38700946705`, commit `c5e8022b600d92144da83dd1f4c88b2495f4fdd0`: `typescript=success`, `postgres=success`. PostgreSQL ejecutó fixture de `ganadores` con esquema aportado y la migración sobre base ficticia. Esto no demuestra la instalación real en Supabase.
+- **Despliegue:** pendiente; no se publicará ni se cambiará `PULSE_RESERVAS_V2` hasta recibir confirmación del usuario de `calendario_disponible=true` y `ganadores_existentes=true`.
+- **Siguiente acción:** usuario ejecuta SQL actualizado del PR #43 en Supabase Production, comparte resultados bool sin datos sensibles; entonces validar merge, Vercel Production y pruebas visuales de 1 premio mayor + 3 anticipados y sección ganadores en empresas separadas.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
