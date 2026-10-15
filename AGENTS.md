@@ -6,6 +6,16 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Pulse: plan de desarrollo y memoria operativa
 
+## Regla estricta e inmutable: compatibilidad de webhooks entrantes GHL
+
+- **Prohibido regresar a una lectura exclusiva de JSON raíz.** Todo endpoint que reciba confirmaciones/eventos de GHL debe conservar compatibilidad con los campos en JSON plano y dentro de `customData` / `custom_data` (también `custom_fields` y claves prefijadas cuando existan), incluso cuando parte de los datos llegue en raíz y parte en Custom Data. La estructura concreta del payload no debe romper el contrato de negocio.
+- El callback de oportunidades `POST /api/integraciones/oportunidades/confirmar` usa la extracción compartida `lib/ghl-callback-payload.ts`. Preservar los campos `empresa_id`, `proyecto_id`, `reserva_grupo`, `numero` (alias histórico `consecutivo_1`) y `estado` (`creada`/`fallida`, sin dependencia de mayúsculas). **No eliminar alias o formatos previamente aceptados** sin migración explícita de los workflows y aprobación del usuario.
+- La flexibilidad de lectura **nunca elimina seguridad o validación**: conservar el header `Authorization: Bearer`, coincidencia de empresa/proyecto/grupo/número/canal, cuatro dígitos exactos del número, respuesta `400` con nombres de `campos_invalidos` (sin reflejar valores sensibles), y respuesta `401` ante credenciales inválidas. No registrar tokens, datos personales o cuerpos completos del webhook.
+- **Protección obligatoria contra regresiones:** antes de fusionar cambios en webhooks GHL, su parser, flujos de reserva o integración, ejecutar `node --test tests/reservas-contract.test.mjs` y `npx tsc --noEmit`. Los tests deben ejercer **realmente** los casos JSON raíz, `customData`, `custom_data`, mezcla de fuentes, alias, valores nulos/ausentes, formatos inválidos y autenticación; no basta con tests que solo inspeccionen texto. Si llega un formato nuevo de GHL, agregar un fixture anonimizado **antes** de adaptarlo. No modificar la URL estable del callback ni el secreto por un cambio de estructura.
+- Estas reglas deben revisarse en toda futura refactorización del endpoint, la librería de recepción y el workflow externo. Ver también `docs/ACTIVAR_RESERVAS_WEBHOOK_ALERTAS.md`.
+
+
+
 - Antes de modificar la aplicación, pruebas, migraciones, dependencias o despliegues, leer `docs/PLAN_DESARROLLO_PULSE.md`, especialmente el estado actual y la última entrada de bitácora.
 - Respetar el orden del plan. Mientras P00 no esté verificado en producción, la prioridad es desbloquear y publicar la corrección de disponibilidad pendiente del PR #34.
 - Actualizar el plan con cada unidad de cambio, decisión relevante, migración, prueba, commit de implementación, integración, despliegue o reversión. Registrar archivos, resultados, SHAs completos reales, PR, deployment/entorno y siguiente acción.

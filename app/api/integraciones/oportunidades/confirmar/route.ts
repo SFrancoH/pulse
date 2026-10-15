@@ -1,7 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-
-type Payload = Record<string, unknown>;
+import { extraerConfirmacionGhl } from "@/lib/ghl-callback-payload";
 
 function autorizado(req: Request) {
   const secret = process.env.PULSE_CALLBACK_SECRET || "";
@@ -11,44 +10,13 @@ function autorizado(req: Request) {
     timingSafeEqual(Buffer.from(secret), Buffer.from(token));
 }
 
-function objeto(valor: unknown): Payload {
-  return valor !== null && typeof valor === "object" && !Array.isArray(valor)
-    ? valor as Payload
-    : {};
-}
-
-// La acción Webhook puede envolver sus CUSTOM DATA bajo customData.
-// Se conserva compatibilidad con el JSON plano y el nombre anterior consecutivo_1.
-function campo(payload: Payload, clave: string): string {
-  const fuentes = [objeto(payload.customData), objeto(payload.custom_data), payload];
-  for (const fuente of fuentes) {
-    const valor = fuente[clave];
-    if (typeof valor === "string" && valor.trim()) return valor.trim();
-    if (typeof valor === "number" && Number.isFinite(valor)) return String(valor);
-  }
-  return "";
-}
-
 export async function POST(req: Request) {
   if (!autorizado(req)) {
     return Response.json({ success: false, message: "No autorizado." }, { status: 401 });
   }
 
   try {
-    const body = objeto(await req.json());
-    const empresa = campo(body, "empresa_id");
-    const proyecto = campo(body, "proyecto_id");
-    const grupo = campo(body, "reserva_grupo");
-    const numero = campo(body, "numero") || campo(body, "consecutivo_1");
-    const estado = campo(body, "estado").toLowerCase();
-
-    const camposInvalidos = [
-      ...(!empresa ? ["empresa_id"] : []),
-      ...(!proyecto ? ["proyecto_id"] : []),
-      ...(!grupo ? ["reserva_grupo"] : []),
-      ...(!/^\d{4}$/.test(numero) ? ["numero"] : []),
-      ...(!["creada", "fallida"].includes(estado) ? ["estado"] : []),
-    ];
+    const { empresa, proyecto, grupo, numero, estado, camposInvalidos } = extraerConfirmacionGhl(await req.json());
 
     if (camposInvalidos.length) {
       // Solo se informan nombres de campos, nunca datos personales ni el token.

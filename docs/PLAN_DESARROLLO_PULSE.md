@@ -865,6 +865,15 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Pendiente:** realizar callback controlado desde GHL con boleta ficticia; si retorna 400 revisar nombres en `campos_invalidos`; si retorna 404 revisar correlación con `boletas` y existencia de reserva; si 200 comprobar `oportunidad_creada=true` y alerta correspondiente.
 - **Rollback:** revertir PR #41 sin alterar datos. Este checkpoint es exclusivamente documental y no autorregistra su propio commit.
 
+### Registro 2026-10-14 America/Bogota / M-031 — Regla estricta de no regresión para recepción GHL
+
+- **Solicitud:** convertir en **regla obligatoria permanente** la capacidad de los webhooks entrantes de GHL de recibir simultáneamente JSON plano y Custom Data, después de una regresión histórica que provocó respuestas `400 Datos inválidos`.
+- **Base:** `main` `37ce2f603a13fdbe72a819c6b7201359769304b3`; PR #41 ya había incorporado lectura de `customData`/`custom_data`, pero las pruebas eran principalmente estáticas.
+- **Alcance:** `AGENTS.md` establece la norma inmutable; `docs/ACTIVAR_RESERVAS_WEBHOOK_ALERTAS.md` documenta el contrato operativo; la extracción del payload se centraliza en `lib/ghl-callback-payload.ts` y el receptor `app/api/integraciones/oportunidades/confirmar/route.ts` la utiliza sin cambiar su URL ni su autorización. `tests/reservas-contract.test.mjs` ejecuta casos reales de parsing de JSON plano, `customData`, `custom_data`, `custom_fields`, campos mixtos, aliases, mayúsculas, campos ausentes y valores inválidos.
+- **Invariante de seguridad:** lectura flexible ≠ validación permisiva: preservar Bearer, cuatro dígitos, estados válidos, coincidencia de empresa/proyecto/grupo/número/canal, y diagnóstico sin datos sensibles. No cambiar SQL, secretos, flag V2 ni enviar eventos.
+- **Pruebas / publicación:** GitHub Actions debe pasar TypeScript, contrato ejecutable y PostgreSQL. Pendiente anotar PR/SHAs y status Vercel con evidencia real tras integrar. Las pruebas locales no confirman las peticiones GHL reales; seguir pendiente E2E controlado.
+- **Siguiente acción:** completar CI → fusionar a `main` → confirmar despliegue Production → prueba de callback con oportunidad real de prueba y `oportunidad_creada=true`.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:

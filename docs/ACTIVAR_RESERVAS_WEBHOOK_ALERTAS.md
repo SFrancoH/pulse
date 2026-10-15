@@ -20,6 +20,14 @@ No almacenar URLs de webhooks, tokens, secretos o datos de compradores en el rep
 
 > **Advertencia:** El flag V2 es global al despliegue, no por empresa. Activarlo en Production puede modificar simultáneamente todas las páginas de reserva de Oficina. Hacerlo únicamente tras confirmar integración y con ventana de prueba supervisada, con rollback disponible.
 
+## Compatibilidad permanente de entrada GHL — no regresión
+
+**Regla obligatoria para implementaciones futuras:** PULSE recibe confirmaciones tanto con JSON plano (`empresa_id`, `proyecto_id`, `reserva_grupo`, `numero`, `estado` en raíz) como con los mismos pares dentro de `customData` o `custom_data` y combinaciones parciales de ambas estructuras. Se admiten `custom_fields` y claves con prefijo literal como formatos de compatibilidad, sin que ello permita omitir los identificadores ni la autorización. El alias histórico `consecutivo_1` debe seguir aceptándose como `numero`; `Creada` y `creada` se interpretan como el mismo estado válido.
+
+No se debe reintroducir el error de asumir únicamente `body.numero` / `body.estado`. Los cambios futuros a la recepción se someten a las pruebas de **comportamiento real** `tests/reservas-contract.test.mjs` y a las instrucciones permanentes de `AGENTS.md`. El parser de esta ruta vive en `lib/ghl-callback-payload.ts`.
+
+**La lectura flexible no equivale a confiar en cualquier mensaje.** Se mantiene `Authorization: Bearer`, `numero` de exactamente cuatro dígitos, estados `creada`/`fallida`, correlación entre empresa/proyecto/reserva/número y los canales autorizados. `400` muestra solamente los nombres de campos inválidos; jamás devolver cuerpos completos, secretos ni PII. La URL de callback es fija y no depende del ID del proyecto.
+
 ## Dependencias obligatorias
 
 1. Hacer respaldo de Supabase y consultar el DDL real de `admin_users` (tipo/constraint de `role`), `empresas`, `boletas` y la función `eliminar_proyecto_pulse`. El repositorio carece del DDL completo de usuarios; **no es seguro ejecutar la migración sin esa revisión**.
