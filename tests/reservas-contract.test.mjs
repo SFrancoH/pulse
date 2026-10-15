@@ -69,3 +69,20 @@ test("la base de datos ofrece ver y copiar URL auténtica por boleta antes de ac
  assert.ok(ui.indexOf("Copiar boleta",ui.indexOf('const enlace = enlaceDeBoleta(b.comprobante_url)')) < ui.indexOf("Actualizar",ui.indexOf('const enlace = enlaceDeBoleta(b.comprobante_url)')));
  assert.doesNotMatch(ui,/PUBLIC_BOLETA_BASE_URL/);
 });
+
+// Receptor flexible para Webhook estándar: customData y JSON plano, sin relajar Bearer.
+test("el callback admite customData y diagnostica únicamente nombres de campos inválidos",()=>{
+ const callback=file("app/api/integraciones/oportunidades/confirmar/route.ts");
+ assert.match(callback,/objeto\(payload\.customData\)/);
+ assert.match(callback,/objeto\(payload\.custom_data\)/);
+ assert.match(callback,/const fuentes = \[.*payload\]/);
+ assert.match(callback,/campo\(body, "numero"\) \|\| campo\(body, "consecutivo_1"\)/);
+ assert.match(callback,/campo\(body, "estado"\)\.toLowerCase\(\)/);
+ assert.match(callback,/campos_invalidos: camposInvalidos/);
+ assert.match(callback,/\/\^\\d\{4\}\$\//);
+ assert.match(callback,/timingSafeEqual/);
+ assert.match(callback,/if \(!autorizado\(req\)\)/);
+ assert.match(callback,/\.eq\("reserva_grupo", grupo\)/);
+ assert.match(callback,/\.in\("canal", \["Oficina", "Creacion Manual"\]\)/);
+ assert.doesNotMatch(callback,/console\.log/);
+});

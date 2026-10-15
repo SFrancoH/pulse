@@ -845,6 +845,17 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Pendiente:** comprobar en Production (Base de datos → boleta con URL) que **Ver boleta** abre el comprobante correcto, **Copiar boleta** copia la URL y **Actualizar** sigue funcionando; repetir con una boleta sin URL.
 - **Rollback:** revertir PR #40 si se detecta regresión, sin operaciones de datos. Checkpoint puramente documental, sin autorregistro de su propio SHA.
 
+### Registro 2026-10-14 America/Bogota / M-030 — Compatibilidad del callback de GHL con customData
+
+- **Solicitud e incidente:** GHL confirma HTTP 401 resuelto tras añadir `Authorization: Bearer`, pero al enviar `POST /api/integraciones/oportunidades/confirmar` devuelve `400 Datos inválidos`, incluso con valores de prueba fijos. La solicitud real no ha sido capturada; **hipótesis fundada**: la acción Webhook estándar coloca pares personalizados en el objeto anidado `customData`, mientras el receptor exigía campos planos. Se consultó documentación pública de HighLevel sobre `customData`; no se certifica el formato exacto de esta ejecución.
+- **Base:** `main` `9f15651223eeff9919bee2e79a93b180792356d6`, sin modificar secretos, flag o esquemas.
+- **Cambio:** receptor mantiene validación previa `Authorization: Bearer`, acepta campos de `customData`, `custom_data` o JSON raíz; también `consecutivo_1` como alias de `numero`, y `Creada`/`Fallida` normalizados. Valida número exactamente de cuatro dígitos, estados permitidos, IDs obligatorios, y aplica el mismo filtro de empresa/proyecto/grupo/número/canal. `400` informa solo los nombres `campos_invalidos`, sin volcar datos personales ni secreto.
+- **Archivos:** `app/api/integraciones/oportunidades/confirmar/route.ts`, `tests/reservas-contract.test.mjs`, `docs/PLAN_DESARROLLO_PULSE.md`.
+- **Regresión y seguridad:** no cambia el endpoint, la autenticación, las tablas, el callback por cada boleta, los canales permitidos o `PULSE_RESERVAS_V2`. No genera ni reenvía eventos; no hay cambios SQL ni configuración externa.
+- **Pruebas previstas:** GitHub Actions `npx tsc --noEmit`, contratos `node --test tests/reservas-contract.test.mjs` y PostgreSQL; deben pasar antes de fusionar. **Prueba real pendiente:** ejecutar una confirmación con GHL en reserva ficticia y verificar `200`, o `404` con identificadores ficticios correctamente parseados; si vuelve `400`, revisar `campos_invalidos`.
+- **Rollback:** revertir el PR asociado, sin revertir datos.
+- **Siguiente acción:** fusionar con CI verde, comprobar Vercel Production por SHA, solicitar prueba controlada real y registrar resultado. No publicar ni solicitar secretos ni datos reales.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
