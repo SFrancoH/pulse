@@ -835,6 +835,16 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Rollback:** revertir el commit UI/API; ninguna modificación de datos.
 - **Siguiente acción:** aprobar pruebas automáticas, fusionar a `main`, verificar Vercel Production por SHA y probar manualmente una boleta de prueba.
 
+### Checkpoint 2026-10-14 / M-029 — PR #40 integrado y validado en main
+
+- **PR fusionado:** [#40 — Base de datos: Ver boleta y Copiar boleta antes de Actualizar](https://github.com/SFrancoH/pulse/pull/40).
+- **Commit funcional verificado en main:** `3c60afa8e1fae9eb3ff881ff7a6b98560ad2cd47`.
+- **Validaciones del PR y nuevo main:** jobs `typescript` y `postgres` finalizados en `success` para el commit de implementación `a3e2e534e568c11d178f5ed94ecd563ec1dae21e` y en `main` para el SHA fusionado.
+- **Despliegue Vercel:** estado GitHub de Vercel `success` para `3c60afa8e1fae9eb3ff881ff7a6b98560ad2cd47`; [despliegue correspondiente](https://vercel.com/soy-sebastian-franco-s-projects/pulse/HrkaGdqPgBGdYkQBF2E2xuhwh3mt). No se ha probado manualmente la UI en el dominio efectivo de Production.
+- **Sin cambios a V2 / secretos / BD:** único cambio de servidor es incluir `comprobante_url` en lectura autorizada; sin PATCH sobre esa columna y sin nuevas migraciones.
+- **Pendiente:** comprobar en Production (Base de datos → boleta con URL) que **Ver boleta** abre el comprobante correcto, **Copiar boleta** copia la URL y **Actualizar** sigue funcionando; repetir con una boleta sin URL.
+- **Rollback:** revertir PR #40 si se detecta regresión, sin operaciones de datos. Checkpoint puramente documental, sin autorregistro de su propio SHA.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
