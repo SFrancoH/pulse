@@ -174,7 +174,13 @@ test("ganadores se administran por empresa y conservan historiales anteriores",(
  assert.match(api,/\.eq\("empresa_id", empresaId\)/);
  assert.match(api,/numero ~|\^\\d\{4\}\$/);
  assert.match(reader,/from\("ganadores"\)/);
- assert.match(reader,/from\("pulse_ganadores_publicos"\)/);
+ assert.doesNotMatch(reader,/pulse_ganadores_publicos/);
+ assert.match(api,/from\("ganadores"\)/);
+ assert.doesNotMatch(api,/pulse_ganadores_publicos/);
+ const sql=file("supabase/production/20261015_01_sorteos_y_ganadores_publicos.sql");
+ assert.match(sql,/ADD COLUMN IF NOT EXISTS sorteos_config jsonb/);
+ assert.doesNotMatch(sql,/CREATE TABLE.*(?:pulse_ganadores_publicos|ganadores)/i);
+ assert.doesNotMatch(sql,/ALTER TABLE public.ganadores/i);
  assert.match(reader,/\.eq\("empresa_id", empresaId\)/);
  assert.match(file("app/admin/page.tsx"),/Agregar ganadores/);
  assert.match(file("app/admin/empresas/[empresaId]/ganadores/page.tsx"),/Enlace del flyer/);
