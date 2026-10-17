@@ -65,13 +65,15 @@ export function extraerActualizacionBoleta(body: unknown) {
   const numero = /^\d{1,4}$/.test(rawNumero) ? rawNumero.padStart(4, "0") : "";
   const estado = ESTADOS[campo(p, ["estado", "status", "etapa"]).toLowerCase()] || "";
   const valorRaw = campo(p, ["valor_pagado", "valor", "amount"]);
-  const valor_pagado = importeTotalCop(valorRaw);
+  // Liberar no es registrar un pago: no requiere importe, pero sí impide liberar
+  // con un importe distinto de cero. Los pagos normales exigen total explícito.
+  const valor_pagado = estado === "Disponible" && !valorRaw ? 0 : importeTotalCop(valorRaw);
   const campos_invalidos = [
     ...(!empresa_id ? ["empresa_id"] : []),
     ...(!proyecto_id ? ["proyecto_id"] : []),
     ...(!numero ? ["numero"] : []),
     ...(!estado ? ["estado"] : []),
-    ...(valor_pagado === null ? ["valor_pagado"] : []),
+    ...(valor_pagado === null || (estado === "Disponible" && valor_pagado !== 0) ? ["valor_pagado"] : []),
   ];
   return {
     empresa_id, proyecto_id, numero, estado, valor_pagado, campos_invalidos,
@@ -81,5 +83,31 @@ export function extraerActualizacionBoleta(body: unknown) {
     canal: campo(p, ["canal", "channel", "origen"]),
     metodo_pago: campo(p, ["metodo_pago", "metodo", "payment_method"]),
     comprobante_url: campo(p, ["comprobante_url", "comprobante", "receipt_url"]),
+  };
+}
+
+
+/** Solicitud GHL de numeros disponibles para un proyecto, compatible con CUSTOM DATA. */
+export function extraerSolicitudNumerosAleatorios(body: unknown) {
+  const p = objeto(body);
+  const empresa_id = campo(p, ["empresa_id", "empresaId"]);
+  const proyecto_id = campo(p, ["proyecto_id", "proyectoId"]);
+  const cantidadRaw = campo(p, ["cantidad"]);
+  const cantidad = cantidadRaw ? Number(cantidadRaw) : 150;
+  const formatoRaw = campo(p, ["formato"]).toLowerCase();
+  const formato = !formatoRaw || formatoRaw === "json" ? "json" :
+    formatoRaw === "texto" || formatoRaw === "text" ? "texto" : "";
+  const campos_invalidos = [
+    ...(!empresa_id ? ["empresa_id"] : []),
+    ...(!proyecto_id ? ["proyecto_id"] : []),
+    ...(!Number.isInteger(cantidad) || cantidad < 1 ? ["cantidad"] : []),
+    ...(!formato ? ["formato"] : []),
+  ];
+  return {
+    empresa_id,
+    proyecto_id,
+    cantidad: Number.isInteger(cantidad) ? Math.min(cantidad, 150) : 150,
+    formato,
+    campos_invalidos,
   };
 }
