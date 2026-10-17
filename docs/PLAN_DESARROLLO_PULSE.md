@@ -967,6 +967,16 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Pendiente:** probar GHL real (POST JSON con headers) y verificar IDs y boleta de prueba en Supabase; no hay E2E confirmado. No se requirió SQL, nuevas variables o activar Reservas V2.
 - **Checkpoint solo documental:** no autorregistrar el SHA de este commit.
 
+### Registro 2026-10-17 America/Bogota / M-035 — GET para consultar números desde GHL Custom Webhook
+
+- **Solicitud:** GHL utiliza Custom Webhook con EVENT `GET`, Headers manuales `Authorization: Bearer` y QUERY PARAMETERS `empresa_id`, `proyecto_id`, `cantidad=150`, pero el endpoint fijo estrenado en PR #45 solo admitía POST, causando fallo del workflow.
+- **Base:** `main` SHA `6f92da8744140396f85b22cf7b5efa5d4ed674d5`.
+- **Cambio mínimo:** agregar `GET` a `/api/integraciones/boletas/numeros-aleatorios` leyendo query parameters, reutilizando exactamente el servicio de lectura del `POST` original. Ambos exigen mismo Bearer privado, verifican correspondencia empresa/proyecto, devuelven hasta 150 números libres del pool Oficina y los campos previos `numeros`, `grupos`, `numeros_texto`. Se conserva POST intacto funcionalmente para backwards compatibility.
+- **Sin cambios:** liberar, actualizar pagos, reservar, callback, tablas SQL, claves y reglas GHL V2. No se altera dato alguno en Supabase mediante GET.
+- **Pruebas:** `tests/reservas-contract.test.mjs` con ejecución aislada de GET y POST, tokens, ausencia de IDs, filtro multitenant, cantidad límite, tres grupos, Cache-Control no-store; `npx tsc --noEmit` y CI PostgreSQL/TypeScript. Evidencia de CI y despliegue se agregará tras publicar.
+- **Archivos:** `app/api/integraciones/boletas/numeros-aleatorios/route.ts`, `tests/reservas-contract.test.mjs`, `AGENTS.md`, `docs/WEBHOOK_UNICO_ACTUALIZAR_BOLETAS_GHL.md`, este plan.
+- **Siguiente acción:** revisar CI, fusionar a `main` según autorización previa para esta integración, comprobar Vercel Production, probar GHL GET con mismos parámetros sin moverlos a BODY.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
