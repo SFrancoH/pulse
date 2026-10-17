@@ -946,6 +946,17 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Pendientes:** E2E real GHL→PULSE→Supabase para 1 boleta ficticia de nuevo proyecto, verificar `valor_pagado` y `updated_at`, identificar los demás workflows heredados, desactivarlos y activar interruptor. La publicación de Vercel no demuestra prueba de GHL.
 - **Checkpoint documental:** no autorregistrar el SHA de este commit; no cambia código, SQL, secretos ni flag V2.
 
+### Registro 2026-10-17 America/Bogota / M-034 — Dos acciones GHL con URL fija por empresa/proyecto
+
+- **Pedido del usuario:** convertir únicamente la consulta de 150 números aleatorios `/api/proyectos/{proyectoId}/numeros-aleatorios?cantidad=150` y la liberación mediante `/api/proyectos/{proyectoId}/actualizar-boleta` a URLs fijas, con IDs de empresa/proyecto en CUSTOM DATA, y publicar a `main`.
+- **Base revisada:** SHA `2211a97187e4d39a1093b99dbde22015a863e898`. El webhook fijo de pago `POST /api/integraciones/boletas/actualizar` ya existe (PR #44); no crear una tercera ruta nueva para liberar, sino ampliar la ruta con `estado=Disponible`. La consulta antigua GET conserva su formato y filtros de disponibilidad de Oficina.
+- **Funcional:** `POST /api/integraciones/boletas/numeros-aleatorios` recibe `empresa_id`, `proyecto_id`, `cantidad` opcional (150, máx. 150), `formato` opcional, Bearer ya existente; consulta proyectos con identidad de empresa y boletas con filtros de disponibilidad y vendedor; devuelve exactamente los campos y agrupación en 3 grupos de la API antigua. `estado=Disponible` en el `POST /api/integraciones/boletas/actualizar` existente permite liberar con `empresa_id`, `proyecto_id`, `numero` sin monto, pero prohíbe abonadas/pagadas, con valor abonado y vendedores asignados; elimina solo datos de ocupación e invalida `reserva_grupo`, conserva comprobante. Filtros de concurrencia en escritura; `409` para bloqueos.
+- **Fuera de alcance / preservado:** las rutas con proyecto en URL continúan sin alteración; reservas, confirmación de oportunidades, GHL Custom Values/secreto, Google Sheets antiguo, controles V2 y SQL intactos. La ruta fija de liberación no llama sincronizador externo no segmentado por proyecto. El legado de actualización sigue sin autenticación hasta confirmar transición.
+- **Archivos previstos:** `app/api/integraciones/boletas/numeros-aleatorios/route.ts`, `app/api/integraciones/boletas/actualizar/route.ts`, `lib/ghl-boleta-update-payload.ts`, `tests/reservas-contract.test.mjs`, `AGENTS.md`, `docs/WEBHOOK_UNICO_ACTUALIZAR_BOLETAS_GHL.md`, este plan.
+- **Validación:** ejecutar tests ejecutables con mocks y CI TypeScript/PostgreSQL en rama y `main`. No afirmar E2E GHL→Vercel→Supabase sin prueba real; no enviar mutaciones a datos productivos para probar. No hay SQL ni secretos nuevos.
+- **Riesgo/rollback:** mantiene la ruta antigua para migración controlada, riesgo de autenticación del legado pendiente; revertir solo código nuevo y documentación si es necesario, sin alterar datos.
+- **Siguiente acción:** integrar en `main` tras CI, observar despliegue Production real, configurar GHL (mismos Headers, solo URLs y CUSTOM DATA), confirmar E2E con boleta de prueba y consulta de 150 sin actividad de escritura.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
