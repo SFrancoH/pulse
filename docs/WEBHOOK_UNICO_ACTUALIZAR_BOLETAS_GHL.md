@@ -7,6 +7,14 @@ Todas las empresas y proyectos comparten el **mismo** endpoint:
 
 El ID del proyecto **no va en la URL**, sino en `proyecto_id`, junto con `empresa_id` y `numero` en CUSTOM DATA de GHL. No se crea una ruta por sorteo.
 
+## Dos usos de la URL fija
+
+**Liberar boleta (cancelar reserva sin pagos):** reutilizar `POST https://pulse-sand-omega.vercel.app/api/integraciones/boletas/actualizar` con `empresa_id`, `proyecto_id`, `numero` y `estado: Disponible`. No se necesita `valor_pagado`; si se incluye, debe ser `0`. PULSE desocupa nombre/teléfono/email, ciudad, valor abonado y vínculo de grupo de reserva, restablece el pool Oficina, conserva la URL individual de la boleta, y rechaza con `409` liberar una boleta Pagado/Abonado, con abonos o asignada a vendedor. La fecha `updated_at` la pone PULSE. No se llama al sincronizador heredado de Sheets (solo identifica número).
+
+**Consultar 150 números disponibles:** nuevo `POST https://pulse-sand-omega.vercel.app/api/integraciones/boletas/numeros-aleatorios`. Mismos headers de autenticación; enviar en CUSTOM DATA `empresa_id` y `proyecto_id`, opcionalmente `cantidad: 150` (por defecto 150; máximo 150) y `formato: json` o `texto`. Conserva respuesta del endpoint antiguo: `success`, `proyecto_id`, `cantidad_solicitada`, `cantidad_encontrada`, `numeros`, `grupos` (3 grupos) y `numeros_texto`. Filtra únicamente números disponibles, sin compradores ni pagos, del pool Oficina del proyecto de la empresa indicada. Sin autenticación: `401`; IDs faltantes: `400`; proyecto/empresa incorrectos: `404`. No modifica ninguna boleta.
+
+Las URLs antiguas con ID en la ruta siguen aceptándose por compatibilidad durante la transición; no se cambia `/api/proyectos/[proyectoId]/reservar-boleta` ni la confirmación de oportunidades. No se requieren nuevas variables o SQL.
+
 ## Configuración de la acción Webhook de GHL
 
 - **Method**: POST
@@ -17,7 +25,7 @@ El ID del proyecto **no va en la URL**, sino en `proyecto_id`, junto con `empres
   - `proyecto_id`: ID real del proyecto de la boleta. Si hay varios sorteos activos simultáneamente en la misma subcuenta de GHL, usar un **campo de la oportunidad** que almacene ese ID; no un Custom Value global que cambie al crear otro proyecto
   - `numero`: Opportunity → Custom Fields → Consecutivo
   - `estado`: `Abonado` o `Pagado` (se aceptan también `Debe`, `Disponible`, `No disponible`)
-  - `valor_pagado`: **total acumulado pagado** para esa boleta, NO el último abono ni el precio de la oportunidad si no representa los pagos. Se sobrescribe, no se suma; reenvíos con el mismo total son idempotentes a nivel valor.
+  - `valor_pagado`: **total acumulado pagado** para esa boleta, NO el último abono ni el precio de la oportunidad si no representa los pagos. Se sobrescribe, no se suma; reenvíos con el mismo total son idempotentes a nivel valor. **Excepción**: al liberar con `estado: Disponible`, este campo es opcional y se considera `0`.
   - Opcionales: `nombre_cliente`, `telefono_cliente`, `email_cliente`, `canal`, `metodo_pago`, `comprobante_url`.
 - Compatibilidad estricta: JSON plano, objetos `customData`, `custom_data`, `custom_fields`, claves prefijadas y mezclas, con el mismo comportamiento de entrada establecido por `AGENTS.md`.
 - El número acepta de uno a cuatro dígitos y se normaliza a cuatro. Se rechazan otros caracteres y números de más de cuatro dígitos.

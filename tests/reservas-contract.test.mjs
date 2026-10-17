@@ -192,7 +192,7 @@ const boletaSource = file("lib/ghl-boleta-update-payload.ts");
 const boletaJs = ts.transpileModule(boletaSource, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
-const { extraerActualizacionBoleta, importeTotalCop, validarBearerBoleta } = await import(
+const { extraerActualizacionBoleta, extraerSolicitudNumerosAleatorios, importeTotalCop, validarBearerBoleta } = await import(
   "data:text/javascript;base64," + Buffer.from(boletaJs).toString("base64")
 );
 test("GHL: ruta de saldo acepta JSON plano, customData, custom_data, mixed y claves prefijadas",()=>{
@@ -318,4 +318,219 @@ test("webhook heredado: mantiene compatibilidad hasta activar el interruptor de 
  const source=file("app/api/proyectos/[proyectoId]/actualizar-boleta/route.ts");
  assert.match(source,/PULSE_LEGACY_BOLETA_UPDATE_DISABLED/);
  assert.match(source,/status: 410/);
+});
+
+test("GHL: liberar admite pago omitido en Disponible y rechaza monto no cero",()=>{
+ const base={empresa_id:"empresa-a",proyecto_id:"sorteo-2026",numero:"0005",estado:"Disponible"};
+ for(const variant of [base,{customData:base},{custom_data:base},{custom_fields:base}]){
+  const actual=extraerActualizacionBoleta(variant);
+  assert.deepEqual(actual.campos_invalidos,[]);
+  assert.equal(actual.estado,"Disponible");
+  assert.equal(actual.valor_pagado,0);
+ }
+ const conAbono=extraerActualizacionBoleta({...base,valor_pagado:20000});
+ assert.deepEqual(conAbono.campos_invalidos,["valor_pagado"]);
+ assert.deepEqual(extraerActualizacionBoleta({...base,estado:"Abonado"}).campos_invalidos,["valor_pagado"]);
+});
+test("GHL: números aleatorios leen IDs y cantidad desde campos mixtos, máximos y errores",()=>{
+ const base={empresa_id:"empresa-a",proyecto_id:"sorteo-2026",cantidad:150};
+ const casos=[
+  base,{customData:base},{custom_data:base},{custom_fields:base},
+  {empresa_id:"empresa-a",customData:{proyecto_id:"sorteo-2026",cantidad:150}},
+  Object.fromEntries(Object.entries(base).map(([k,v])=>["customData."+k,v])),
+ ];
+ for(const caso of casos){
+  const r=extraerSolicitudNumerosAleatorios(caso);
+  assert.deepEqual(r.campos_invalidos,[]);
+  assert.deepEqual([r.empresa_id,r.proyecto_id,r.cantidad,r.formato],
+   ["empresa-a","sorteo-2026",150,"json"]);
+ }
+ assert.equal(extraerSolicitudNumerosAleatorios({...base,cantidad:999}).cantidad,150);
+ assert.equal(extraerSolicitudNumerosAleatorios({empresa_id:"empresa-a",proyecto_id:"sorteo-2026"}).cantidad,150);
+ assert.equal(extraerSolicitudNumerosAleatorios({...base,cantidad:3,formato:"texto"}).formato,"texto");
+ assert.deepEqual(extraerSolicitudNumerosAleatorios({}).campos_invalidos,["empresa_id","proyecto_id"]);
+ assert.deepEqual(extraerSolicitudNumerosAleatorios({...base,cantidad:0}).campos_invalidos,["cantidad"]);
+ assert.deepEqual(extraerSolicitudNumerosAleatorios({...base,cantidad:"-1"}).campos_invalidos,["cantidad"]);
+ assert.deepEqual(extraerSolicitudNumerosAleatorios({...base,cantidad:"abc"}).campos_invalidos,["cantidad"]);
+ assert.deepEqual(extraerSolicitudNumerosAleatorios({...base,formato:"invalido"}).campos_invalidos,["formato"]);
+});
+test("GHL: ruta fija consulta máximo 150 números libres de empresa y proyecto exactos",async()=>{
+ const secret="r".repeat(40);
+ const calls=[];
+ const rows=Array.from({length:180},(_,i)=>({
+  numero:String(i).padStart(4,"0"),
+  empresa_id:"empresa-a",proyecto_id:"proyecto-a",estado:"Disponible",
+  nombre_cliente:null,telefono_cliente:null,valor_pagado:0,
+  vendedor_nombre:"Oficina",vendedor_user_id:null,
+ }));
+ rows.push({numero:"9001",empresa_id:"otra",proyecto_id:"proyecto-a",estado:"Disponible",
+  nombre_cliente:null,telefono_cliente:null,valor_pagado:0,vendedor_nombre:"Oficina",vendedor_user_id:null});
+ rows.push({numero:"9002",empresa_id:"empresa-a",proyecto_id:"otro",estado:"Disponible",
+  nombre_cliente:null,telefono_cliente:null,valor_pagado:0,vendedor_nombre:"Oficina",vendedor_user_id:null});
+ rows.push({numero:"9003",empresa_id:"empresa-a",proyecto_id:"proyecto-a",estado:"Disponible",
+  nombre_cliente:"Comprador",telefono_cliente:null,valor_pagado:0,vendedor_nombre:"Oficina",vendedor_user_id:null});
+ rows.push({numero:"9004",empresa_id:"empresa-a",proyecto_id:"proyecto-a",estado:"Disponible",
+  nombre_cliente:null,telefono_cliente:null,valor_pagado:0,vendedor_nombre:"Vendedor",vendedor_user_id:"seller"});
+ const supabaseAdmin={
+  from(table){
+   const f=[],query={f,table};
+   return {
+    select(){return this;},
+    eq(key,value){f.push(["eq",key,value]);return this;},
+    is(key,value){f.push(["is",key,value]);return this;},
+    or(value){f.push(["or",value]);return this;},
+    order(){return this;},
+    limit(n){query.limit=n;return this;},
+    async maybeSingle(){
+     calls.push(query);
+     return {data: f.some(([op,key,val])=>op==="eq"&&key==="empresa_id"&&val==="empresa-a") &&
+             f.some(([op,key,val])=>op==="eq"&&key==="id"&&val==="proyecto-a")?{id:"proyecto-a"}:null,error:null};
+    },
+    then(resolve,reject){
+     calls.push(query);
+     const filtered=rows.filter(row=>f.every(([op,key,value])=>{
+      if(op==="eq")return row[key]===value;
+      if(op==="is")return row[key]===value;
+      if(op==="or")return row.nombre_cliente===null && row.telefono_cliente===null && row.valor_pagado===0;
+      return false;
+     }));
+     return Promise.resolve({data:filtered.slice(0,query.limit),error:null}).then(resolve,reject);
+    },
+   };
+  },
+ };
+ const code=ts.transpileModule(file("app/api/integraciones/boletas/numeros-aleatorios/route.ts"),{
+  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
+ }).outputText;
+ const ctx={
+  exports:{},process:{env:{PULSE_CALLBACK_SECRET:secret}},Response,URL,Math,
+  require(name){
+   if(name==="@/lib/supabase-admin")return {supabaseAdmin};
+   if(name==="@/lib/boleta-availability")return {BOLETA_LIBRE_FILTER:"and(...)"};
+   if(name==="@/lib/ghl-boleta-update-payload")return {extraerSolicitudNumerosAleatorios,validarBearerBoleta};
+   throw Error(name);
+  },
+ };
+ vm.runInNewContext(code,ctx,{timeout:3000});
+ const post=ctx.exports.POST;
+ async function enviar(data,secretHeader=secret){
+  const req=new Request("https://example.test/api/integraciones/boletas/numeros-aleatorios",{
+   method:"POST",headers:{"Content-Type":"application/json",Authorization:secretHeader?"Bearer "+secretHeader:""},
+   body:JSON.stringify({customData:data}),
+  });
+  const res=await post(req);
+  return {status:res.status,body:res.headers.get("content-type")?.startsWith("text/plain")?
+   await res.text():await res.json(),headers:res.headers};
+ }
+ const base={empresa_id:"empresa-a",proyecto_id:"proyecto-a",cantidad:150};
+ assert.equal((await enviar(base,"")).status,401);
+ assert.equal(calls.length,0);
+ const wrong=await enviar({...base,proyecto_id:"otro"});
+ assert.equal(wrong.status,404);
+ assert.equal(calls.length,1);
+ const out=await enviar(base);
+ assert.equal(out.status,200);
+ assert.equal(out.body.success,true);
+ assert.equal(out.body.proyecto_id,"proyecto-a");
+ assert.equal(out.body.cantidad_solicitada,150);
+ assert.equal(out.body.cantidad_encontrada,150);
+ assert.equal(out.body.numeros.length,150);
+ assert.equal(new Set(out.body.numeros).size,150);
+ assert.ok(out.body.numeros.every(x=>Number(x)<180));
+ assert.equal(out.body.grupos.length,3);
+ assert.ok(out.body.grupos.every(g=>g.length===50));
+ assert.equal(out.body.numeros_texto,out.body.grupos.map(g=>g.join(" - ")).join(" | "));
+ assert.equal(out.headers.get("cache-control"),"no-store");
+ assert.deepEqual(calls.at(-1).f.filter(([op])=>op==="eq"),[
+  ["eq","empresa_id","empresa-a"],["eq","proyecto_id","proyecto-a"],
+  ["eq","estado","Disponible"],["eq","vendedor_nombre","Oficina"],
+ ]);
+ assert.ok(calls.at(-1).f.some(([op,key])=>op==="is"&&key==="vendedor_user_id"));
+ const short=await enviar({...base,cantidad:7});
+ assert.equal(short.body.numeros.length,7);
+ const textResult=await enviar({...base,cantidad:3,formato:"texto"});
+ assert.equal(textResult.status,200);
+ assert.equal(typeof textResult.body,"string");
+ assert.equal(textResult.body.split("|").length,3);
+});
+test("GHL: liberación fija limpia ocupación, preserva comprobante y protege ventas",async()=>{
+ const secret="w".repeat(48);
+ const boleta={id:"b1",empresa_id:"empresa-a",proyecto_id:"proyecto-a",numero:"0005",
+  estado:"Debe",valor_pagado:0,vendedor_nombre:"Oficina",vendedor_user_id:null,
+  nombre_cliente:"Prueba",telefono_cliente:"3000000000",comprobante_url:"https://test/boleta/b1"};
+ const queries=[];
+ const supabaseAdmin={
+  from(table){
+   assert.equal(table,"boletas");
+   const query={f:[],updateData:null};
+   return {
+    select(){return this;},
+    eq(key,value){query.f.push(["eq",key,value]);return this;},
+    in(key,value){query.f.push(["in",key,value]);return this;},
+    or(value){query.f.push(["or",value]);return this;},
+    is(key,value){query.f.push(["is",key,value]);return this;},
+    update(value){query.updateData=value;return this;},
+    async maybeSingle(){
+     queries.push(query);
+     const eqMatch=query.f.filter(([op])=>op==="eq").every(([,key,value])=>boleta[key]===value);
+     if(!eqMatch)return {data:null,error:null};
+     if(query.updateData){
+      if(boleta.valor_pagado>0 || boleta.vendedor_user_id || ["Pagado","Abonado"].includes(boleta.estado))return {data:null,error:null};
+      Object.assign(boleta,query.updateData);
+     }
+     return {data:{...boleta},error:null};
+    },
+   };
+  },
+ };
+ const code=ts.transpileModule(file("app/api/integraciones/boletas/actualizar/route.ts"),{
+  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
+ }).outputText;
+ const ctx={
+  exports:{},process:{env:{PULSE_CALLBACK_SECRET:secret}},Response,Date,
+  require(name){
+   if(name==="@/lib/supabase-admin")return {supabaseAdmin};
+   if(name==="@/lib/ghl-boleta-update-payload")return {extraerActualizacionBoleta,validarBearerBoleta};
+   throw Error(name);
+  },
+ };
+ vm.runInNewContext(code,ctx,{timeout:3000});
+ const post=ctx.exports.POST;
+ async function enviar(data,auth=secret){
+  const req=new Request("https://test/api/integraciones/boletas/actualizar",{
+   method:"POST",headers:{"Content-Type":"application/json",Authorization:auth?"Bearer "+auth:""},
+   body:JSON.stringify({custom_data:data}),
+  });
+  const response=await post(req);
+  return {status:response.status,data:await response.json()};
+ }
+ const base={empresa_id:"empresa-a",proyecto_id:"proyecto-a",numero:"0005",estado:"Disponible"};
+ assert.equal((await enviar(base,"")).status,401);
+ assert.equal(queries.length,0);
+ const out=await enviar(base);
+ assert.equal(out.status,200);
+ assert.equal(out.data.success,true);
+ assert.equal(out.data.boleta.estado,"Disponible");
+ assert.equal(boleta.valor_pagado,0);
+ assert.equal(boleta.nombre_cliente,null);
+ assert.equal(boleta.telefono_cliente,null);
+ assert.equal(boleta.email_cliente,null);
+ assert.equal(boleta.vendedor_nombre,"Oficina");
+ assert.equal(boleta.comprobante_url,"https://test/boleta/b1");
+ assert.equal(queries.length,2);
+ assert.ok(queries[1].f.some(([op,key])=>op==="in"&&key==="estado"));
+ assert.ok(queries[1].f.some(([op,key])=>op==="is"&&key==="vendedor_user_id"));
+ const again=await enviar(base);
+ assert.equal(again.status,200);
+ boleta.estado="Pagado";boleta.valor_pagado=30000;
+ const paid=await enviar(base);
+ assert.equal(paid.status,409);
+ assert.equal(paid.data.code,"BOLETA_CON_ABONOS");
+ assert.equal(boleta.valor_pagado,30000);
+ boleta.estado="Debe";boleta.valor_pagado=0;boleta.vendedor_user_id="seller";
+ const seller=await enviar(base);
+ assert.equal(seller.status,409);
+ assert.equal(seller.data.code,"BOLETA_ASIGNADA_VENDEDOR");
+ const missing=await enviar({...base,proyecto_id:"otro"});
+ assert.equal(missing.status,404);
 });

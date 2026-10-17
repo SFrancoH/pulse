@@ -6,6 +6,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Pulse: plan de desarrollo y memoria operativa
 
+## Consulta aleatoria y liberación de boletas GHL — contrato 2026-10-17
+
+- `POST /api/integraciones/boletas/numeros-aleatorios`: URL fija, JSON/Custom Data con `empresa_id`, `proyecto_id` y `cantidad` opcional (150 por defecto, máximo 150). Exigir Bearer `PULSE_CALLBACK_SECRET`, correlación proyecto/empresa, y conservar la semántica exacta de aleatorios disponibles Oficina con `BOLETA_LIBRE_FILTER`, y el JSON `numeros`, `grupos`, `numeros_texto` (tres grupos) o formato texto. Nunca exponer números de otras empresas, ni números ocupados.
+- `POST /api/integraciones/boletas/actualizar` con `estado: Disponible`: liberar una reserva no abonada del proyecto especificado, sin exigir `valor_pagado`; si se envía, exigir cero. Borrar datos de ocupación y restablecer pool Oficina sin borrar `comprobante_url`, bloquear liberación de boletas pagadas/abonadas/con saldo o asignadas a vendedores, filtros de concurrencia en la escritura, y no sincronizar Sheets que carece de contexto de empresa/proyecto. Para estados distintos, conservar el contrato de pagos y validación del total.
+- Rutas heredadas `/api/proyectos/[proyectoId]/numeros-aleatorios` y `/api/proyectos/[proyectoId]/actualizar-boleta` continúan por compatibilidad, la segunda bajo interruptor de retiro; no cambiar rutas de reservas, callback de oportunidades ni activar V2. Mantener pruebas ejecutables de parsing, Bearer, aislamiento empresa/proyecto y guardas.
+- Ver `docs/WEBHOOK_UNICO_ACTUALIZAR_BOLETAS_GHL.md` y registro M-034 del plan.
+
 ## Regla de actualización de boletas desde GHL — URL fija
 
 - Endpoint actual para actualizar saldos: `POST /api/integraciones/boletas/actualizar`, **el ID del proyecto viaja en el cuerpo** como `proyecto_id`, siempre junto con `empresa_id` y `numero`. No generar URLs distintas por proyecto para esta integración.
