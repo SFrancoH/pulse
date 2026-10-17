@@ -604,7 +604,7 @@ test("GHL: GET números aleatorios usa query parameters y devuelve 150 con el co
  assert.equal(llamadas.length,1);
  const result=await sendGet(params);
  assert.equal(result.status,200);
- assert.match(result.headers.get("content-type"),/^text\\/plain/);
+ assert.match(result.headers.get("content-type"),/^text\/plain/);
  assert.equal(typeof result.data,"string");
  const bloques=result.data.split(" | ");
  assert.equal(bloques.length,3);
@@ -612,7 +612,7 @@ test("GHL: GET números aleatorios usa query parameters y devuelve 150 con el co
  const numeros=bloques.flatMap(b=>b.split(", "));
  assert.equal(numeros.length,150);
  assert.equal(new Set(numeros).size,150);
- assert.ok(numeros.every(n=>/^\\d{4}$/.test(n)));
+ assert.ok(numeros.every(n=>/^\d{4}$/.test(n)));
  assert.ok(!result.data.endsWith("|"));
  assert.ok(!result.data.includes(" - "));
  assert.ok(!result.data.includes("[object Object]"));
