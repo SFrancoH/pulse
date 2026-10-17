@@ -957,6 +957,16 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Riesgo/rollback:** mantiene la ruta antigua para migración controlada, riesgo de autenticación del legado pendiente; revertir solo código nuevo y documentación si es necesario, sin alterar datos.
 - **Siguiente acción:** integrar en `main` tras CI, observar despliegue Production real, configurar GHL (mismos Headers, solo URLs y CUSTOM DATA), confirmar E2E con boleta de prueba y consulta de 150 sin actividad de escritura.
 
+### Checkpoint 2026-10-17 America/Bogota / M-034 — Webhooks fijos integrados y desplegados
+
+- **PR #45:** https://github.com/SFrancoH/pulse/pull/45, aprobado y fusionado, implementación y documentación final SHA `416efbb01eb4cd92a2f5e04e6fa63655dbc5fb1d`. Merge en `main` SHA `ee370cc177333d1a99046b2ec362bcef4bfbe58c`.
+- **GitHub Actions:** run del PR `39057061531`, jobs `typescript=success`, `postgres=success`; run de main `39057145837`, ambos jobs `success`. Los tests ejecutan el parser real y ambos POST con mocks para permisos, aislamiento de empresa/proyecto, 150 números en tres grupos, liberación y rechazo de pagadas/abonadas/asignadas a vendedor. No usan datos reales.
+- **Vercel Production:** despliegue del SHA funcional `ee370cc177333d1a99046b2ec362bcef4bfbe58c` en estado `success`. https://vercel.com/soy-sebastian-franco-s-projects/pulse/3QyvMWu1q4EJRJMYLYaheRqhDWuM
+- **Contrato operativo:** consulta de hasta 150 con `POST /api/integraciones/boletas/numeros-aleatorios`; liberación sin pagos con `POST /api/integraciones/boletas/actualizar` y `estado=Disponible`; ambos con Bearer `PULSE_CALLBACK_SECRET` y `empresa_id`, `proyecto_id` en CUSTOM DATA, más `numero` para liberación. La reserva y confirmación de oportunidades no cambian.
+- **Limitación:** ruta nueva de liberación no sincroniza la Google Sheet histórica porque no identifica empresa/proyecto; la disponibilidad de PULSE/Supabase sí se actualiza. Los endpoints heredados continúan, el `actualizar-boleta` antiguo sigue sin Bearer hasta completar transición GHL; interruptor de cierre pendiente.
+- **Pendiente:** probar GHL real (POST JSON con headers) y verificar IDs y boleta de prueba en Supabase; no hay E2E confirmado. No se requirió SQL, nuevas variables o activar Reservas V2.
+- **Checkpoint solo documental:** no autorregistrar el SHA de este commit.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
