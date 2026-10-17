@@ -6,7 +6,7 @@ type Boleta = { numero: string };
 
 // GET: formato de consulta natural para GHL Custom Webhook con QUERY PARAMETERS.
 // POST: conserva compatibilidad con workflows ya configurados con CUSTOM DATA.
-// Ambos métodos exigen el mismo Bearer y entregan idéntico formato.
+// Ambos métodos requieren el mismo Bearer, pero GET devuelve texto por defecto y POST JSON.
 function noAutorizado() {
   return Response.json({ success: false, message: "No autorizado." }, { status: 401 });
 }
@@ -17,7 +17,10 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
-  return consultarNumeros(Object.fromEntries(url.searchParams.entries()));
+  const parametros = Object.fromEntries(url.searchParams.entries());
+  // Compatibilidad con JSON histórico cuando formato=json se solicita expresamente.
+  if (!url.searchParams.has("formato")) parametros.formato = "texto";
+  return consultarNumeros(parametros);
 }
 
 export async function POST(req: Request) {
@@ -84,9 +87,15 @@ async function consultarNumeros(body: unknown) {
     const grupos: string[][] = [[], [], []];
     numeros.forEach((numero, index) => grupos[index % 3].push(numero));
     const numeros_texto = grupos.map((grupo) => grupo.join(" - ")).join(" | ");
+    // Texto plano para GHL: bloques consecutivos de 50, separados por " | ".
+    const bloques: string[] = [];
+    for (let inicio = 0; inicio < numeros.length; inicio += 50) {
+      bloques.push(numeros.slice(inicio, inicio + 50).join(", "));
+    }
+    const textoPlano = bloques.join(" | ");
 
     if (formato === "texto") {
-      return new Response(numeros_texto, {
+      return new Response(textoPlano, {
         status: 200,
         headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
       });

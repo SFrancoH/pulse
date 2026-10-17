@@ -451,7 +451,8 @@ test("GHL: ruta fija consulta máximo 150 números libres de empresa y proyecto 
  const textResult=await enviar({...base,cantidad:3,formato:"texto"});
  assert.equal(textResult.status,200);
  assert.equal(typeof textResult.body,"string");
- assert.equal(textResult.body.split("|").length,3);
+ assert.equal(textResult.body.split("|").length,1);
+ assert.equal(textResult.body.split(", ").length,3);
 });
 test("GHL: liberación fija limpia ocupación, preserva comprobante y protege ventas",async()=>{
  const secret="w".repeat(48);
@@ -603,25 +604,41 @@ test("GHL: GET números aleatorios usa query parameters y devuelve 150 con el co
  assert.equal(llamadas.length,1);
  const result=await sendGet(params);
  assert.equal(result.status,200);
- assert.equal(result.data.success,true);
- assert.equal(result.data.proyecto_id,"sorteo-diciembre");
- assert.equal(result.data.cantidad_encontrada,150);
- assert.equal(result.data.numeros.length,150);
- assert.equal(result.data.grupos.length,3);
- assert.deepEqual(result.data.grupos.map(x=>x.length),[50,50,50]);
- assert.equal(result.data.numeros_texto,result.data.grupos.map(x=>x.join(" - ")).join(" | "));
+ assert.match(result.headers.get("content-type"),/^text\/plain/);
+ assert.equal(typeof result.data,"string");
+ const bloques=result.data.split(" | ");
+ assert.equal(bloques.length,3);
+ assert.ok(bloques.every(b=>b.split(", ").length===50));
+ const numeros=bloques.flatMap(b=>b.split(", "));
+ assert.equal(numeros.length,150);
+ assert.equal(new Set(numeros).size,150);
+ assert.ok(numeros.every(n=>/^\d{4}$/.test(n)));
+ assert.ok(!result.data.endsWith("|"));
+ assert.ok(!result.data.includes(" - "));
+ assert.ok(!result.data.includes("[object Object]"));
  assert.equal(result.headers.get("cache-control"),"no-store");
+ const rawJson=await sendGet(params+"&formato=json");
+ assert.equal(rawJson.status,200);
+ assert.equal(rawJson.data.success,true);
+ assert.equal(rawJson.data.proyecto_id,"sorteo-diciembre");
+ assert.equal(rawJson.data.cantidad_encontrada,150);
+ assert.equal(rawJson.data.numeros.length,150);
+ assert.deepEqual(rawJson.data.grupos.map(x=>x.length),[50,50,50]);
  assert.deepEqual(llamadas.at(-1).filters.filter(([op])=>op==="eq"),[
   ["eq","empresa_id","empresa-a"],["eq","proyecto_id","sorteo-diciembre"],
   ["eq","estado","Disponible"],["eq","vendedor_nombre","Oficina"],
  ]);
  assert.ok(llamadas.at(-1).filters.some(([op,field,value])=>op==="is"&&field==="vendedor_user_id"&&value===null));
  const clipped=await sendGet("empresa_id=empresa-a&proyecto_id=sorteo-diciembre&cantidad=300");
- assert.equal(clipped.data.numeros.length,150);
+ assert.equal(clipped.data.split(" | ").length,3);
+ assert.equal(clipped.data.split(", ").length,148);
  const tiny=await sendGet("empresa_id=empresa-a&proyecto_id=sorteo-diciembre&cantidad=2&formato=texto");
  assert.equal(tiny.status,200);
  assert.equal(typeof tiny.data,"string");
- assert.equal(tiny.data.split("|").length,3);
+ assert.equal(tiny.data.split("|").length,1);
+ assert.equal(tiny.data.split(", ").length,2);
+ const middle=await sendGet("empresa_id=empresa-a&proyecto_id=sorteo-diciembre&cantidad=60");
+ assert.deepEqual(middle.data.split(" | ").map(x=>x.split(", ").length),[50,10]);
  // POST sigue disponible, autenticado y con el mismo contrato JSON.
  const postReq=new Request(url,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+secret},
   body:JSON.stringify({customData:{empresa_id:"empresa-a",proyecto_id:"sorteo-diciembre",cantidad:150}})});
