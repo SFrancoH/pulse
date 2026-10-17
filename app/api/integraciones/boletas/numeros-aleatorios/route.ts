@@ -4,11 +4,25 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type Boleta = { numero: string };
 
-// URL fija para TODOS los sorteos: el proyecto se determina por CUSTOM DATA.
-// Se conserva el contrato anterior de grupos, numeros_texto y máximo 150.
+// GET: formato de consulta natural para GHL Custom Webhook con QUERY PARAMETERS.
+// POST: conserva compatibilidad con workflows ya configurados con CUSTOM DATA.
+// Ambos métodos exigen el mismo Bearer y entregan idéntico formato.
+function noAutorizado() {
+  return Response.json({ success: false, message: "No autorizado." }, { status: 401 });
+}
+
+export async function GET(req: Request) {
+  if (!validarBearerBoleta(req, process.env.PULSE_CALLBACK_SECRET || "")) {
+    return noAutorizado();
+  }
+
+  const url = new URL(req.url);
+  return consultarNumeros(Object.fromEntries(url.searchParams.entries()));
+}
+
 export async function POST(req: Request) {
   if (!validarBearerBoleta(req, process.env.PULSE_CALLBACK_SECRET || "")) {
-    return Response.json({ success: false, message: "No autorizado." }, { status: 401 });
+    return noAutorizado();
   }
 
   let body: unknown;
@@ -20,6 +34,10 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 
+  return consultarNumeros(body);
+}
+
+async function consultarNumeros(body: unknown) {
   const { empresa_id, proyecto_id, cantidad, formato, campos_invalidos } =
     extraerSolicitudNumerosAleatorios(body);
   if (campos_invalidos.length) {

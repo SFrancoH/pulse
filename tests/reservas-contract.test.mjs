@@ -534,3 +534,98 @@ test("GHL: liberación fija limpia ocupación, preserva comprobante y protege ve
  const missing=await enviar({...base,proyecto_id:"otro"});
  assert.equal(missing.status,404);
 });
+
+
+// Regresión GET: el Custom Webhook GHL solicita 150 números con query parameters,
+// sin cuerpo y con el mismo Authorization Bearer configurado en Headers.
+test("GHL: GET números aleatorios usa query parameters y devuelve 150 con el contrato POST",async()=>{
+ const secret="q".repeat(48);
+ const llamadas=[];
+ const proyecto={id:"sorteo-diciembre",empresa_id:"empresa-a"};
+ const disponibles=Array.from({length:175},(_,i)=>({numero:String(i).padStart(4,"0")}));
+ const supabaseAdmin={
+  from(table){
+   const q={table,filters:[]};
+   return {
+    select(){return this;},
+    eq(field,value){q.filters.push(["eq",field,value]);return this;},
+    is(field,value){q.filters.push(["is",field,value]);return this;},
+    or(filter){q.filters.push(["or",filter]);return this;},
+    order(){return this;},
+    limit(n){q.limit=n;return this;},
+    async maybeSingle(){
+     llamadas.push(q);
+     const ok=q.filters.some(([op,field,value])=>op==="eq"&&field==="empresa_id"&&value==="empresa-a")&&
+      q.filters.some(([op,field,value])=>op==="eq"&&field==="id"&&value==="sorteo-diciembre");
+     return {data:ok?proyecto:null,error:null};
+    },
+    then(resolve,reject){
+     llamadas.push(q);
+     const ok=q.filters.some(([op,field,value])=>op==="eq"&&field==="empresa_id"&&value==="empresa-a")&&
+      q.filters.some(([op,field,value])=>op==="eq"&&field==="proyecto_id"&&value==="sorteo-diciembre")&&
+      q.filters.some(([op,field,value])=>op==="eq"&&field==="estado"&&value==="Disponible");
+     return Promise.resolve({data:ok?disponibles:[],error:null}).then(resolve,reject);
+    },
+   };
+  },
+ };
+ const source=ts.transpileModule(file("app/api/integraciones/boletas/numeros-aleatorios/route.ts"),{
+  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
+ }).outputText;
+ const ctx={
+  exports:{},process:{env:{PULSE_CALLBACK_SECRET:secret}},Response,URL,Math,Object,
+  require(name){
+   if(name==="@/lib/supabase-admin")return {supabaseAdmin};
+   if(name==="@/lib/boleta-availability")return {BOLETA_LIBRE_FILTER:"and(...)"};
+   if(name==="@/lib/ghl-boleta-update-payload")return {extraerSolicitudNumerosAleatorios,validarBearerBoleta};
+   throw Error("Dependencia inesperada "+name);
+  },
+ };
+ vm.runInNewContext(source,ctx,{timeout:3000});
+ const {GET,POST}=ctx.exports;
+ const url="https://example.test/api/integraciones/boletas/numeros-aleatorios";
+ const params="empresa_id=empresa-a&proyecto_id=sorteo-diciembre&cantidad=150";
+ async function sendGet(qs,token=secret){
+  const req=new Request(url+"?"+qs,{headers:{Authorization:token?"Bearer "+token:""}});
+  const res=await GET(req);
+  const type=res.headers.get("content-type")||"";
+  return {status:res.status,headers:res.headers,data:type.includes("text/plain")?await res.text():await res.json()};
+ }
+ const unauth=await sendGet(params,"");
+ assert.equal(unauth.status,401);
+ assert.equal(llamadas.length,0);
+ const missing=await sendGet("proyecto_id=sorteo-diciembre&cantidad=150");
+ assert.equal(missing.status,400);
+ assert.deepEqual(missing.data.campos_invalidos,["empresa_id"]);
+ assert.equal(llamadas.length,0);
+ const cross=await sendGet("empresa_id=empresa-a&proyecto_id=otro&cantidad=150");
+ assert.equal(cross.status,404);
+ assert.equal(llamadas.length,1);
+ const result=await sendGet(params);
+ assert.equal(result.status,200);
+ assert.equal(result.data.success,true);
+ assert.equal(result.data.proyecto_id,"sorteo-diciembre");
+ assert.equal(result.data.cantidad_encontrada,150);
+ assert.equal(result.data.numeros.length,150);
+ assert.equal(result.data.grupos.length,3);
+ assert.deepEqual(result.data.grupos.map(x=>x.length),[50,50,50]);
+ assert.equal(result.data.numeros_texto,result.data.grupos.map(x=>x.join(" - ")).join(" | "));
+ assert.equal(result.headers.get("cache-control"),"no-store");
+ assert.deepEqual(llamadas.at(-1).filters.filter(([op])=>op==="eq"),[
+  ["eq","empresa_id","empresa-a"],["eq","proyecto_id","sorteo-diciembre"],
+  ["eq","estado","Disponible"],["eq","vendedor_nombre","Oficina"],
+ ]);
+ assert.ok(llamadas.at(-1).filters.some(([op,field,value])=>op==="is"&&field==="vendedor_user_id"&&value===null));
+ const clipped=await sendGet("empresa_id=empresa-a&proyecto_id=sorteo-diciembre&cantidad=300");
+ assert.equal(clipped.data.numeros.length,150);
+ const tiny=await sendGet("empresa_id=empresa-a&proyecto_id=sorteo-diciembre&cantidad=2&formato=texto");
+ assert.equal(tiny.status,200);
+ assert.equal(typeof tiny.data,"string");
+ assert.equal(tiny.data.split("|").length,3);
+ // POST sigue disponible, autenticado y con el mismo contrato JSON.
+ const postReq=new Request(url,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+secret},
+  body:JSON.stringify({customData:{empresa_id:"empresa-a",proyecto_id:"sorteo-diciembre",cantidad:150}})});
+ const postRes=await POST(postReq);
+ assert.equal(postRes.status,200);
+ assert.equal((await postRes.json()).numeros.length,150);
+});
