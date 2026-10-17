@@ -987,6 +987,17 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Siguiente acción:** usuario ejecuta acción GET de GHL y confirma `success:true` con `numeros`, `grupos`, `numeros_texto`; si falla, traer HTTP status/response sin credenciales.
 - **Checkpoint documental:** no autorregistra el SHA de este mismo commit.
 
+### Registro 2026-10-17 America/Bogota / M-036 — Texto plano para Split de GHL en números aleatorios
+
+- **Incidente:** GHL Custom Webhook GET de 150 números respondió HTTP 200 con el JSON que incluía numeros, grupos y numeros_texto. Al usar el objeto completo en Split por |, GHL guardó [object Object]. El usuario requiere una sola cadena separada por comas con | cada 50 números.
+- **Base:** main SHA 60fb0e11d057074f977e308f5defaacd9bf8fddc.
+- **Decisión:** GET sin formato devuelve text/plain; charset=utf-8; 150 números aleatorios máximo en grupos consecutivos de 50 unidos por coma y espacio; bloques unidos por barra vertical separada de espacios, sin barra final. Con 150 números devuelve exactamente 2 barras. GET con formato=json mantiene JSON histórico, POST sin formato mantiene JSON y CUSTOM DATA; formato=texto activa texto en ambos. Errores mantienen JSON y HTTP.
+- **Aislamiento:** no modificar filtros de disponibilidad, seguridad Bearer, proyecto/empresa, reservas, pagos, liberar ni callback. GHL debe pasar el campo data de la respuesta al Split, no el objeto padre que se convierte en [object Object].
+- **Archivos:** app/api/integraciones/boletas/numeros-aleatorios/route.ts, tests/reservas-contract.test.mjs, AGENTS.md, docs/WEBHOOK_UNICO_ACTUALIZAR_BOLETAS_GHL.md y este plan.
+- **Pruebas:** contrato de ejecución GET 150/60/2/300, Content-Type text/plain, cantidad de números y delimitadores, GET con formato=json, POST JSON, TypeScript y CI PostgreSQL.
+- **SQL/secrets:** no necesarios. Integración real GHL Split pendiente de confirmación por el usuario.
+- **Siguiente acción:** validar CI, fusionar en main con autorización previa, confirmar despliegue Production y hacer prueba con GHL.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
