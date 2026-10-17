@@ -977,6 +977,16 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **Archivos:** `app/api/integraciones/boletas/numeros-aleatorios/route.ts`, `tests/reservas-contract.test.mjs`, `AGENTS.md`, `docs/WEBHOOK_UNICO_ACTUALIZAR_BOLETAS_GHL.md`, este plan.
 - **Siguiente acción:** revisar CI, fusionar a `main` según autorización previa para esta integración, comprobar Vercel Production, probar GHL GET con mismos parámetros sin moverlos a BODY.
 
+### Checkpoint 2026-10-17 America/Bogota / M-035 — GET con Query Parameters en producción
+
+- **PR:** [#46](https://github.com/SFrancoH/pulse/pull/46) fusionado en `main`. Commit de implementación y pruebas `7d8c45b9869c800c0b88f32f2487de6b8b3fb72c`; merge `ead74dea5f20ccca4f1d8fe061a0b78435ffab72`.
+- **Pruebas:** Actions en rama run `39063430057`, `typescript=success`, `postgres=success`; Actions sobre SHA de merge `39063522463` con ambos jobs `success`. Tests ejecutables ejercitan GET/POST y las respuestas/filtros con mocks; no se accede a Supabase Production.
+- **Despliegue funcional:** Vercel Production status `success` asociado al merge, [deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/E7ofsSYm4NnzBkfy9rRMQZ4934Sg).
+- **Contrato:** `GET /api/integraciones/boletas/numeros-aleatorios?empresa_id=...&proyecto_id=...&cantidad=150` funciona con Bearer existente y sin body; POST anterior permanece con Custom Data. Misma selección Oficina, disponibilidad estricta, 3 grupos, hasta 150, Cache-Control no-store, y sin escrituras. GHL puede conservar EVENT GET, los tres QUERY PARAMETERS y Save response from this Webhook.
+- **Fuera de alcance:** no se modificaron liberar, pagos, reservas, callbacks, variables, SQL, banderas de integración ni Google Sheets. No se ha verificado GET real desde GHL hacia Supabase en producción.
+- **Siguiente acción:** usuario ejecuta acción GET de GHL y confirma `success:true` con `numeros`, `grupos`, `numeros_texto`; si falla, traer HTTP status/response sin credenciales.
+- **Checkpoint documental:** no autorregistra el SHA de este mismo commit.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
