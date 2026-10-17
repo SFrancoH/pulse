@@ -998,6 +998,15 @@ Perfiles: senior Next/Supabase 200–280 h; DBA/Postgres 32–48 h; AppSec 24–
 - **SQL/secrets:** no necesarios. Integración real GHL Split pendiente de confirmación por el usuario.
 - **Siguiente acción:** validar CI, fusionar en main con autorización previa, confirmar despliegue Production y hacer prueba con GHL.
 
+### Checkpoint 2026-10-17 America/Bogota / M-036 — GET de números en texto plano desplegado
+
+- **PR #47:** https://github.com/SFrancoH/pulse/pull/47 fusionado. Implementación y tests en rama: b434cce85723bc4cf4fadf01e9ec3dfad02956b3. Merge funcional en main: cf2a7ddb324ee5f9b23ec2536a3743f095673ee9.
+- **CI:** GitHub Actions rama run 39065296614, typescript=success, postgres=success; main run 39065352366, typescript=success, postgres=success. Los tests ejercitan GET/POST con Supabase ficticio, 150/60/2/300, 50 por bloque, 2 barras para 150, content-type text/plain y GET formato=json y POST JSON histórico.
+- **Vercel Production:** despliegue del SHA funcional cf2a7ddb324ee5f9b23ec2536a3743f095673ee9 confirmado success: https://vercel.com/soy-sebastian-franco-s-projects/pulse/AMBBwcHuhpEtiX2pfdLCijyWXVtE.
+- **Contrato:** GET fijo con query params y Authorization Bearer entrega directamente una cadena de números separados por coma y espacio y divididos cada 50 con barra vertical (solo dos barras cuando son 150). No hay campos JSON en respuesta 200. GET formato=json y POST por defecto conservan JSON. Los errores mantienen JSON. PULSE no escribe datos durante GET.
+- **E2E pendiente:** GHL debe recibir el cuerpo text/plain y utilizar el campo data, no el objeto envoltorio de Custom Webhook, antes de Split por barra. No se ha validado ejecución real de GHL post despliegue.
+- **Sin cambios:** SQL, reservas, pagos, liberar, otras URLs, tokens o secrets. Este checkpoint solo documental no autorregistra su SHA.
+
 ### Plantilla para la siguiente unidad
 
 Copiar, completar con datos reales y añadir una nueva entrada cronológica:
