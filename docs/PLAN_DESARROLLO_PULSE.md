@@ -1061,3 +1061,13 @@ Copiar, completar con datos reales y añadir una nueva entrada cronológica:
 - **GitHub Actions:** run [40942889056](https://github.com/SFrancoH/pulse/actions/runs/40942889056): `postgres=success` (incluye migración + smoke TB-01), `typescript=success` (incluye `npx tsc --noEmit` y contratos existentes). Validación en entorno ficticio de CI; no equivale a prueba E2E con datos reales.
 - **Bloqueo para publicar:** SQL TB-01 no instalado ni comprobado en Supabase Production. Ningún merge ni transferencia de boletas reales ejecutados en esta sesión.
 - **Siguiente acción:** instalar SQL de forma controlada, revisar PR, fusionar solo después de la confirmación del SQL y probar en proyecto de ensayo.
+
+### Checkpoint 2026-10-29 America/Bogota / M-037 — Integración y Production de Transferir Boletas
+
+- **Confirmación de operación manual:** el usuario indicó «ya las ejecuté» respecto de la migración SQL `supabase/production/20261029_01_transferir_boletas.sql`. Evidencia declarada por el usuario; no se ha comprobado independientemente el objeto RPC en la base real ni ejecutado transferencia productiva.
+- **PR #48:** fusionado en `main` con commit `69cecdc48fdedbeb89464f683159660861203f2c`; `main` corroborado en ese SHA.
+- **GitHub Actions sobre main:** run [40943740751](https://github.com/SFrancoH/pulse/actions/runs/40943740751): `typescript=success`, `postgres=success`; la migración y el smoke TB-01 se validaron en PostgreSQL ficticio.
+- **Vercel Production:** status `success` para `69cecdc48fdedbeb89464f683159660861203f2c`, [deployment 9NaNDfn1MuTDMgXxmtDNuZ9C9T6Q](https://vercel.com/soy-sebastian-franco-s-projects/pulse/9NaNDfn1MuTDMgXxmtDNuZ9C9T6Q).
+- **Comportamiento publicado:** el dashboard administrativo enlaza a la transferencia masiva y el endpoint ejecuta la RPC transaccional con validaciones de empresa/proyecto y estados. No se reporta prueba E2E contra Supabase real ni éxito operativo con boletas reales.
+- **Riesgos residuales:** verificar en producción con sesión administradora que la RPC esté instalada con firma correcta, leer conteos de vendedor y efectuar una transferencia de una boleta de ensayo; no convertir `Pagado`, `Abonado`, `Debe` o `No disponible` a disponible. La integración heredada de Sheet por número no se ejecuta desde esta ruta para evitar colisiones entre proyectos.
+- **Siguiente acción:** validación funcional autenticada, con datos controlados de prueba. Evitar transferir boletas comerciales para verificar el despliegue.
