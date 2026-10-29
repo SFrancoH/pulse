@@ -382,6 +382,11 @@ export default function AdminDashboardPage() {
                               Asignar vendedor
                             </Link>
                           )}
+                          {canManageProjects && (
+                            <Link href={`/admin/proyectos/${encodeURIComponent(proyecto.id)}/transferir-boletas`} className="rounded-2xl border border-[#1A1A1A] bg-white px-5 py-4 text-center text-lg font-semibold">
+                              Transferir Boletas
+                            </Link>
+                          )}
 
                           <a
                             href={proyecto.ventas_url}

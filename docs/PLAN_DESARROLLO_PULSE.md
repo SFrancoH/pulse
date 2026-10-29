@@ -1041,3 +1041,23 @@ Copiar, completar con datos reales y añadir una nueva entrada cronológica:
 **Al terminar:** actualizar estado y siguiente acción; registrar cambios, pruebas y commits reales; distinguir local/main/desplegado/verificado en producción; mantener trazabilidad de migraciones/reversión y la decisión de no usar Preview; añadir entrada sin borrar registros anteriores.
 
 **Fuera del plan inicial:** reescritura completa, Kubernetes, microservicio por módulo, SSO y base dedicada por tenant. Sólo añadirlos con una decisión registrada y evidencia de una necesidad que el diseño modular actual no pueda atender.
+
+### Registro 2026-10-29 America/Bogota / M-037 — TB-01 Transferir Boletas entre vendedores y Oficina
+
+- **Solicitud:** desde cada ficha de proyecto, botón «Transferir Boletas». Seleccionar vendedor de origen, todas las boletas / cantidad / boleta específica, filtros por Disponible, No disponible, Debe, Abonado y Pagado, y destino en Oficina u otro vendedor de la misma empresa.
+- **Base y rama:** main `f191834942f87a0c74231078080a95ba5b6c1a42`; `feat/transferir-boletas-masivo-20261029`. No se modifica main ni Supabase con la mera creación de esta rama.
+- **Decisión de integridad:** transferencia cambia solamente propietario, canal y fecha de actualización. **No convierte a Disponible** boletas No disponible / Debe / Abonado / Pagado ni borra reservas, clientes, saldos, comprobantes o fecha de pago; en Oficina solo son comprables las que ya están Disponibles. Esta restricción evita revender boletas ocupadas. No se llama al Google Sheet heredado porque su sincronizador usa solamente número y puede tocar otra empresa/proyecto.
+- **Operación transaccional:** SQL `20261029_01_transferir_boletas.sql` crea la RPC `transferir_boletas_pulse`, válida para service_role, con filtros de empresa/proyecto/actor/vendedor, selección determinista de cantidad por número ascendente, bloqueos de fila y abortar si no existe la cantidad exacta. Incluye auditoría en `pulse_transferencias_boletas` y mantiene el historial de `asignaciones_vendedores` al transferir a otro vendedor.
+- **Archivos:** `app/admin/page.tsx`, `app/admin/proyectos/[proyectoId]/transferir-boletas/page.tsx`, `app/api/proyectos/[proyectoId]/transferir-boletas/route.ts`, `supabase/production/20261029_01_transferir_boletas.sql`, `tests/transferir-boletas-db-smoke.sql`, `.github/workflows/validar-reservas.yml`, este plan.
+- **Pruebas planeadas:** TypeScript, contratos existentes, PostgreSQL en CI. Prueba ficticia cubre cantidad, todas, específica, asignaciones, multiempresa, estados pagados y auditoría. Resultado de CI aún pendiente al redactar este registro.
+- **Estado:** código en rama, pendiente revisión y CI. Migración no ejecutada en Supabase productivo; botón no debe publicarse antes de instalarla. No se han transferido boletas reales.
+- **Despliegue/verificación:** pendientes. No declarar implementado en producción sin SQL, merge, build de Production y prueba controlada.
+- **Rollback:** si se revierte código, la RPC y su tabla de auditoría no transfieren datos por sí mismas; no borrar la tabla/auditoría ni revertir boletas reales sin procedimiento explícito.
+- **Siguiente acción:** revisar checks del PR; instalar migración en el Supabase correcto, confirmar ejecución; fusionar el PR y verificar una transferencia controlada de datos no comerciales.
+
+### Checkpoint 2026-10-29 America/Bogota / M-037 — CI de TB-01 aprobada
+
+- **SHA comprobado:** `534d065b0b75fbadc304ab0e2be34600b46a32a0`; PR [#48](https://github.com/SFrancoH/pulse/pull/48).
+- **GitHub Actions:** run [40942889056](https://github.com/SFrancoH/pulse/actions/runs/40942889056): `postgres=success` (incluye migración + smoke TB-01), `typescript=success` (incluye `npx tsc --noEmit` y contratos existentes). Validación en entorno ficticio de CI; no equivale a prueba E2E con datos reales.
+- **Bloqueo para publicar:** SQL TB-01 no instalado ni comprobado en Supabase Production. Ningún merge ni transferencia de boletas reales ejecutados en esta sesión.
+- **Siguiente acción:** instalar SQL de forma controlada, revisar PR, fusionar solo después de la confirmación del SQL y probar en proyecto de ensayo.
