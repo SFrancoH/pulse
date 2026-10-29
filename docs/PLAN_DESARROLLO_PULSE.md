@@ -1054,3 +1054,10 @@ Copiar, completar con datos reales y añadir una nueva entrada cronológica:
 - **Despliegue/verificación:** pendientes. No declarar implementado en producción sin SQL, merge, build de Production y prueba controlada.
 - **Rollback:** si se revierte código, la RPC y su tabla de auditoría no transfieren datos por sí mismas; no borrar la tabla/auditoría ni revertir boletas reales sin procedimiento explícito.
 - **Siguiente acción:** revisar checks del PR; instalar migración en el Supabase correcto, confirmar ejecución; fusionar el PR y verificar una transferencia controlada de datos no comerciales.
+
+### Checkpoint 2026-10-29 America/Bogota / M-037 — CI de TB-01 aprobada
+
+- **SHA comprobado:** `534d065b0b75fbadc304ab0e2be34600b46a32a0`; PR [#48](https://github.com/SFrancoH/pulse/pull/48).
+- **GitHub Actions:** run [40942889056](https://github.com/SFrancoH/pulse/actions/runs/40942889056): `postgres=success` (incluye migración + smoke TB-01), `typescript=success` (incluye `npx tsc --noEmit` y contratos existentes). Validación en entorno ficticio de CI; no equivale a prueba E2E con datos reales.
+- **Bloqueo para publicar:** SQL TB-01 no instalado ni comprobado en Supabase Production. Ningún merge ni transferencia de boletas reales ejecutados en esta sesión.
+- **Siguiente acción:** instalar SQL de forma controlada, revisar PR, fusionar solo después de la confirmación del SQL y probar en proyecto de ensayo.
