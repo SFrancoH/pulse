@@ -1083,3 +1083,12 @@ Copiar, completar con datos reales y añadir una nueva entrada cronológica:
 - **Despliegue:** pendiente de confirmación por Vercel al redactar. La migración TB-01 ya fue declarada ejecutada por el usuario en M-037; esta unidad solo cambia UI.
 - **Rollback:** revertir el commit de UI sin modificar esquema ni saldos; las APIs siguen vigentes.
 - **Siguiente acción:** registrar SHA de `main` y resultados reales de CI/Vercel; comprobar la vista desde el botón conservado.
+
+### Checkpoint 2026-10-29 America/Bogota / M-038 — Vista unificada publicada en Production
+
+- **Commit funcional integrado directamente en `main`:** `9d9b8fccd5f8114aed14d94eb07916a115a93059` (no PR).
+- **CI sobre `main`:** GitHub Actions run [40950838695](https://github.com/SFrancoH/pulse/actions/runs/40950838695), `postgres=success` y `typescript=success` (incluye tests de rutas/UI y contratos existentes).
+- **Vercel Production:** status `success` del SHA funcional, [deployment D5cNtyY7hEFZYuwfp2eMT9DmTeuT](https://vercel.com/soy-sebastian-franco-s-projects/pulse/D5cNtyY7hEFZYuwfp2eMT9DmTeuT).
+- **Cambio publicado:** se conserva botón «Liberar / reasignar número» e interfaz individual como tarjeta superior; se incorpora la transferencia masiva como tarjeta inferior con estilo compartido. Se retira el enlace independiente «Transferir Boletas» y su ruta anterior redirige a la unificada.
+- **Sin migración adicional:** APIs, estados financieros, reservas y datos productivos sin cambios. No hay prueba E2E de transferencia real ni navegación autenticada que acredite el resultado en el navegador del usuario; solo CI y build.
+- **Siguiente acción:** comprobar visualmente con sesión administradora ambas tarjetas y, si procede, probar una boleta ficticia o de ensayo sin afectar ventas reales.
