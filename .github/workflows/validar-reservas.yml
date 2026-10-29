@@ -39,7 +39,7 @@ jobs:
       - name: Verificar tipos sin build ni despliegue
         run: npx tsc --noEmit
       - name: Verificar contratos locales
-        run: node --test tests/reservas-contract.test.mjs
+        run: node --test tests/reservas-contract.test.mjs tests/gestion-boletas-ui.test.mjs
   postgres:
     runs-on: ubuntu-latest
     permissions:

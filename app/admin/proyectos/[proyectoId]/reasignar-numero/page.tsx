@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import TransferirBoletasPanel from "@/components/TransferirBoletasPanel";
 import { FormEvent, use, useEffect, useState } from "react";
 
 type Props = {
@@ -205,14 +206,15 @@ export default function ReasignarNumeroPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-[#F2EDE4] px-4 py-10 text-[#1A1A1A]">
-      <section className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-white shadow-sm">
-        <div className="bg-[#1A1A1A] px-6 py-6 text-white">
+      <div className="mx-auto max-w-3xl space-y-6">
+        <header className="overflow-hidden rounded-3xl bg-[#1A1A1A] px-6 py-6 text-white shadow-sm">
           <p className="text-sm uppercase tracking-[3px] text-white/60">Administración de boletas</p>
-          <h1 className="mt-2 text-4xl font-bold">Liberar o reasignar número</h1>
+          <h1 className="mt-2 text-4xl font-bold">Administración de boletas</h1>
           <p className="mt-3 break-all text-sm text-white/70">Proyecto: {proyectoId}</p>
-        </div>
+        </header>
 
-        <div className="space-y-6 p-6">
+        <section className="space-y-6 rounded-3xl border border-[#E0D9CE] bg-white p-6 shadow-sm" aria-labelledby="reasignacion-individual-titulo">
+          <h2 id="reasignacion-individual-titulo" className="text-2xl font-bold">Liberar o reasignar número</h2>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-xl text-sm text-[#6F665C]">
               Busca cualquier número del proyecto y muévelo a Oficina o a otro vendedor activo. El estado, cliente y pagos se conservan sin cambios.
@@ -314,8 +316,10 @@ export default function ReasignarNumeroPage({ params }: Props) {
               </button>
             </div>
           )}
-        </div>
-      </section>
+        </section>
+
+        <TransferirBoletasPanel proyectoId={proyectoId} />
+      </div>
     </main>
   );
 }

@@ -1071,3 +1071,15 @@ Copiar, completar con datos reales y añadir una nueva entrada cronológica:
 - **Comportamiento publicado:** el dashboard administrativo enlaza a la transferencia masiva y el endpoint ejecuta la RPC transaccional con validaciones de empresa/proyecto y estados. No se reporta prueba E2E contra Supabase real ni éxito operativo con boletas reales.
 - **Riesgos residuales:** verificar en producción con sesión administradora que la RPC esté instalada con firma correcta, leer conteos de vendedor y efectuar una transferencia de una boleta de ensayo; no convertir `Pagado`, `Abonado`, `Debe` o `No disponible` a disponible. La integración heredada de Sheet por número no se ejecuta desde esta ruta para evitar colisiones entre proyectos.
 - **Siguiente acción:** validación funcional autenticada, con datos controlados de prueba. Evitar transferir boletas comerciales para verificar el despliegue.
+
+### Registro 2026-10-29 America/Bogota / M-038 — Unificación UI Liberar/reasignar y Transferir Boletas
+
+- **Solicitud:** conservar el botón existente «Liberar / reasignar número» en cada ficha de proyecto y retirar el botón independiente «Transferir Boletas».
+- **Base:** `main` `6eaccc87c9d4fd6d5c403df7f2629bf951917f45`. **Integración autorizada:** commit directo en `main` (sin PR).
+- **Interfaz:** una única ruta `/admin/proyectos/[proyectoId]/reasignar-numero` con dos tarjetas apiladas. Primera: búsqueda y reasignación individual sin cambios de negocio. Segunda: Transferir Boletas con origen, conteos, modalidades todas/cantidad/específica, cinco estados, destino y confirmación. Se conserva la estética del formulario individual (cabecera oscura, tarjetas blancas, borde beige, campos claros, acciones negras/naranjas).
+- **Compatibilidad:** la URL antigua `/admin/proyectos/[proyectoId]/transferir-boletas` redirige al formulario unificado. Las APIs de reasignación individual y transferencia masiva no se modifican. El botón original insertado por `AdminReassignButtonEnhancer` permanece intacto. No se ejecutan SQL ni operaciones sobre boletas.
+- **Archivos:** `app/admin/page.tsx`, `app/admin/proyectos/[proyectoId]/reasignar-numero/page.tsx`, `app/admin/proyectos/[proyectoId]/transferir-boletas/page.tsx`, `components/TransferirBoletasPanel.tsx`, `tests/gestion-boletas-ui.test.mjs`, `.github/workflows/validar-reservas.yml`, esta bitácora.
+- **Verificación prevista:** TypeScript, tests de contrato existentes, nuevos tests de integración de rutas/UI y CI PostgreSQL sobre `main`; comprobar status de Vercel Production y navegación autenticada. No se declara prueba manual E2E de boletas reales.
+- **Despliegue:** pendiente de confirmación por Vercel al redactar. La migración TB-01 ya fue declarada ejecutada por el usuario en M-037; esta unidad solo cambia UI.
+- **Rollback:** revertir el commit de UI sin modificar esquema ni saldos; las APIs siguen vigentes.
+- **Siguiente acción:** registrar SHA de `main` y resultados reales de CI/Vercel; comprobar la vista desde el botón conservado.
