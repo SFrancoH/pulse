@@ -19,6 +19,7 @@
 | Creación y última revisión de esta versión | Creado 2026-10-02; revisión documental 2026-10-13, zona horaria America/Bogota |
 | Último checkpoint de ejecución | 2026-10-04; DEL-01 activado en `10b0e326202ef8efd312617fa51f7ecac5dbdd0a`, Vercel Production success; botón/popup/API ya forman parte de `main` |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
+| Incidente de reservas en Oficina (2026-11-16) | M-039: retiro de Google Sheets verificado localmente, pendiente de publicación. Supabase sigue siendo la fuente de disponibilidad y estado. |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
 | Main de integración funcional verificado | `10b0e326202ef8efd312617fa51f7ecac5dbdd0a` para DEL-01; commits documentales posteriores se consultan en el historial del archivo |
@@ -303,14 +304,14 @@ El build exitoso, la integración y la verificación del dominio deben estar acr
 
 **Hallazgos:** F04, F07, F08, F14, F21 y configuración de F22. **Dependencia:** P05.
 
-- [ ] **P06-01 — Versionar el contrato de Sheets.** Enviar `empresa_id`, `proyecto_id`, número, estado/versión e ID del evento. Resolver destino y credencial desde configuración tenant, no desde un endpoint global ambiguo. Actualizar también Apps Script/hoja y confirmar compatibilidad; la corrección del payload sin receptor compatible no resuelve la colisión.
+- **P06-01 — Cancelada por decisión del 2026-11-16.** M-039 retira la integración de Sheets de Pulse en lugar de versionar su contrato.
 - [ ] **P06-02 — Crear outbox transaccional.** Persistir evento junto con el cambio de negocio. Worker con ack, reintentos/backoff, timeout, idempotencia, límite por tenant y cola de fallos. Evitar promesas sueltas o colas sólo en memoria de una función de Vercel. Evaluar la cola duradera disponible de Supabase antes de añadir infraestructura extra.
-- [ ] **P06-03 — Evitar sync bloqueante en requests.** Confirmar la operación cuando DB/evento estén persistidos; entregar luego a Sheets/GHL. Mostrar al operador un estado de integración real y alertar backlog/fallos, sin convertir un error remoto en pérdida del cambio de DB. Definir semántica si el negocio exige entrega externa antes de algún paso.
+- [ ] **P06-03 — Evitar sync bloqueante en requests.** Confirmar la operación cuando DB/evento estén persistidos; entregar luego a GHL. Mostrar al operador un estado de integración real y alertar backlog/fallos, sin convertir un error remoto en pérdida del cambio de DB. Definir semántica si el negocio exige entrega externa antes de algún paso.
 - [ ] **P06-04 — Reconciliar integraciones.** Aplicar versiones para no sobrescribir estado reciente con un evento viejo, replay controlado, reparación y comparación periódica por tenant/proyecto. Probar números iguales en dos empresas, caída del receptor y entrega duplicada/desordenada.
 - [ ] **P06-05 — Reducir PII en URLs del formulario.** Sustituir nombre/teléfono/ciudad en querystring por referencia opaca e intercambio autorizado cuando la integración lo permita. Si hay una restricción del formulario, documentar campos mínimos, TTL, redacción de logs y eliminación; no afirmar que el historial/referer queda protegido por ocultar visualmente el campo.
-- [ ] **P06-06 — Actualizar workflows legítimos y runbook.** Versionar mapeos de GHL, headers/capacidades, IDs de evento, formularios y destino de Sheets por empresa. Probar alta/reserva/abono/error/reintento y rollback del contrato de ambos extremos.
+- [ ] **P06-06 — Actualizar workflows legítimos y runbook.** Versionar mapeos de GHL, headers/capacidades, IDs de evento, y formularios por empresa. Probar alta/reserva/abono/error/reintento y rollback del contrato de ambos extremos.
 
-**Archivos principales:** `lib/google-sheets-sync.ts`, webhooks GHL, `components/ProyectoVentaReservaClient.tsx`, configuración de integraciones, migrations/outbox y worker. Registrar también versión/hash de Apps Script y de configuración externa si no hay commit Git.
+**Archivos principales:** webhooks GHL, `components/ProyectoVentaReservaClient.tsx`, configuración de integraciones, migrations/outbox y worker.
 
 **Salida:** una boleta de A nunca actualiza la fila de B; fallos remotos quedan pendientes/reintentables y el inventario no espera llamadas secuenciales por número.
 
@@ -345,7 +346,7 @@ El build exitoso, la integración y la verificación del dominio deben estar acr
 
 **Hallazgos:** F18, F22 y deuda de calidad. **Dependencia:** P08. Las pruebas críticas ya acompañaron a sus fases anteriores.
 
-- [ ] **P09-01 — Consolidar pruebas por riesgo.** Unitarias de invariantes/validación; integración con Postgres/RLS/transactions; contratos GHL/Sheets; E2E de login embebido, compra, asignación, recibo y admin; restore y jobs. Coverage se mide con herramienta real y se publica por SHA; los tests del harness de auditoría no se cuentan como coverage de producto.
+- [ ] **P09-01 — Consolidar pruebas por riesgo.** Unitarias de invariantes/validación; integración con Postgres/RLS/transactions; contratos GHL; E2E de login embebido, compra, asignación, recibo y admin; restore y jobs. Coverage se mide con herramienta real y se publica por SHA; los tests del harness de auditoría no se cuentan como coverage de producto.
 - [ ] **P09-02 — Reducir complejidad y duplicación.** Extraer casos de uso/repositorios y normalización compartida de las funciones de mayor riesgo: reasignación, venta/reserva, vendedores, asignación y GHL. Mantener comportamiento con regresiones; medir complejidad/clones con método declarado, sin perseguir una nota a costa de claridad.
 - [ ] **P09-03 — Logs, métricas y audit trail.** Registrar request/event ID, tenant, actor, operación, resultado, latencia y commit/deployment; redactar PII/secretos. Eventos financieros y cambios de permisos con trazabilidad completa. Elegir sink y retención; alertar mutación rechazada, pago anómalo, conflictos, fallos de sync, backlog y exportación abusiva.
 - [ ] **P09-04 — Configuración por empresa.** Sacar dominio, branding, proyecto comercial y destinos globales a configuración validada. Mantener la consulta de ganadores filtrada por empresa. Añadir runbooks de onboarding, roles, bootstrap, migración, incidentes, recuperación, integraciones y despliegue.
@@ -378,7 +379,7 @@ El build exitoso, la integración y la verificación del dominio deben estar acr
 | F05 Disponibilidad sólo por estado | P00, P05-01/02/07 | Corrección parcial integrada, Vercel success; comprobación de ventas pendiente |
 | F06 Exports anónimos y CPU/memoria | P01-05, P08-01/04 | Abierto |
 | F07 Operaciones compuestas sin transacción | P05-04/05/07, P06-02 | Abierto |
-| F08 Sheets sin namespace tenant | P06-01/04/06 | Abierto; efecto remoto no probado |
+| F08 Sheets sin namespace tenant | M-039 | Retiro verificado localmente, pendiente de publicación |
 | F09 Sesión sobrevive reset | P03-01/02 | Abierto |
 | F10 Falta de límites de abuso | P03-04/05, P08-04 | Abierto; WAF real por verificar |
 | F11 Dependencias/advisories | P02-02 | Abierto; árbol desplegado por verificar |
@@ -1092,3 +1093,12 @@ Copiar, completar con datos reales y añadir una nueva entrada cronológica:
 - **Cambio publicado:** se conserva botón «Liberar / reasignar número» e interfaz individual como tarjeta superior; se incorpora la transferencia masiva como tarjeta inferior con estilo compartido. Se retira el enlace independiente «Transferir Boletas» y su ruta anterior redirige a la unificada.
 - **Sin migración adicional:** APIs, estados financieros, reservas y datos productivos sin cambios. No hay prueba E2E de transferencia real ni navegación autenticada que acredite el resultado en el navegador del usuario; solo CI y build.
 - **Siguiente acción:** comprobar visualmente con sesión administradora ambas tarjetas y, si procede, probar una boleta ficticia o de ensayo sin afectar ventas reales.
+
+### Registro 2026-11-16 America/Bogota / M-039 — Retirar Google Sheets de Pulse
+
+- **Contexto y decisión:** Oficina reportó esperas en el formulario. Vercel registró cinco timeouts de 300 s en la ruta de reserva administrativa y uno en el listado público de Oficina. La sincronización antigua hacía llamadas secuenciales al Apps Script y se confirmó activa mediante logs. El usuario confirma que la hoja ya no se necesita y pide retirarla del código.
+- **Base y rama:** main `1a241e7cf60c503b78cd49f15ed9c106059586ef`; rama `fix/pulse-retirar-google-sheets`.
+- **Alcance:** eliminar el módulo y las esperas en apartados, confirmaciones, liberaciones, cambios de estado, reservas entrantes GHL y reasignaciones. Eliminar los metadatos y el aviso de una integración retirada en la reasignación. Mantener actualizaciones, estados, vencimiento, filtros, historiales y contratos GHL. No borrar ni modificar la hoja, Vercel env vars o datos en Supabase. No se requiere SQL ni cambiar el flag de reservas V2.
+- **Fuera de alcance:** temporizador y mensajes de error de confirmación, y separar la limpieza de reservas vencidas del listado público. Son cambios distintos.
+- **Verificación local:** `npx tsc --noEmit` correcto y `node --test tests/*.test.mjs` con 66 pruebas aprobadas, 0 fallidas y 13 omitidas al no tener sus bases locales optativas. Los nuevos casos ejecutan el flujo administrativo, liberación/listado público y confirmación V2 con fixtures. Sin referencias de sincronización en código de la aplicación. La instalación se completó sin modificar el lockfile histórico desalineado.
+- **Siguiente acción:** verificar CI del PR y el deployment efectivo al publicar. No reservar boletas comerciales para probar.

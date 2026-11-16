@@ -1,4 +1,3 @@
-import { sincronizarDisponibilidadGoogleSheet } from "@/lib/google-sheets-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PageProps = {
@@ -178,8 +177,6 @@ export async function POST(req: Request, { params }: PageProps) {
         { status: 404 }
       );
     }
-
-    await sincronizarDisponibilidadGoogleSheet(data.numero, data.estado);
 
     return Response.json({
       success: true,

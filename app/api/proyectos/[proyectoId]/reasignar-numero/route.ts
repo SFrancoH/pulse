@@ -1,4 +1,3 @@
-import { sincronizarDisponibilidadGoogleSheet } from "@/lib/google-sheets-sync";
 import { requireProjectManagerAccess } from "@/lib/require-admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -243,16 +242,6 @@ export async function POST(req: Request, { params }: PageProps) {
       }
     }
 
-    const estadoActual = String(boletaActualizada.estado || boleta.estado || "")
-      .trim()
-      .toLowerCase();
-    const estadoSheet =
-      destino === "oficina" && estadoActual === "disponible"
-        ? "Disponible"
-        : "No disponible";
-
-    const sync = await sincronizarDisponibilidadGoogleSheet(numero, estadoSheet);
-
     return Response.json({
       success: true,
       message: sinCambios
@@ -261,13 +250,6 @@ export async function POST(req: Request, { params }: PageProps) {
       updated: !sinCambios,
       anterior,
       boleta: boletaActualizada,
-      sheet_sync: {
-        success: sync.success,
-        skipped: sync.skipped || false,
-        warning: sync.success
-          ? null
-          : sync.message || sync.error || "La reasignación se guardó, pero no se pudo sincronizar Google Sheets.",
-      },
     });
   } catch (error: unknown) {
     return Response.json(
