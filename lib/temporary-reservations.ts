@@ -2,7 +2,6 @@ import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
 import "server-only";
 
 import { randomUUID } from "crypto";
-import { sincronizarDisponibilidadesGoogleSheet } from "@/lib/google-sheets-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const TEMPORARY_RESERVATION_MS = 60_000;
@@ -38,11 +37,6 @@ function numerosUnicos(values: unknown[]) {
 
 function canalAlLiberar(vendedorUserId: string | null | undefined) {
   return vendedorUserId ? "Vendedores" : "Oficina";
-}
-
-async function sincronizarOficina(scope: ReservationScope, numeros: string[], estado: string) {
-  if (scope.vendedorUserId || !numeros.length) return;
-  await sincronizarDisponibilidadesGoogleSheet(numeros.map((numero) => ({ numero, estado })));
 }
 
 export async function liberarReservasTemporalesExpiradas(scope: ReservationScope) {
@@ -89,7 +83,6 @@ export async function liberarReservasTemporalesExpiradas(scope: ReservationScope
     if (released?.numero) liberadas.push(released.numero);
   }
 
-  await sincronizarOficina(scope, liberadas, "Disponible");
   return liberadas;
 }
 
@@ -133,7 +126,6 @@ export async function retenerBoletasTemporales(
     else noDisponibles.push(numero);
   }
 
-  await sincronizarOficina(scope, reservadas, "No disponible");
   return { holdToken, expiresAt, reservadas, noDisponibles };
 }
 
@@ -173,7 +165,6 @@ export async function cancelarReservaTemporal(
     if (data?.numero) liberadas.push(data.numero);
   }
 
-  await sincronizarOficina(scope, liberadas, "Disponible");
   return liberadas;
 }
 
@@ -226,6 +217,5 @@ export async function confirmarReservaTemporal(
     if (data?.numero) confirmadas.push(data.numero);
   }
 
-  await sincronizarOficina(scope, confirmadas, "Debe");
   return { expired: false, confirmadas, liberadas: [] as string[] };
 }

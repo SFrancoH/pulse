@@ -1,5 +1,4 @@
 import { BOLETA_LIBRE_FILTER } from "@/lib/boleta-availability";
-import { sincronizarDisponibilidadesGoogleSheet } from "@/lib/google-sheets-sync";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
@@ -110,7 +109,7 @@ export async function POST(req: Request) {
       .in("numero", numerosUnicos)
       .in("estado", ["Disponible", "disponible"])
       .or(BOLETA_LIBRE_FILTER)
-      .select("id, numero");
+      .select("id");
 
     if (errorUpdate) throw errorUpdate;
 
@@ -131,13 +130,6 @@ export async function POST(req: Request) {
     }));
 
     await supabaseAdmin.from("movimientos_boletas").insert(movimientos);
-
-    await sincronizarDisponibilidadesGoogleSheet(
-      boletasActualizadas.map((boleta) => ({
-        numero: boleta.numero,
-        estado: "Debe",
-      }))
-    );
 
     return Response.json({
       success: true,

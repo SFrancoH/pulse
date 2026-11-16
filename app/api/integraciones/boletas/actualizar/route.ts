@@ -77,8 +77,6 @@ export async function POST(req: Request) {
       }
 
       // No modificar el comprobante_url: identifica a la boleta, no al comprador.
-      // No enviar la disponibilidad al Google Sheet heredado: solo identifica
-      // numero, sin empresa/proyecto, y podría liberar otro sorteo.
       const { data: liberada, error: liberarError } = await supabaseAdmin
         .from("boletas")
         .update({
@@ -133,9 +131,6 @@ export async function POST(req: Request) {
       }, { status: 404 });
     }
 
-    // Esta ruta no sincroniza Google Sheets: el sincronizador heredado solo
-    // recibe "numero" y podría afectar a otro sorteo con el mismo consecutivo.
-    // La actualización financiera queda confirmada en Supabase.
     return Response.json({
       success: true, message: "Boleta actualizada correctamente.",
       modo_valor: "total_acumulado", boleta: data,

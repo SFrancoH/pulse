@@ -33,11 +33,6 @@ type ApiResponse = {
   message?: string;
   vendedores?: Vendedor[];
   boleta?: Boleta;
-  sheet_sync?: {
-    success?: boolean;
-    skipped?: boolean;
-    warning?: string | null;
-  };
 };
 
 function normalizarNumero(valor: string) {
@@ -57,7 +52,6 @@ export default function ReasignarNumeroPage({ params }: Props) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [syncWarning, setSyncWarning] = useState("");
 
   useEffect(() => {
     cargarVendedores();
@@ -114,7 +108,6 @@ export default function ReasignarNumeroPage({ params }: Props) {
     setBuscando(true);
     setError("");
     setMensaje("");
-    setSyncWarning("");
     setBoleta(null);
 
     try {
@@ -164,7 +157,6 @@ export default function ReasignarNumeroPage({ params }: Props) {
     setGuardando(true);
     setError("");
     setMensaje("");
-    setSyncWarning("");
 
     try {
       const res = await fetch(`/api/proyectos/${proyectoId}/reasignar-numero`, {
@@ -186,11 +178,9 @@ export default function ReasignarNumeroPage({ params }: Props) {
       }
 
       const mensajeExito = data.message || "Número actualizado correctamente.";
-      const warning = data.sheet_sync?.warning || "";
 
       await buscar();
       setMensaje(mensajeExito);
-      setSyncWarning(warning);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo reasignar el número.");
     } finally {
@@ -233,12 +223,6 @@ export default function ReasignarNumeroPage({ params }: Props) {
           {mensaje && (
             <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
               {mensaje}
-            </div>
-          )}
-
-          {syncWarning && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              La reasignación quedó guardada, pero Google Sheets reportó: {syncWarning}
             </div>
           )}
 

@@ -250,7 +250,7 @@ Reglas:
 - [ ] Ninguna URL privada de webhook o secreto llega a frontend, GitHub público, salida de API ni logs.
 - [ ] Ningún texto de UI muestra el nombre de un proveedor técnico externo.
 - [ ] La alerta de nueva reserva/actualización sigue funcionando.
-- [ ] Los endpoints entrantes existentes, la sincronización de Google Sheets y las consultas por empresa/proyecto no tienen regresiones.
+- [ ] Los endpoints entrantes existentes y las consultas por empresa/proyecto no tienen regresiones.
 - [ ] Se prueban casos multiempresa, permisos por usuario, URLs incorrectas y responsabilidad pública no configurada.
 - [ ] Evidencia de validación local, commit, build Production y verificación en sitio anotadas por separado en la memoria.
 
