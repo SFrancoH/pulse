@@ -19,7 +19,7 @@
 | Creación y última revisión de esta versión | Creado 2026-10-02; revisión documental 2026-10-13, zona horaria America/Bogota |
 | Último checkpoint de ejecución | 2026-10-04; DEL-01 activado en `10b0e326202ef8efd312617fa51f7ecac5dbdd0a`, Vercel Production success; botón/popup/API ya forman parte de `main` |
 | Flujo de publicación | Local → main → Production → verificación; Preview no aplica |
-| Incidente de reservas en Oficina (2026-11-16) | M-039: retiro de Google Sheets verificado localmente, pendiente de publicación. Supabase sigue siendo la fuente de disponibilidad y estado. |
+| Incidente de reservas en Oficina (2026-11-16) | M-039: retiro de Google Sheets publicado en Production; prueba de reserva autenticada pendiente. Supabase sigue siendo la fuente de disponibilidad y estado. |
 | Fuente | Auditoría técnica integral de Pulse, 2026-10-02, 31 páginas; hallazgos F01–F22 |
 | Versión auditada | `23dfededd0bbb19bd9372e53cc04d594f50811ce` |
 | Main de integración funcional verificado | `10b0e326202ef8efd312617fa51f7ecac5dbdd0a` para DEL-01; commits documentales posteriores se consultan en el historial del archivo |
@@ -379,7 +379,7 @@ El build exitoso, la integración y la verificación del dominio deben estar acr
 | F05 Disponibilidad sólo por estado | P00, P05-01/02/07 | Corrección parcial integrada, Vercel success; comprobación de ventas pendiente |
 | F06 Exports anónimos y CPU/memoria | P01-05, P08-01/04 | Abierto |
 | F07 Operaciones compuestas sin transacción | P05-04/05/07, P06-02 | Abierto |
-| F08 Sheets sin namespace tenant | M-039 | Retiro verificado localmente, pendiente de publicación |
+| F08 Sheets sin namespace tenant | M-039 | Integración retirada en Production |
 | F09 Sesión sobrevive reset | P03-01/02 | Abierto |
 | F10 Falta de límites de abuso | P03-04/05, P08-04 | Abierto; WAF real por verificar |
 | F11 Dependencias/advisories | P02-02 | Abierto; árbol desplegado por verificar |
@@ -1102,3 +1102,11 @@ Copiar, completar con datos reales y añadir una nueva entrada cronológica:
 - **Fuera de alcance:** temporizador y mensajes de error de confirmación, y separar la limpieza de reservas vencidas del listado público. Son cambios distintos.
 - **Verificación local:** `npx tsc --noEmit` correcto y `node --test tests/*.test.mjs` con 66 pruebas aprobadas, 0 fallidas y 13 omitidas al no tener sus bases locales optativas. Los nuevos casos ejecutan el flujo administrativo, liberación/listado público y confirmación V2 con fixtures. Sin referencias de sincronización en código de la aplicación. La instalación se completó sin modificar el lockfile histórico desalineado.
 - **Siguiente acción:** verificar CI del PR y el deployment efectivo al publicar. No reservar boletas comerciales para probar.
+
+### Checkpoint 2026-11-16 America/Bogota / M-039 — Retiro de Google Sheets publicado
+
+- **Implementación y merge:** commit `fc8ed538325d6e1606ca2148b8327f92226fd95b`; [PR #49](https://github.com/SFrancoH/pulse/pull/49) fusionado en `main` como `a7bedb6d6cc8a5f63d3c0e362a16cb0936152b7d`. El árbol publicado coincide con el validado localmente.
+- **CI del PR:** [run 43935538452](https://github.com/SFrancoH/pulse/actions/runs/43935538452), jobs `typescript` y `postgres` exitosos.
+- **Vercel Production:** deployment `dpl_CWFeQjc7vRdkgyJonXh9jnqdFcPd`, READY y SHA de merge confirmado en `pulse-sand-omega.vercel.app`. [Deployment](https://vercel.com/soy-sebastian-franco-s-projects/pulse/CWFeQjc7vRdkgyJonXh9jnqdFcPd).
+- **Verificación productiva de solo lectura:** portada HTTP 200 y API de disponibilidad Oficina HTTP 200 con `success: true` sobre el proyecto histórico consultado. No se ejecutaron apartados ni ventas reales, por lo que el flujo de confirmación autenticado se acredita solo con fixtures. SQL, configuración externa, hoja y datos vigentes se mantuvieron intactos.
+- **Siguiente acción:** probar un apartado y su confirmación con una boleta de ensayo de Oficina, y medir el flujo operativo sin Google Sheets antes de atribuir otros retrasos. Los ajustes de contador y mensajes siguen fuera de M-039.
